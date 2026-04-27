@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Make Your Gift · Trinity Giving Days 2025</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:      #1C2D5E;
+  --navy-deep: #111d3f;
+  --gold:      #B8922A;
+  --gold-lt:   #D4AC4A;
+  --cream:     #FAFAF7;
+  --ink:       #1A1A1A;
+  --ink-mid:   #444444;
+  --ink-muted: #787878;
+  --border:    #D8D5CE;
+}
+
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; color: var(--ink); }
+
+/* ── Background ── */
+.page-bg {
+  min-height: 100vh;
+  background:
+    linear-gradient(to bottom, rgba(11,17,35,.72) 0%, rgba(11,17,35,.82) 100%),
+    /* swap with: url('/images/giving-days-bg.jpg') center/cover no-repeat */
+    linear-gradient(135deg, #0a1120 0%, #1a2748 40%, #243060 70%, #0f1d38 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 64px;
+}
+
+/* ── Nav strip ── */
+.back-bar {
+  width: 100%; max-width: 680px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px;
+}
+.back-link {
+  font-size: 13px; color: rgba(255,255,255,.6); text-decoration: none;
+  display: flex; align-items: center; gap: 6px; transition: color .15s;
+}
+.back-link:hover { color: #fff; }
+.back-link svg { width: 14px; height: 14px; }
+.nav-brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px; color: rgba(255,255,255,.85); font-weight: 600;
+  letter-spacing: .02em;
+}
+
+/* ── Card ── */
+.card {
+  width: 100%; max-width: 680px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 48px rgba(0,0,0,.35);
+}
+
+.card-header {
+  background: var(--navy-deep);
+  padding: 32px 40px 28px;
+  text-align: center;
+  border-bottom: 3px solid var(--gold);
+}
+.card-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px;
+}
+.card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; font-weight: 700; color: #fff; line-height: 1.2;
+  margin-bottom: 12px;
+}
+.card-desc {
+  font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.65;
+  max-width: 480px; margin: 0 auto;
+}
+
+.card-body { padding: 36px 40px 40px; }
+
+/* ── Section headings ── */
+.section-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--navy); margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 1px solid #E8E6E0;
+}
+
+/* ── Amount buttons ── */
+.amount-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-bottom: 12px;
+}
+.amt-btn {
+  padding: 11px 8px; border: 1.5px solid var(--border); border-radius: 5px;
+  background: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  color: var(--ink); cursor: pointer; transition: all .15s; text-align: center;
+}
+.amt-btn:hover { border-color: var(--navy); color: var(--navy); }
+.amt-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.custom-amt-wrap { margin-bottom: 24px; }
+.custom-prefix {
+  position: relative;
+}
+.custom-prefix::before {
+  content: '$';
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 16px; color: var(--ink-muted); pointer-events: none;
+}
+.custom-prefix input { padding-left: 28px; }
+
+/* ── Fields ── */
+.field-row { display: flex; gap: 14px; margin-bottom: 16px; }
+.field-row .field-group { flex: 1; }
+.field-group { margin-bottom: 16px; }
+.field-group:last-child { margin-bottom: 0; }
+label.field-lbl {
+  display: block; font-size: 12px; font-weight: 600; color: var(--ink-mid);
+  letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px;
+}
+.field-input, .field-select {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid var(--border); border-radius: 5px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--ink);
+  background: #fff; transition: border-color .15s; outline: none;
+  appearance: none;
+}
+.field-input:focus, .field-select:focus { border-color: var(--navy); }
+.field-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23787878' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* ── Fund options ── */
+.fund-grid { display: grid; gap: 8px; margin-bottom: 24px; }
+.fund-opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 5px;
+  cursor: pointer; transition: border-color .15s;
+}
+.fund-opt:hover { border-color: var(--navy); }
+.fund-opt input[type="radio"] { margin-top: 2px; accent-color: var(--navy); flex-shrink: 0; }
+.fund-opt-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.fund-opt-sub   { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+
+/* ── Affiliation checkboxes ── */
+.affil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.affil-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 5px;
+  cursor: pointer; transition: border-color .15s; font-size: 14px; font-weight: 500;
+}
+.affil-opt:hover { border-color: var(--navy); }
+.affil-opt input[type="checkbox"] { accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; }
+.affil-opt.checked { border-color: var(--navy); background: #F0F3FA; }
+.year-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.year-row .field-group { flex: 1; }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid #E8E6E0; margin: 24px 0; }
+
+/* ── Submit area ── */
+.submit-area { margin-top: 8px; }
+.security-note {
+  text-align: center; font-size: 12px; color: var(--ink-muted);
+  margin-top: 12px; line-height: 1.5;
+}
+.security-note strong { color: var(--ink-mid); }
+
+/* ── Checkout button container ── */
+#checkout-btn-container button,
+#checkout-btn-container [role="button"] {
+  width: 100% !important;
+}
+
+/* Thank you state */
+.thank-you { display: none; text-align: center; padding: 48px 24px; }
+.ty-mark {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--navy-deep); color: var(--gold);
+  font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+}
+.ty-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px; font-weight: 700; color: var(--navy); margin-bottom: 10px;
+}
+.ty-sub { font-size: 15px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 28px; }
+.ty-receipt {
+  background: #F7F5F0; border-radius: 6px; padding: 18px 24px;
+  text-align: left; margin-bottom: 24px;
+}
+.ty-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.ty-row + .ty-row { border-top: 1px solid #E8E6E0; }
+.ty-key { color: var(--ink-muted); }
+.ty-val { font-weight: 600; color: var(--ink); }
+.btn-return {
+  background: var(--navy); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  padding: 13px 28px; border-radius: 5px; border: none; cursor: pointer;
+  letter-spacing: .04em; transition: background .15s; text-decoration: none;
+  display: inline-block;
+}
+.btn-return:hover { background: var(--navy-deep); }
+</style>
+</head>
+<body>
+
+<div class="page-bg">
+
+  <div class="back-bar">
+    <a href="/" class="back-link">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M9 2L4 7l5 5"/>
+      </svg>
+      Back to Giving Days
+    </a>
+    <div class="nav-brand">Trinity School</div>
+  </div>
+
+  <div class="card">
+
+    <div class="card-header">
+      <div class="card-eyebrow">Trinity Giving Days 2025</div>
+      <div class="card-title">Make Your Gift to the Trinity Fund</div>
+      <div class="card-desc">Every gift — regardless of size — moves your class up the leaderboard and helps unlock challenge gifts from Trinity's most generous donors.</div>
+    </div>
+
+    <div class="card-body" id="form-body">
+
+      <!-- Amount -->
+      <div class="section-label">Gift Amount</div>
+      <div class="amount-grid">
+        <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
+        <button class="amt-btn" onclick="pickAmt(100,this)">$100</button>
+        <button class="amt-btn" onclick="pickAmt(250,this)">$250</button>
+        <button class="amt-btn" onclick="pickAmt(500,this)">$500</button>
+        <button class="amt-btn" onclick="pickAmt(1000,this)">$1,000</button>
+        <button class="amt-btn" onclick="pickAmt(2500,this)">$2,500</button>
+        <button class="amt-btn" onclick="pickAmt(5000,this)">$5,000</button>
+        <button class="amt-btn" onclick="showCustom(this)">Other</button>
+      </div>
+      <div class="custom-amt-wrap" id="custom-wrap" style="display:none">
+        <div class="custom-prefix">
+          <input class="field-input" id="custom-amt" type="number" min="1" placeholder="Enter amount" oninput="selAmt=parseInt(this.value)||null">
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Fund -->
+      <div class="section-label">Fund Designation</div>
+      <div class="fund-grid">
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Annual Fund" checked>
+          <div>
+            <div class="fund-opt-title">Annual Fund</div>
+            <div class="fund-opt-sub">Greatest impact across all programs</div>
+          </div>
+        </label>
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Financial Aid">
+          <div>
+            <div class="fund-opt-title">Financial Aid</div>
+            <div class="fund-opt-sub">Ensure every qualified student can attend</div>
+          </div>
+        </label>
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Arts & Athletics">
+          <div>
+            <div class="fund-opt-title">Arts &amp; Athletics</div>
+            <div class="fund-opt-sub">Enrich student life beyond the classroom</div>
+          </div>
+        </label>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Donor info -->
+      <div class="section-label">Your Information</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-lbl" for="first-name">First name *</label>
+          <input class="field-input" id="first-name" type="text" autocomplete="given-name" placeholder="First">
+        </div>
+        <div class="field-group">
+          <label class="field-lbl" for="last-name">Last name *</label>
+          <input class="field-input" id="last-name" type="text" autocomplete="family-name" placeholder="Last">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-lbl" for="email">Email address *</label>
+        <input class="field-input" id="email" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+
+      <hr class="divider">
+
+      <!-- Affiliation -->
+      <div class="section-label">Your Connection to Trinity</div>
+      <div class="affil-grid">
+        <label class="affil-opt" id="opt-alumni" onclick="toggleAffil('alumni',this)">
+          <input type="checkbox" id="chk-alumni"> Alumni
+        </label>
+        <label class="affil-opt" id="opt-parents" onclick="toggleAffil('parents',this)">
+          <input type="checkbox" id="chk-parents"> Current Parent
+        </label>
+        <label class="affil-opt" id="opt-faculty" onclick="toggleAffil('faculty',this)">
+          <input type="checkbox" id="chk-faculty"> Faculty / Staff
+        </label>
+        <label class="affil-opt" id="opt-friend" onclick="toggleAffil('friend',this)">
+          <input type="checkbox" id="chk-friend"> Friend of Trinity
+        </label>
+      </div>
+
+      <div id="alumni-year-wrap" style="display:none" class="year-row">
+        <div class="field-group">
+          <label class="field-lbl">Graduation year</label>
+          <select class="field-select" id="alumni-year">
+            <option value="">Select year&hellip;</option>
+          </select>
+        </div>
+      </div>
+      <div id="parent-year-wrap" style="display:none" class="year-row">
+        <div class="field-group">
+          <label class="field-lbl">Child's graduation year</label>
+          <select class="field-select" id="parent-year">
+            <option value="">Select year&hellip;</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Submit -->
+      <div class="submit-area">
+        <button type="button" id="submit-btn" style="width:100%;padding:15px;font-size:16px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;background:var(--navy);color:#fff;border:1.5px solid var(--navy);border-radius:5px;cursor:pointer;transition:background .15s;" onclick="submitGift()">
+          Complete Gift
+        </button>
+        <div class="security-note">
+          <strong>Secured by Blackbaud Merchant Services.</strong> Trinity never stores your card data.
+        </div>
+      </div>
+
+    </div><!-- /card-body -->
+
+    <!-- Thank you state -->
+    <div class="thank-you" id="thank-you">
+      <div class="ty-mark">T</div>
+      <div class="ty-title">Thank you.</div>
+      <div class="ty-sub">Your gift has been processed and credited to your class on the leaderboard.</div>
+      <div class="ty-receipt">
+        <div class="ty-row"><span class="ty-key">Amount</span><span class="ty-val" id="ty-amt"></span></div>
+        <div class="ty-row"><span class="ty-key">Fund</span><span class="ty-val" id="ty-fund"></span></div>
+        <div class="ty-row"><span class="ty-key">Credited to</span><span class="ty-val" id="ty-class"></span></div>
+      </div>
+      <a href="/" class="btn-return">Back to Giving Days</a>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /page-bg -->
+
+<script>
+var selAmt = null;
+var affilAlumni  = false;
+var affilParents = false;
+var affilFaculty = false;
+var affilFriend  = false;
+var checkoutService = null;
+var checkoutReady   = false;
+
+// ── Amount buttons ──────────────────────────────────────────────────────────
+function pickAmt(amt, btn) {
+  selAmt = amt;
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('custom-wrap').style.display = 'none';
+  document.getElementById('custom-amt').value = '';
+  if (checkoutService) checkoutService.baseAmount = amt * 100;
+}
+function showCustom(btn) {
+  selAmt = null;
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('custom-wrap').style.display = 'block';
+  document.getElementById('custom-amt').focus();
+}
+
+// ── Affiliation ─────────────────────────────────────────────────────────────
+function toggleAffil(type, label) {
+  var map = { alumni: 'affilAlumni', parents: 'affilParents', faculty: 'affilFaculty', friend: 'affilFriend' };
+  window[map[type]] = !window[map[type]];
+  label.classList.toggle('checked', window[map[type]]);
+  document.getElementById('chk-' + type).checked = window[map[type]];
+
+  document.getElementById('alumni-year-wrap').style.display = affilAlumni  ? 'flex' : 'none';
+  document.getElementById('parent-year-wrap').style.display = affilParents ? 'flex' : 'none';
+}
+
+// ── Populate year dropdowns ─────────────────────────────────────────────────
+(function() {
+  var alumSel = document.getElementById('alumni-year');
+  for (var y = 2025; y >= 1940; y--) {
+    var o = document.createElement('option'); o.value = y; o.textContent = y; alumSel.appendChild(o);
+  }
+  var parSel = document.getElementById('parent-year');
+  for (var y = 2026; y <= 2037; y++) {
+    var o = document.createElement('option'); o.value = y; o.textContent = y; parSel.appendChild(o);
+  }
+})();
+
+// ── Class label for thank you ───────────────────────────────────────────────
+function classLabel() {
+  if (affilAlumni)  { var y = document.getElementById('alumni-year').value; return y ? 'Class of ' + y : 'Alumni'; }
+  if (affilParents) { var y = document.getElementById('parent-year').value; return y ? "Class of '" + String(y).slice(-2) + ' Parents' : 'Current Parent'; }
+  if (affilFaculty) return 'Faculty / Staff';
+  if (affilFriend)  return 'Friend of Trinity';
+  return 'Trinity Community';
+}
+
+// ── Validate & submit ───────────────────────────────────────────────────────
+function submitGift() {
+  var amt = selAmt || (parseInt(document.getElementById('custom-amt').value) || null);
+  if (!amt || amt < 1) { alert('Please select or enter a gift amount.'); return; }
+
+  var first = document.getElementById('first-name').value.trim();
+  var last  = document.getElementById('last-name').value.trim();
+  var email = document.getElementById('email').value.trim();
+  if (!first || !last)         { alert('Please enter your first and last name.'); return; }
+  if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+
+  if (!affilAlumni && !affilParents && !affilFaculty && !affilFriend) {
+    alert('Please select your connection to Trinity.'); return;
+  }
+
+  selAmt = amt;
+
+  if (!checkoutService) { alert('Payment service not loaded. Please refresh and try again.'); return; }
+
+  // Set amount and billing, then open the Blackbaud payment modal
+  checkoutService.baseAmount = amt * 100;
+  checkoutService.billingDetails = { name: first + ' ' + last, emailAddress: email };
+
+  if (!checkoutReady) {
+    alert('Payment system is still loading. Please try again in a moment.');
+    return;
+  }
+  checkoutService.checkoutModal.openPaymentForm({ baseAmount: amt * 100 });
+}
+
+// ── Checkout complete ───────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  if (typeof window.BlackbaudCheckout !== 'function') {
+    console.warn('BlackbaudCheckout script did not load.');
+    return;
+  }
+
+  checkoutService = window.BlackbaudCheckout({
+    paymentConfigurationId: 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969', // TEST — DOES NOT CHARGE
+    workflowMode: 'modal',
+    primaryColor: '#1C2D5E',
+    fontFamily: 'DM Sans, sans-serif',
+    fontColor: '#1A1A1A',
+  });
+
+  checkoutService.checkoutReady.subscribe(function() {
+    checkoutReady = true;
+    console.log('Blackbaud checkout ready.');
+  });
+
+  checkoutService.checkoutComplete.subscribe(function(e) {
+    if (!e.success) return;
+
+    var amt  = selAmt;
+    var fund = (document.querySelector('input[name="fund"]:checked') || {}).value || 'Annual Fund';
+    var cls  = classLabel();
+
+    document.getElementById('ty-amt').textContent   = '$' + amt.toLocaleString();
+    document.getElementById('ty-fund').textContent  = fund;
+    document.getElementById('ty-class').textContent = cls;
+    document.getElementById('form-body').style.display  = 'none';
+    document.getElementById('thank-you').style.display  = 'block';
+
+    // POST to server for gift record
+    fetch('/api/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_id: e.id,
+        total:          e.total,
+        affiliation:    affilAlumni ? 'alumni' : affilParents ? 'parents' : affilFaculty ? 'faculty' : 'friend',
+        year:           affilAlumni ? document.getElementById('alumni-year').value : affilParents ? document.getElementById('parent-year').value : null,
+        fund:           fund,
+      }),
+    }).catch(function(err) { console.error('Capture error:', err); });
+  });
+});
+</script>
+
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+</body>
+</html>

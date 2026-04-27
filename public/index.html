@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trinity Giving Days 2025</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:      #1C2D5E;
+  --navy-deep: #111d3f;
+  --navy-mid:  #243872;
+  --gold:      #B8922A;
+  --gold-lt:   #D4AC4A;
+  --gold-pale: #F7F0DC;
+  --cream:     #FAFAF7;
+  --white:     #FFFFFF;
+  --ink:       #1A1A1A;
+  --ink-mid:   #444444;
+  --ink-muted: #787878;
+  --border:    #E4E2DC;
+  --border-lt: #F0EEE8;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); line-height: 1.5; }
+
+/* ─────────────────────────────────────────────
+   NAV
+───────────────────────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--navy-deep);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.nav-inner {
+  max-width: 1140px; margin: 0 auto; padding: 0 32px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-crest {
+  width: 32px; height: 36px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cpath d='M16 1L2 7v12c0 9 6 16.5 14 18 8-1.5 14-9 14-18V7L16 1z' fill='%23243872' stroke='%23B8922A' stroke-width='1.5'/%3E%3Cline x1='16' y1='9' x2='16' y2='27' stroke='%23B8922A' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='9' y1='16' x2='23' y2='16' stroke='%23B8922A' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.nav-name { font-family: 'Playfair Display', serif; font-size: 15px; color: #fff; font-weight: 600; letter-spacing: .02em; }
+.nav-sub  { font-size: 10px; color: rgba(255,255,255,.4); letter-spacing: .08em; text-transform: uppercase; margin-top: 1px; }
+.nav-event {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px; color: rgba(255,255,255,.7); font-style: italic; letter-spacing: .02em;
+}
+.nav-right { display: flex; align-items: center; gap: 20px; }
+.nav-timer { font-family: 'DM Sans', sans-serif; font-size: 12px; color: rgba(255,255,255,.45); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.btn-nav {
+  background: var(--gold); color: var(--navy-deep);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 8px 18px; border-radius: 4px; border: none; cursor: pointer;
+  letter-spacing: .06em; text-transform: uppercase; transition: background .15s;
+}
+.btn-nav:hover { background: var(--gold-lt); }
+
+/* ─────────────────────────────────────────────
+   HERO
+───────────────────────────────────────────── */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--navy-deep);
+  min-height: 480px; display: flex; flex-direction: column;
+}
+.hero-media {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, #0d1829 0%, #1c2d5e 50%, #0d1829 100%);
+  opacity: .95;
+}
+/* Placeholder grid for photo/video — swap this for <img> or <iframe> */
+.hero-media-placeholder {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, #0a1120 0%, #1a2748 40%, #243060 70%, #0f1d38 100%);
+}
+.hero-media-placeholder::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='none'/%3E%3Ccircle cx='30' cy='30' r='.8' fill='rgba(184,146,42,.15)'/%3E%3C/svg%3E");
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(11,17,30,.3) 0%, rgba(11,17,30,.7) 100%);
+}
+.hero-content {
+  position: relative; z-index: 2;
+  max-width: 1140px; margin: 0 auto; padding: 0 32px;
+  flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 48px; padding-top: 80px;
+}
+.hero-eyebrow {
+  font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 14px;
+}
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(40px, 6vw, 72px); font-weight: 900;
+  color: #fff; line-height: 1.05; letter-spacing: -.02em;
+  margin-bottom: 16px; max-width: 640px;
+}
+.hero-body {
+  font-size: 16px; color: rgba(255,255,255,.65); max-width: 520px;
+  line-height: 1.65; margin-bottom: 32px;
+}
+.hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.btn-hero-primary {
+  background: var(--gold); color: var(--navy-deep);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  padding: 14px 32px; border-radius: 4px; border: none; cursor: pointer;
+  letter-spacing: .06em; text-transform: uppercase; transition: all .15s;
+}
+.btn-hero-primary:hover { background: var(--gold-lt); transform: translateY(-1px); }
+.btn-hero-secondary {
+  background: transparent; color: rgba(255,255,255,.75);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400;
+  padding: 13px 24px; border-radius: 4px; border: 1px solid rgba(255,255,255,.25);
+  cursor: pointer; letter-spacing: .04em; transition: all .15s;
+}
+.btn-hero-secondary:hover { border-color: rgba(255,255,255,.6); color: #fff; }
+
+/* Video placeholder instruction */
+.hero-media-label {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  text-align: center; z-index: 1; pointer-events: none;
+}
+.hero-media-label-text {
+  font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.2); border: 1px dashed rgba(255,255,255,.12);
+  padding: 12px 24px; border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────
+   STATS BAR
+───────────────────────────────────────────── */
+.stats-bar {
+  background: var(--navy);
+  border-bottom: 3px solid var(--gold);
+}
+.stats-bar-inner {
+  max-width: 1140px; margin: 0 auto; padding: 0 32px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0; align-items: stretch;
+}
+.stat-cell {
+  padding: 22px 28px; border-right: 1px solid rgba(255,255,255,.08);
+}
+.stat-cell:last-child { border-right: none; }
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px; font-weight: 700; color: #fff; line-height: 1;
+  letter-spacing: -.01em;
+}
+.stat-num.gold { color: var(--gold-lt); }
+.stat-label { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .1em; margin-top: 4px; }
+.stat-cell-progress { padding: 22px 28px; flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 260px; }
+.progress-track { height: 6px; background: rgba(255,255,255,.12); border-radius: 0; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-lt) 100%); transition: width 1.4s ease; }
+.progress-meta { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,.35); letter-spacing: .04em; }
+.progress-meta .goal-label { color: var(--gold); font-weight: 500; }
+
+/* ─────────────────────────────────────────────
+   MAIN LAYOUT
+───────────────────────────────────────────── */
+.main { max-width: 1140px; margin: 0 auto; padding: 48px 32px 80px; display: grid; grid-template-columns: 1fr 340px; gap: 48px; align-items: start; }
+
+/* ─────────────────────────────────────────────
+   LEADERBOARD
+───────────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px solid var(--navy); padding-bottom: 12px; margin-bottom: 24px;
+}
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 600; color: var(--navy); letter-spacing: .01em;
+}
+.tabs { display: flex; gap: 0; }
+.tab-btn {
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  padding: 5px 14px; letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid var(--border); cursor: pointer; transition: all .15s;
+  background: #fff; color: var(--ink-muted);
+}
+.tab-btn:first-child { border-radius: 3px 0 0 3px; }
+.tab-btn:last-child  { border-radius: 0 3px 3px 0; border-left: none; }
+.tab-btn.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table th {
+  font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-muted); padding: 0 12px 10px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.lb-table th:last-child { text-align: right; }
+.lb-row-tr { border-bottom: 1px solid var(--border-lt); transition: background .1s; }
+.lb-row-tr:hover { background: rgba(28,45,94,.03); }
+.lb-row-tr td { padding: 14px 12px; vertical-align: middle; }
+.lb-rank-td { font-size: 13px; font-weight: 600; color: var(--ink-muted); width: 32px; }
+.lb-rank-td.top { color: var(--navy); }
+.lb-name-td { font-size: 14px; font-weight: 500; color: var(--ink); }
+.lb-name-td .class-label { display: block; }
+.lb-name-td .challenge-label { font-size: 11px; color: var(--ink-muted); font-weight: 400; margin-top: 2px; }
+.lb-bar-td { width: 160px; }
+.lb-bar-wrap { height: 4px; background: var(--border); border-radius: 0; overflow: hidden; }
+.lb-bar-fill { height: 100%; transition: width 1.2s ease; border-radius: 0; }
+.lb-bar-fill.navy   { background: var(--navy-mid); }
+.lb-bar-fill.gold   { background: var(--gold); }
+.lb-bar-fill.orange { background: #C96B2A; }
+.lb-donors-td { text-align: right; }
+.lb-donors-num { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--navy); }
+.lb-donors-lbl { font-size: 10px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .08em; }
+.tag-close    { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #C96B2A; border: 1px solid rgba(201,107,42,.3); padding: 1px 7px; border-radius: 2px; margin-left: 8px; vertical-align: middle; }
+.tag-unlocked { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(184,146,42,.3); padding: 1px 7px; border-radius: 2px; margin-left: 8px; vertical-align: middle; }
+
+/* ─────────────────────────────────────────────
+   CHALLENGES
+───────────────────────────────────────────── */
+.challenges-section { margin-top: 48px; }
+.challenge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.challenge-card {
+  background: var(--white); border: 1px solid var(--border);
+  padding: 20px; border-top: 3px solid var(--navy);
+}
+.challenge-card.hot { border-top-color: #C96B2A; }
+.challenge-card.unlocked { border-top-color: var(--gold); }
+.challenge-reward {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; font-weight: 700; color: var(--navy);
+  letter-spacing: -.01em; margin-bottom: 2px;
+}
+.challenge-class { font-size: 13px; color: var(--ink-mid); margin-bottom: 16px; }
+.challenge-bar-wrap { height: 3px; background: var(--border); overflow: hidden; margin-bottom: 8px; }
+.challenge-bar-fill { height: 100%; transition: width 1.2s ease; }
+.challenge-bar-fill.default { background: var(--navy-mid); }
+.challenge-bar-fill.hot     { background: #C96B2A; }
+.challenge-bar-fill.unlocked{ background: var(--gold); }
+.challenge-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+.challenge-meta .alert { color: #C96B2A; font-weight: 600; }
+
+/* ─────────────────────────────────────────────
+   RECENT FEED
+───────────────────────────────────────────── */
+.feed-section { margin-top: 48px; }
+.live-indicator { display: flex; align-items: center; gap: 6px; }
+.live-dot { width: 6px; height: 6px; background: #3DBB7C; border-radius: 50%; animation: blink 1.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.live-text { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #3DBB7C; }
+.feed-list { display: flex; flex-direction: column; gap: 0; }
+.feed-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; border-bottom: 1px solid var(--border-lt);
+  animation: feedIn .35s ease;
+}
+@keyframes feedIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.feed-initial {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(28,45,94,.08); border: 1px solid rgba(28,45,94,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--navy); flex-shrink: 0;
+}
+.feed-info { flex: 1; font-size: 13px; }
+.feed-name  { color: var(--ink); font-weight: 500; }
+.feed-class { color: var(--ink-muted); }
+.feed-right { text-align: right; flex-shrink: 0; }
+.feed-amt   { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--navy); font-weight: 600; }
+.feed-time  { font-size: 11px; color: var(--ink-muted); }
+
+/* ─────────────────────────────────────────────
+   RIGHT COLUMN
+───────────────────────────────────────────── */
+.sidebar { display: flex; flex-direction: column; gap: 28px; }
+
+/* Give card */
+.give-card {
+  background: var(--navy); padding: 28px;
+  position: sticky; top: 76px;
+}
+.give-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; font-style: italic;
+}
+.give-card-sub { font-size: 13px; color: rgba(255,255,255,.5); margin-bottom: 20px; line-height: 1.5; }
+.btn-give-card {
+  width: 100%; background: var(--gold); color: var(--navy-deep);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 14px; border: none; cursor: pointer;
+  letter-spacing: .07em; text-transform: uppercase; transition: background .15s;
+}
+.btn-give-card:hover { background: var(--gold-lt); }
+.give-card-note { font-size: 11px; color: rgba(255,255,255,.3); text-align: center; margin-top: 12px; line-height: 1.5; }
+.give-card-divider { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: 20px 0; }
+.give-card-stat { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.give-card-stat-label { font-size: 11px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .08em; }
+.give-card-stat-val { font-family: 'Playfair Display', serif; font-size: 20px; color: #fff; font-weight: 600; }
+.give-card-stat-val.gold { color: var(--gold-lt); }
+
+/* Updates */
+.updates-card { background: var(--white); border: 1px solid var(--border); }
+.updates-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--navy); }
+.updates-header-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; color: #fff; }
+.update-item { padding: 16px 20px; border-bottom: 1px solid var(--border-lt); }
+.update-item:last-child { border-bottom: none; }
+.update-date { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+.update-text { font-size: 13px; color: var(--ink-mid); line-height: 1.55; }
+.update-text strong { color: var(--ink); font-weight: 600; }
+
+/* ─────────────────────────────────────────────
+   CONTENT SECTIONS (full width below grid)
+───────────────────────────────────────────── */
+.full-width { max-width: 1140px; margin: 0 auto; padding: 0 32px 80px; }
+
+/* FAQ */
+.faq-section { border-top: 2px solid var(--navy); padding-top: 48px; }
+.faq-grid { display: grid; grid-template-columns: 280px 1fr; gap: 48px; align-items: start; }
+.faq-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px; font-weight: 600; color: var(--navy); line-height: 1.2; font-style: italic;
+}
+.faq-list { display: flex; flex-direction: column; gap: 0; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-q {
+  width: 100%; background: none; border: none; text-align: left; cursor: pointer;
+  padding: 18px 0; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  color: var(--ink); display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  transition: color .15s;
+}
+.faq-q:hover { color: var(--navy); }
+.faq-q-icon { font-size: 18px; color: var(--navy); font-weight: 300; line-height: 1; flex-shrink: 0; transition: transform .2s; }
+.faq-q.open .faq-q-icon { transform: rotate(45deg); }
+.faq-a { font-size: 13px; color: var(--ink-mid); line-height: 1.7; padding-bottom: 18px; display: none; max-width: 560px; }
+.faq-a.visible { display: block; }
+
+/* ─────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────── */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(10,14,28,.75); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; width: 100%; max-width: 440px; max-height: 92vh;
+  overflow-y: auto; border-top: 4px solid var(--navy);
+  box-shadow: 0 24px 80px rgba(0,0,0,.3);
+}
+.modal-head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.modal-head-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--navy); }
+.modal-head-sub   { font-size: 11px; color: var(--ink-muted); margin-top: 3px; }
+.modal-close { background: none; border: none; font-size: 24px; color: var(--ink-muted); cursor: pointer; line-height: 1; padding: 2px; }
+.modal-close:hover { color: var(--ink); }
+
+.step-track { display: flex; gap: 4px; padding: 14px 24px 0; }
+.step-pip { flex: 1; height: 2px; background: var(--border); transition: background .3s; }
+.step-pip.on { background: var(--navy); }
+
+.step { padding: 24px; }
+.step-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.step-sub   { font-size: 13px; color: var(--ink-muted); margin-bottom: 20px; line-height: 1.5; }
+
+.field-lbl   { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 7px; }
+.field-input {
+  width: 100%; background: var(--cream); border: 1px solid var(--border);
+  padding: 12px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  color: var(--ink); outline: none; transition: border-color .15s;
+}
+.field-input::placeholder { color: #bbb; }
+.field-input:focus { border-color: var(--navy); }
+.mb18 { margin-bottom: 18px; }
+
+/* Donor card */
+.donor-card {
+  background: var(--cream); border: 1px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.donor-monogram {
+  width: 40px; height: 40px; background: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: var(--gold-lt); flex-shrink: 0;
+  font-family: 'Playfair Display', serif;
+}
+.donor-name  { font-size: 14px; font-weight: 600; color: var(--navy); }
+.donor-class { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+.affil-lbl  { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
+.affil-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.affil-tag  { font-size: 12px; font-weight: 500; padding: 4px 12px; border: 1px solid var(--navy); color: var(--navy); background: rgba(28,45,94,.05); }
+
+/* Amount grid */
+.amount-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+.amt-btn {
+  background: var(--cream); border: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  padding: 11px 8px; cursor: pointer; color: var(--ink); transition: all .15s;
+  text-align: center;
+}
+.amt-btn:hover { border-color: var(--navy); color: var(--navy); }
+.amt-btn.sel { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* Fund options */
+.fund-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.fund-opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--cream); border: 1px solid var(--border);
+  padding: 12px 14px; cursor: pointer; transition: border-color .15s;
+}
+.fund-opt:has(input:checked) { border-color: var(--navy); background: rgba(28,45,94,.04); }
+.fund-opt input { accent-color: var(--navy); flex-shrink: 0; margin-top: 2px; }
+.fund-opt-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.fund-opt-sub   { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+
+/* Payment */
+.pay-summary {
+  background: var(--cream); border: 1px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.pay-sum-amt { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: var(--navy); }
+.pay-sum-detail { font-size: 11px; color: var(--ink-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+.pay-edit-btn { background: none; border: none; font-size: 12px; color: var(--ink-muted); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.pay-edit-btn:hover { color: var(--navy); text-decoration: underline; }
+
+.bbms-frame {
+  border: 1px dashed var(--border); background: var(--cream);
+  padding: 20px; margin-bottom: 18px;
+}
+.bbms-label { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); text-align: center; margin-bottom: 14px; }
+.mock-fld { background: #fff; border: 1px solid var(--border); padding: 10px 12px; margin-bottom: 8px; }
+.mock-fld-lbl { font-size: 10px; color: #aaa; font-weight: 500; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .06em; }
+.mock-fld-val { font-family: monospace; font-size: 14px; color: #ccc; letter-spacing: .08em; }
+.mock-fld-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bbms-sec { text-align: center; font-size: 11px; color: #aaa; margin-top: 12px; }
+.bbms-note { text-align: center; font-size: 10px; color: #ccc; margin-top: 4px; }
+
+/* Buttons */
+.btn-primary {
+  width: 100%; background: var(--navy); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 14px; border: none; cursor: pointer;
+  letter-spacing: .07em; text-transform: uppercase; transition: background .15s;
+}
+.btn-primary:hover { background: var(--navy-mid); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary {
+  width: 100%; background: transparent; color: var(--ink-muted);
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  padding: 12px; border: 1px solid var(--border); cursor: pointer;
+  margin-top: 8px; transition: all .15s;
+}
+.btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
+.form-note { text-align: center; font-size: 11px; color: var(--ink-muted); margin-top: 10px; line-height: 1.5; }
+
+/* Thank you */
+.ty-mark {
+  width: 48px; height: 48px; background: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-family: 'Playfair Display', serif; font-size: 22px; color: var(--gold-lt);
+  font-style: italic;
+}
+.receipt { background: var(--cream); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 18px; }
+.receipt-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+.receipt-row:not(:last-child) { border-bottom: 1px solid var(--border-lt); }
+.receipt-key { color: var(--ink-muted); }
+.receipt-val { font-weight: 600; color: var(--navy); }
+
+/* ─────────────────────────────────────────────
+   AFFILIATION SELECTOR (Step 1)
+───────────────────────────────────────────── */
+.affil-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+.affil-opt { display:flex; cursor:pointer; border:1.5px solid var(--border-lt); border-radius:8px; padding:14px 16px; gap:12px; align-items:flex-start; transition:border-color .15s, background .15s; }
+.affil-opt:has(input:checked) { border-color:var(--navy); background:#F0F3FA; }
+.affil-opt input[type="radio"] { margin-top:3px; accent-color:var(--navy); flex-shrink:0; }
+.affil-opt-title { font-weight:600; font-size:14px; color:var(--navy); margin-bottom:2px; }
+.affil-opt-sub { font-size:12px; color:var(--ink-muted); line-height:1.4; }
+.field-select { width:100%; padding:10px 14px; border:1.5px solid var(--border-lt); border-radius:8px; font-size:15px; font-family:inherit; color:var(--ink); background:#fff; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
+.field-select:focus { outline:none; border-color:var(--navy); }
+
+/* ─────────────────────────────────────────────
+   POP ANIMATION
+───────────────────────────────────────────── */
+@keyframes pop { 0%{transform:scale(1)} 40%{transform:scale(1.06)} 100%{transform:scale(1)} }
+.pop { animation: pop .3s ease; }
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .give-card { position: static; }
+  .stats-bar-inner { grid-template-columns: 1fr 1fr; }
+  .stat-cell-progress { grid-column: 1/-1; }
+  .faq-grid { grid-template-columns: 1fr; }
+  .challenge-grid { grid-template-columns: 1fr; }
+  .hero-content { padding: 60px 24px 40px; }
+  .nav-event { display: none; }
+}
+@media (max-width: 600px) {
+  .main, .full-width { padding-left: 20px; padding-right: 20px; }
+  .stats-bar-inner { grid-template-columns: 1fr 1fr; padding: 0 20px; }
+  .nav-inner { padding: 0 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">
+      <div class="nav-crest"></div>
+      <div>
+        <div class="nav-name">Trinity School</div>
+        <div class="nav-sub">New York City · Est. 1709</div>
+      </div>
+    </a>
+    <div class="nav-event">Trinity Giving Days 2025</div>
+    <div class="nav-right">
+      <div class="nav-timer" id="nav-timer">—</div>
+      <button class="btn-nav" onclick="openModal()">Give Now</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-media-placeholder"></div>
+  <div class="hero-overlay"></div>
+  <!-- HERO MEDIA: Replace the .hero-media-placeholder div above with:
+       <img src="your-photo.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+       or: <iframe src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1&mute=1" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>
+  -->
+  <div class="hero-media-label">
+    <div class="hero-media-label-text">Photo or video replaces this area</div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">December 2–3, 2025 &nbsp;&middot;&nbsp; Labore et Virtute</div>
+    <h1 class="hero-title">Trinity<br>Giving Days<br>2025</h1>
+    <p class="hero-body">Two days. One community. Every gift — regardless of size — moves your class up the leaderboard and helps unlock challenge gifts from our most generous donors.</p>
+    <div class="hero-actions">
+      <button class="btn-hero-primary" onclick="openModal()">Make Your Gift</button>
+      <button class="btn-hero-secondary" onclick="document.querySelector('.main').scrollIntoView({behavior:'smooth'})">See the Leaderboard</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-donors">342</div>
+      <div class="stat-label">Donors</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-raised">$187,450</div>
+      <div class="stat-label">Raised</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num gold">3</div>
+      <div class="stat-label">Challenges Unlocked</div>
+    </div>
+    <div class="stat-cell stat-cell-progress">
+      <div class="progress-track">
+        <div class="progress-fill" id="main-bar" style="width:68.4%"></div>
+      </div>
+      <div class="progress-meta">
+        <span>342 of 500 donors</span>
+        <span class="goal-label">500 donors = $50,000 challenge gift</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- Leaderboard -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">Class Leaderboard</div>
+        <div class="tabs">
+          <button id="tab-a" class="tab-btn on" onclick="switchTab('alumni')">Alumni</button>
+          <button id="tab-p" class="tab-btn"    onclick="switchTab('parents')">Parents</button>
+        </div>
+      </div>
+      <div id="lb-alumni"><table class="lb-table"><thead><tr><th>#</th><th>Class</th><th>Progress</th><th>Donors</th></tr></thead><tbody id="list-alumni"></tbody></table></div>
+      <div id="lb-parents" style="display:none"><table class="lb-table"><thead><tr><th>#</th><th>Class</th><th>Progress</th><th>Donors</th></tr></thead><tbody id="list-parents"></tbody></table></div>
+    </div>
+
+    <!-- Challenges -->
+    <div class="challenges-section">
+      <div class="section-header">
+        <div class="section-title">Active Challenges</div>
+      </div>
+      <div class="challenge-grid" id="challenge-grid"></div>
+    </div>
+
+    <!-- Feed -->
+    <div class="feed-section">
+      <div class="section-header">
+        <div class="section-title">Recent Gifts</div>
+        <div class="live-indicator">
+          <div class="live-dot"></div>
+          <div class="live-text">Live</div>
+        </div>
+      </div>
+      <div class="feed-list" id="gift-feed"></div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- RIGHT COLUMN -->
+  <aside class="sidebar">
+
+    <!-- Give card -->
+    <div class="give-card">
+      <div class="give-card-title">Your class needs you.</div>
+      <div class="give-card-sub">Every donor — regardless of gift size — moves your class up the leaderboard and counts toward challenge unlocks.</div>
+      <button class="btn-give-card" onclick="openModal()">Make Your Gift</button>
+      <div class="give-card-note">Gifts processed securely by Blackbaud Merchant Services. Trinity never stores card data.</div>
+      <hr class="give-card-divider">
+      <div class="give-card-stat">
+        <span class="give-card-stat-label">Donors today</span>
+        <span class="give-card-stat-val" id="sc-donors">342</span>
+      </div>
+      <div class="give-card-stat">
+        <span class="give-card-stat-label">Time remaining</span>
+        <span class="give-card-stat-val gold" id="sc-time" style="font-size:16px;font-family:monospace">—</span>
+      </div>
+    </div>
+
+    <!-- Updates -->
+    <div class="updates-card">
+      <div class="updates-header">
+        <div class="updates-header-title">Updates</div>
+      </div>
+      <div class="update-item">
+        <div class="update-date">Dec 3 · 10:14 AM</div>
+        <div class="update-text"><strong>Class of 1985 is 3 donors away</strong> from unlocking their $25,000 challenge gift. Help them get there.</div>
+      </div>
+      <div class="update-item">
+        <div class="update-date">Dec 3 · 8:00 AM</div>
+        <div class="update-text"><strong>Day 2 is underway.</strong> We closed Day 1 with 312 donors. We need 188 more today to unlock the $50,000 challenge gift.</div>
+      </div>
+      <div class="update-item">
+        <div class="update-date">Dec 2 · 9:00 AM</div>
+        <div class="update-text"><strong>Giving Days is open.</strong> Three challenge gifts have already been pledged. Every donor counts — share with your class.</div>
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- /main -->
+
+<!-- FAQ (full width) -->
+<div class="full-width">
+  <div class="faq-section">
+    <div class="faq-grid">
+      <div class="faq-label">Frequently<br>Asked<br>Questions</div>
+      <div class="faq-list" id="faq-list"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="handleBgClick(event)">
+  <div class="modal" id="modal">
+
+    <div class="modal-head">
+      <div>
+        <div class="modal-head-title">Make Your Gift</div>
+        <div class="modal-head-sub">Trinity Giving Days 2025 &nbsp;&middot;&nbsp; Secured by Blackbaud</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&#215;</button>
+    </div>
+
+    <div class="step-track">
+      <div class="step-pip on" id="p1"></div>
+      <div class="step-pip" id="p2"></div>
+      <div class="step-pip" id="p3"></div>
+      <div class="step-pip" id="p4"></div>
+    </div>
+
+    <!-- Step 1: Affiliation -->
+    <div class="step" id="s1">
+      <div class="step-title">Your connection to Trinity</div>
+      <div class="step-sub">Select how you're connected — your gift will be credited to the right class on the leaderboard.</div>
+      <div class="affil-grid">
+        <label class="affil-opt">
+          <input type="radio" name="affil" value="alumni" onchange="pickAffilType('alumni')">
+          <div>
+            <div class="affil-opt-title">Alumni</div>
+            <div class="affil-opt-sub">I graduated from Trinity</div>
+          </div>
+        </label>
+        <label class="affil-opt">
+          <input type="radio" name="affil" value="parents" onchange="pickAffilType('parents')">
+          <div>
+            <div class="affil-opt-title">Current Parent</div>
+            <div class="affil-opt-sub">My child attends Trinity</div>
+          </div>
+        </label>
+        <label class="affil-opt">
+          <input type="radio" name="affil" value="faculty" onchange="pickAffilType('faculty')">
+          <div>
+            <div class="affil-opt-title">Faculty / Staff</div>
+            <div class="affil-opt-sub">I work or have worked at Trinity</div>
+          </div>
+        </label>
+        <label class="affil-opt">
+          <input type="radio" name="affil" value="friend" onchange="pickAffilType('friend')">
+          <div>
+            <div class="affil-opt-title">Friend of Trinity</div>
+            <div class="affil-opt-sub">I support Trinity's mission</div>
+          </div>
+        </label>
+      </div>
+      <div id="alumni-year-wrap" style="display:none" class="mb18">
+        <label class="field-lbl">Your graduation year</label>
+        <select class="field-select" id="alumni-year" onchange="selYear=this.value">
+          <option value="">Select year&hellip;</option>
+        </select>
+      </div>
+      <div id="parent-year-wrap" style="display:none" class="mb18">
+        <label class="field-lbl">Your child's graduation year</label>
+        <select class="field-select" id="parent-year" onchange="selYear=this.value">
+          <option value="">Select year&hellip;</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="continueAffil()">Continue</button>
+    </div>
+
+    <!-- Step 2: Gift amount + fund -->
+    <div class="step" id="s2" style="display:none">
+      <div class="step-title">Your gift</div>
+      <div class="step-sub">Every donor moves your class up the leaderboard.</div>
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="flex:1">
+          <label class="field-lbl">First name</label>
+          <input class="field-input" id="donor-first" type="text" placeholder="First name" autocomplete="given-name">
+        </div>
+        <div style="flex:1">
+          <label class="field-lbl">Last name</label>
+          <input class="field-input" id="donor-last" type="text" placeholder="Last name" autocomplete="family-name">
+        </div>
+      </div>
+      <div class="mb18">
+        <label class="field-lbl">Email address</label>
+        <input class="field-input" id="donor-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <label class="field-lbl">Amount</label>
+      <div class="amount-grid mb18">
+        <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
+        <button class="amt-btn" onclick="pickAmt(100,this)">$100</button>
+        <button class="amt-btn" onclick="pickAmt(250,this)">$250</button>
+        <button class="amt-btn" onclick="pickAmt(500,this)">$500</button>
+        <button class="amt-btn" onclick="pickAmt(1000,this)">$1,000</button>
+        <button class="amt-btn" onclick="showCustom(this)">Other</button>
+      </div>
+      <div id="custom-wrap" style="display:none" class="mb18">
+        <input class="field-input" id="custom-amt" type="number" min="1" placeholder="Enter amount" oninput="selAmt=parseInt(this.value)||null">
+      </div>
+      <label class="field-lbl">Fund designation</label>
+      <div class="fund-options">
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Annual Fund" checked>
+          <div><div class="fund-opt-title">Annual Fund</div><div class="fund-opt-sub">Greatest impact across all programs</div></div>
+        </label>
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Financial Aid">
+          <div><div class="fund-opt-title">Financial Aid</div><div class="fund-opt-sub">Ensure every qualified student can attend Trinity</div></div>
+        </label>
+        <label class="fund-opt">
+          <input type="radio" name="fund" value="Arts & Athletics">
+          <div><div class="fund-opt-title">Arts &amp; Athletics</div><div class="fund-opt-sub">Enrich student life beyond the classroom</div></div>
+        </label>
+      </div>
+      <button class="btn-primary" onclick="toPayment()">Continue to Payment</button>
+    </div>
+
+    <!-- Step 3: Review & Pay -->
+    <div class="step" id="s3" style="display:none">
+      <div class="step-title">Review &amp; Pay</div>
+      <div class="step-sub">Processed by Blackbaud Merchant Services &mdash; Trinity never stores card data.</div>
+      <div class="pay-summary">
+        <div>
+          <div class="pay-sum-amt" id="pay-amt">$100</div>
+          <div class="pay-sum-detail" id="pay-detail">Annual Fund &middot; Class of 1994</div>
+        </div>
+        <button class="pay-edit-btn" onclick="goStep(2)">Edit</button>
+      </div>
+      <div id="complete-checkout-button" style="margin-top:16px">
+        <button type="button" id="form-submit-button" class="btn-primary" style="width:100%">Complete Gift</button>
+      </div>
+      <div class="form-note" style="margin-top:12px">A receipt will be emailed to your address on file.</div>
+    </div>
+
+    <!-- Step 4: Thank you -->
+    <div class="step" id="s4" style="display:none;text-align:center">
+      <div class="ty-mark">T</div>
+      <div class="step-title" style="text-align:center">Thank you.</div>
+      <div class="step-sub" style="text-align:center;margin-bottom:20px">Your gift has been processed and credited to your class.</div>
+      <div class="receipt">
+        <div class="receipt-row"><span class="receipt-key">Amount</span><span class="receipt-val" id="rc-amt">$100</span></div>
+        <div class="receipt-row"><span class="receipt-key">Fund</span><span class="receipt-val" id="rc-fund">Annual Fund</span></div>
+        <div class="receipt-row"><span class="receipt-key">Credited to</span><span class="receipt-val" id="rc-class">Class of 1994</span></div>
+      </div>
+      <div class="form-note" style="margin-bottom:16px">A receipt has been sent to your email address on file.</div>
+      <button class="btn-secondary" onclick="closeModal()">Back to Giving Days</button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+// ── Challenge configuration ─────────────────────────────────────────────────
+// Goals and rewards are defined here; donor counts come from the live API.
+var CHALLENGES = {
+  alumni: {
+    1985: { goal: 50, reward: '$25,000' },
+    1994: { goal: 60, reward: '$20,000' },
+    2003: { goal: 40, reward: '$10,000' },
+    2012: { goal: 50, reward: '$15,000' },
+    2015: { goal: 40, reward: '$8,000'  },
+    1978: { goal: 30, reward: '$30,000' },
+    2000: { goal: 35, reward: '$12,000' },
+    2008: { goal: 30, reward: '$10,000' },
+    1990: { goal: 25, reward: '$15,000' },
+    2018: { goal: 25, reward: '$5,000'  },
+  },
+  parents: {
+    2026: { goal: 30, reward: '$15,000' },
+    2027: { goal: 30, reward: '$12,000' },
+    2028: { goal: 25, reward: '$10,000' },
+    2029: { goal: 20, reward: '$8,000'  },
+    2030: { goal: 20, reward: '$6,000'  },
+    2031: { goal: 15, reward: '$5,000'  },
+  },
+};
+
+// Active challenges shown in the challenge cards section (in desired order)
+var ACTIVE_CHALLENGES = [
+  { affil: 'alumni',  class_year: 1985, label: 'Class of 1985'        },
+  { affil: 'alumni',  class_year: 2003, label: 'Class of 2003'        },
+  { affil: 'parents', class_year: 2026, label: "Class of '26 Parents" },
+  { affil: 'alumni',  class_year: 1978, label: 'Class of 1978'        },
+];
+
+var faqs = [
+  { q:'Who can give during Trinity Giving Days?', a:'Anyone can make a gift — alumni, parents, grandparents, faculty, staff, and friends of Trinity. Your constituent record in our database determines which class leaderboard your gift credits toward.' },
+  { q:'How does my gift get credited to my class?', a:'When your gift is processed, we look up your record in Raiser\'s Edge and automatically attribute your gift to your class based on your alumni graduation year or your current child\'s class year. No extra steps required.' },
+  { q:'Do gift amounts affect the leaderboard?', a:'The leaderboard ranks classes by donor count, not total dollars raised. A gift of $25 counts exactly the same as a gift of $25,000 for leaderboard purposes. What matters is participation.' },
+  { q:'What are challenge gifts?', a:'Challenge gifts are pledges made by generous donors who agree to release additional funds once a class reaches a specific donor count threshold. For example: "If Class of 1985 reaches 50 donors, we\'ll release a $25,000 gift." Every donor who gives gets their class closer to unlocking that gift.' },
+  { q:'Can I give to multiple funds?', a:'Each gift is designated to one fund. If you\'d like to support multiple areas, you are welcome to make more than one gift. Each gift counts as one additional donor toward the leaderboard.' },
+  { q:'Is my payment information secure?', a:'Yes. All payments are processed by Blackbaud Merchant Services, a PCI DSS Level 1 compliant payment processor. Your card information is entered directly into Blackbaud\'s secure system — Trinity never stores or transmits your card data.' },
+  { q:'When will I receive my tax receipt?', a:'A gift acknowledgment letter will be mailed to your address on file within a few weeks. You will also receive an email confirmation immediately after your gift is processed.' },
+];
+
+var selAmt = null;
+var selAffil = null;
+var selYear = null;
+var checkoutService = null;
+var checkoutMounted = false;
+
+// Leaderboard
+function renderBoard(data, id) {
+  var tbody = document.getElementById(id);
+  tbody.innerHTML = '';
+  if (!data || data.length === 0) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="4" style="padding:24px 12px;color:var(--ink-muted);font-size:13px;text-align:center">No gifts yet — be the first!</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+  data.forEach(function(row, i) {
+    var pct   = row.goal ? Math.min((row.donors / row.goal)*100, 100) : 0;
+    var full  = pct >= 100;
+    var close = pct >= 80 && !full;
+    var barCls = full ? 'gold' : close ? 'orange' : 'navy';
+    var tag = full
+      ? ' <span class="tag-unlocked">Unlocked</span>'
+      : close ? ' <span class="tag-close">Close</span>' : '';
+    var challengeLabel = row.reward ? '<span class="challenge-label">' + row.reward + ' challenge</span>' : '';
+    var tr = document.createElement('tr');
+    tr.className = 'lb-row-tr';
+    tr.innerHTML =
+      '<td class="lb-rank-td' + (i<3?' top':'') + '">' + (i+1) + '</td>' +
+      '<td class="lb-name-td"><span class="class-label">' + row.label + tag + '</span>' + challengeLabel + '</td>' +
+      '<td class="lb-bar-td"><div class="lb-bar-wrap"><div class="lb-bar-fill ' + barCls + '" style="width:' + pct + '%"></div></div></td>' +
+      '<td class="lb-donors-td"><div class="lb-donors-num">' + row.donors + '</div><div class="lb-donors-lbl">donors</div></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function switchTab(t) {
+  document.getElementById('lb-alumni').style.display  = t==='alumni'  ? '' : 'none';
+  document.getElementById('lb-parents').style.display = t==='parents' ? '' : 'none';
+  document.getElementById('tab-a').className = 'tab-btn' + (t==='alumni'  ? ' on' : '');
+  document.getElementById('tab-p').className = 'tab-btn' + (t==='parents' ? ' on' : '');
+}
+
+// Challenges
+function renderChallenges(challenges) {
+  var grid = document.getElementById('challenge-grid');
+  grid.innerHTML = '';
+  challenges.forEach(function(c) {
+    var pct  = c.goal ? Math.min((c.current/c.goal)*100, 100) : 0;
+    var left = c.goal - c.current;
+    var full = pct >= 100;
+    var hot  = !full && left <= 5;
+    var div  = document.createElement('div');
+    div.className = 'challenge-card' + (full ? ' unlocked' : hot ? ' hot' : '');
+    div.innerHTML =
+      '<div class="challenge-reward">' + c.reward + '</div>' +
+      '<div class="challenge-class">' + c.label + (hot ? ' &nbsp;&mdash;&nbsp; <span style="color:#C96B2A;font-weight:600">' + left + ' donors to go</span>' : '') + '</div>' +
+      '<div class="challenge-bar-wrap"><div class="challenge-bar-fill ' + (full?'unlocked':hot?'hot':'default') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="challenge-meta"><span>' + c.current + ' donors</span><span>' + (full ? '<span style="color:var(--gold);font-weight:600">Unlocked!</span>' : hot ? '<span class="alert">' + left + ' remaining</span>' : c.goal + ' needed') + '</span></div>';
+    grid.appendChild(div);
+  });
+}
+
+// Feed
+function renderFeed(feed) {
+  var el = document.getElementById('gift-feed');
+  el.innerHTML = '';
+  if (!feed || feed.length === 0) {
+    var row = document.createElement('div');
+    row.className = 'feed-row';
+    row.innerHTML = '<div class="feed-info" style="color:var(--ink-muted);font-size:13px">No gifts yet — check back soon.</div>';
+    el.appendChild(row);
+    return;
+  }
+  feed.forEach(function(g) {
+    var row = document.createElement('div');
+    row.className = 'feed-row';
+    row.innerHTML =
+      '<div class="feed-initial">' + g.name[0] + '</div>' +
+      '<div class="feed-info"><span class="feed-name">' + g.name + '</span> <span class="feed-class">&middot; ' + g.cls + '</span></div>' +
+      '<div class="feed-right"><div class="feed-amt">' + g.amt + '</div><div class="feed-time">' + g.ago + '</div></div>';
+    el.appendChild(row);
+  });
+}
+
+// FAQ
+function renderFAQ() {
+  var list = document.getElementById('faq-list');
+  faqs.forEach(function(f, i) {
+    var item = document.createElement('div');
+    item.className = 'faq-item';
+    item.innerHTML =
+      '<button class="faq-q" onclick="toggleFAQ(this,' + i + ')">' +
+        f.q + '<span class="faq-q-icon">+</span>' +
+      '</button>' +
+      '<div class="faq-a" id="faq-a-' + i + '">' + f.a + '</div>';
+    list.appendChild(item);
+  });
+}
+function toggleFAQ(btn, i) {
+  var a = document.getElementById('faq-a-' + i);
+  var open = a.classList.contains('visible');
+  document.querySelectorAll('.faq-a').forEach(function(el){ el.classList.remove('visible'); });
+  document.querySelectorAll('.faq-q').forEach(function(el){ el.classList.remove('open'); });
+  if (!open) { a.classList.add('visible'); btn.classList.add('open'); }
+}
+
+// ── Live leaderboard polling ────────────────────────────────────────────────
+
+function timeAgo(isoString) {
+  var diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  if (diff < 60)  return 'Just now';
+  if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+  return Math.floor(diff / 3600) + ' hr ago';
+}
+
+function pollLeaderboard() {
+  fetch('/api/leaderboard')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+
+      // ── Stats bar ──────────────────────────────────────────────────────────
+      var donors = data.total_donors || 0;
+      var raised = data.total_raised || 0;
+      ['stat-donors','sc-donors'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          var prev = el.textContent;
+          el.textContent = donors.toLocaleString();
+          if (String(donors) !== prev) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+        }
+      });
+      var raisedEl = document.getElementById('stat-raised');
+      if (raisedEl) raisedEl.textContent = '$' + Math.round(raised).toLocaleString();
+      var barEl = document.getElementById('main-bar');
+      if (barEl) barEl.style.width = Math.min((donors / 500) * 100, 100) + '%';
+      var metaEl = document.querySelector('.progress-meta span:first-child');
+      if (metaEl) metaEl.textContent = donors + ' of 500 donors';
+
+      // ── Alumni leaderboard ─────────────────────────────────────────────────
+      var alumniRows = (data.alumni || []).map(function(row) {
+        var cfg = (CHALLENGES.alumni || {})[row.class_year] || {};
+        return {
+          label:  'Class of ' + row.class_year,
+          donors: row.donors,
+          goal:   cfg.goal   || null,
+          reward: cfg.reward || null,
+        };
+      });
+      renderBoard(alumniRows, 'list-alumni');
+
+      // ── Parents leaderboard ────────────────────────────────────────────────
+      var parentsRows = (data.parents || []).map(function(row) {
+        var cfg = (CHALLENGES.parents || {})[row.class_year] || {};
+        return {
+          label:  "Class of '" + String(row.class_year).slice(-2) + ' Parents',
+          donors: row.donors,
+          goal:   cfg.goal   || null,
+          reward: cfg.reward || null,
+        };
+      });
+      renderBoard(parentsRows, 'list-parents');
+
+      // ── Challenge cards ────────────────────────────────────────────────────
+      // Build a lookup: { 'alumni-1985': donorCount, 'parents-2026': donorCount }
+      var donorLookup = {};
+      (data.alumni  || []).forEach(function(r) { donorLookup['alumni-'  + r.class_year] = r.donors; });
+      (data.parents || []).forEach(function(r) { donorLookup['parents-' + r.class_year] = r.donors; });
+
+      var challenges = ACTIVE_CHALLENGES.map(function(c) {
+        var cfg = (CHALLENGES[c.affil] || {})[c.class_year] || {};
+        return {
+          label:   c.label,
+          current: donorLookup[c.affil + '-' + c.class_year] || 0,
+          goal:    cfg.goal   || 0,
+          reward:  cfg.reward || '',
+        };
+      });
+      renderChallenges(challenges);
+
+      // ── Gift feed ──────────────────────────────────────────────────────────
+      var feed = (data.recent_gifts || []).map(function(g) {
+        return { name: g.name, cls: g.affiliation, amt: '$' + Math.round(g.amount).toLocaleString(), ago: timeAgo(g.created_at) };
+      });
+      renderFeed(feed);
+    })
+    .catch(function(err) {
+      console.warn('Leaderboard poll failed:', err);
+    });
+}
+
+// Countdown
+function tick() {
+  var end = new Date(); end.setHours(23,59,59,0);
+  var d = end - Date.now();
+  if (d<0){ ['nav-timer','sc-time'].forEach(function(id){ document.getElementById(id).textContent='Ended'; }); return; }
+  var h = String(Math.floor(d/3600000)).padStart(2,'0');
+  var m = String(Math.floor((d%3600000)/60000)).padStart(2,'0');
+  var s = String(Math.floor((d%60000)/1000)).padStart(2,'0');
+  var str = h+':'+m+':'+s;
+  document.getElementById('nav-timer').textContent = str+' remaining';
+  document.getElementById('sc-time').textContent   = str;
+}
+
+// Modal
+function openModal()  { document.getElementById('modal-bg').classList.add('open'); goStep(1); document.body.style.overflow='hidden'; }
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); document.body.style.overflow=''; }
+function handleBgClick(e){ if(e.target===document.getElementById('modal-bg')) closeModal(); }
+
+function goStep(n) {
+  for(var i=1;i<=4;i++){
+    document.getElementById('s'+i).style.display = (i===n)?'':'none';
+    var p=document.getElementById('p'+i); if(p) p.className='step-pip'+(i<=n?' on':'');
+  }
+}
+
+function pickAffilType(type) {
+  selAffil = type;
+  selYear  = null;
+  document.getElementById('alumni-year-wrap').style.display  = (type==='alumni')  ? '' : 'none';
+  document.getElementById('parent-year-wrap').style.display  = (type==='parents') ? '' : 'none';
+  if(type==='alumni')  document.getElementById('alumni-year').value = '';
+  if(type==='parents') document.getElementById('parent-year').value = '';
+}
+
+function continueAffil() {
+  if(!selAffil){ alert('Please select your connection to Trinity.'); return; }
+  if((selAffil==='alumni'||selAffil==='parents') && !selYear){
+    alert('Please select a year.'); return;
+  }
+  goStep(2);
+}
+
+function affilLabel() {
+  if(selAffil==='alumni'  && selYear) return 'Class of '+selYear;
+  if(selAffil==='parents' && selYear) return "Class of '"+String(selYear).slice(-2)+' Parents';
+  if(selAffil==='faculty') return 'Faculty / Staff';
+  if(selAffil==='friend')  return 'Friend of Trinity';
+  return 'Trinity Community';
+}
+
+function pickAmt(n,btn) {
+  selAmt = n;
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  document.getElementById('custom-wrap').style.display='none';
+}
+function showCustom(btn) {
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  document.getElementById('custom-wrap').style.display='';
+  document.getElementById('custom-amt').focus();
+}
+
+function toPayment() {
+  var firstName = (document.getElementById('donor-first').value||'').trim();
+  var lastName  = (document.getElementById('donor-last').value||'').trim();
+  var email     = (document.getElementById('donor-email').value||'').trim();
+  if(!firstName||!lastName){ alert('Please enter your first and last name.'); return; }
+  if(!email||!email.includes('@')){ alert('Please enter a valid email address.'); return; }
+
+  var amt = selAmt || (parseInt((document.getElementById('custom-amt')||{}).value)||null);
+  if(!amt||amt<1){ alert('Please select a gift amount.'); return; }
+  selAmt=amt;
+
+  var fund  = (document.querySelector('input[name="fund"]:checked')||{}).value||'Annual Fund';
+  var label = affilLabel();
+  document.getElementById('pay-amt').textContent    = '$'+amt.toLocaleString();
+  document.getElementById('pay-detail').textContent = fund+' \u00b7 '+label;
+  document.getElementById('rc-amt').textContent  = '$'+amt.toLocaleString();
+  document.getElementById('rc-fund').textContent = fund;
+  document.getElementById('rc-class').textContent= label;
+  if (checkoutService) {
+    checkoutService.baseAmount = amt * 100;
+    checkoutService.billingDetails = { name: firstName + ' ' + lastName, emailAddress: email };
+  }
+  goStep(3);
+  if (checkoutService && !checkoutMounted) {
+    checkoutService.completeCheckoutButtonComponent.mount('complete-checkout-button', 'form-submit-button');
+    checkoutMounted = true;
+  }
+}
+
+
+// ── Blackbaud New Checkout initialization ─────────────────────────────────────
+window.addEventListener('load', function() {
+  if (typeof window.BlackbaudCheckout !== 'function') {
+    console.warn('BlackbaudCheckout script did not load.');
+    return;
+  }
+
+  checkoutService = window.BlackbaudCheckout({
+    paymentConfigurationId: 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969', // TEST — DOES NOT CHARGE
+    workflowMode: 'modal',
+    primaryColor: '#1C2D5E',
+    fontFamily: 'DM Sans, sans-serif',
+    fontColor: '#1A1A1A',
+  });
+
+  // Mounting happens in toPayment() after Step 3 is visible.
+
+  // Handle payment result
+  checkoutService.checkoutComplete.subscribe(function(e) {
+    if (!e.success) {
+      var btn = document.getElementById('pay-btn');
+      btn.textContent = 'Complete Gift';
+      btn.disabled = false;
+      return;
+    }
+    // Capture the transaction on our server
+    var fund = (document.querySelector('input[name="fund"]:checked') || {}).value || 'Annual Fund';
+    fetch('/api/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_id: e.id,
+        total:          e.total,
+        affiliation:    selAffil,
+        year:           selYear,
+        fund:           fund,
+      }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+      goStep(4);
+      setTimeout(liveGift, 800);
+    })
+    .catch(function(err) {
+      console.error('Capture error:', err);
+      goStep(4); // payment went through — still thank the donor
+    });
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Populate year dropdowns
+(function() {
+  var alumSel = document.getElementById('alumni-year');
+  for(var y=2025; y>=1940; y--) {
+    var o = document.createElement('option'); o.value=y; o.textContent=y; alumSel.appendChild(o);
+  }
+  var parSel = document.getElementById('parent-year');
+  for(var y=2026; y<=2037; y++) {
+    var o = document.createElement('option'); o.value=y; o.textContent=y; parSel.appendChild(o);
+  }
+})();
+
+// Init
+renderFAQ();
+tick();
+setInterval(tick, 1000);
+pollLeaderboard();
+setInterval(pollLeaderboard, 30000);
+</script>
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+</body>
+</html>

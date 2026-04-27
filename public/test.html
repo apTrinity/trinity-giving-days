@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Test</title>
+<style>
+  body { font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 24px; }
+  h1 { font-size: 20px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 16px; }
+  input { width: 100%; padding: 8px 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  button { margin-top: 24px; width: 100%; padding: 12px; font-size: 15px; font-weight: 600; background: #1C2D5E; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #log { margin-top: 32px; background: #f4f4f4; border-radius: 4px; padding: 16px; font-size: 12px; font-family: monospace; white-space: pre-wrap; min-height: 60px; }
+  .status { margin-top: 12px; font-size: 13px; font-weight: 600; }
+  .status.ok  { color: green; }
+  .status.err { color: red; }
+  .aff-row { border-bottom: 1px solid #eee; padding: 10px 12px; }
+  .aff-label { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: normal; margin: 0; cursor: pointer; }
+  .aff-label input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+  .aff-extra { margin-top: 10px; padding-left: 26px; }
+  .sub-label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: block; }
+  .sub-select { width: 100%; padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  .grade-row { margin-bottom: 8px; }
+  .add-btn { margin-top: 4px; background: none; border: 1px solid #1C2D5E; color: #1C2D5E; border-radius: 4px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>BBMS Payment Test</h1>
+
+<label>First name</label>
+<input id="first" type="text" value="Test">
+
+<label>Last name</label>
+<input id="last" type="text" value="Donor">
+
+<label>Email</label>
+<input id="email" type="email" value="test@example.com">
+
+<label>Amount ($)</label>
+<input id="amount" type="number" value="10" min="1">
+
+<label>Affiliation (select all that apply)</label>
+<div id="affiliations" style="margin-top:8px;border:1px solid #ddd;border-radius:6px;overflow:hidden;">
+
+  <!-- Alumni -->
+  <div class="aff-row">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="alumni" onchange="toggleExtra(this)"> Alumni</label>
+    <div class="aff-extra" id="extra-alumni" style="display:none;">
+      <label class="sub-label">Class year</label>
+      <select id="alumni-year" class="sub-select">
+        <option value="">— select —</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Current Parent -->
+  <div class="aff-row">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="current_parent" onchange="toggleExtra(this)"> Current Parent</label>
+    <div class="aff-extra" id="extra-current_parent" style="display:none;">
+      <div id="parent-grades">
+        <div class="grade-row">
+          <label class="sub-label">Child's grade</label>
+          <select class="sub-select grade-select">
+            <option value="">— select —</option>
+            <option value="K">Kindergarten</option>
+            <option value="1">1st Grade</option>
+            <option value="2">2nd Grade</option>
+            <option value="3">3rd Grade</option>
+            <option value="4">4th Grade</option>
+            <option value="5">5th Grade</option>
+            <option value="6">6th Grade</option>
+            <option value="7">7th Grade</option>
+            <option value="8">8th Grade</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+          </select>
+        </div>
+      </div>
+      <button type="button" onclick="addGrade()" class="add-btn">+ Add another child</button>
+    </div>
+  </div>
+
+  <!-- Parent of Alumni -->
+  <div class="aff-row">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="parent_of_alumni"> Parent of Alumni</label>
+  </div>
+
+  <!-- Faculty / Staff -->
+  <div class="aff-row">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="faculty"> Faculty / Staff</label>
+  </div>
+
+  <!-- Grandparent -->
+  <div class="aff-row">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="grandparent"> Grandparent</label>
+  </div>
+
+  <!-- Friend of Trinity -->
+  <div class="aff-row" style="border-bottom:none;">
+    <label class="aff-label"><input type="checkbox" class="aff-check" value="friend"> Friend of Trinity</label>
+  </div>
+
+</div>
+
+<div id="checkout-btn-container">
+  <button id="pay-btn" disabled>Loading payment service...</button>
+</div>
+
+<div id="status" class="status"></div>
+<pre id="log">Waiting...</pre>
+
+<hr style="margin:40px 0;border:none;border-top:1px solid #ddd;">
+
+<h2 style="font-size:18px;margin-bottom:16px;">Leaderboard</h2>
+
+<div style="margin-bottom:12px;font-size:13px;color:#555;" id="lb-stats">Loading...</div>
+
+<div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
+
+  <div style="flex:1;min-width:200px;">
+    <h3 style="font-size:14px;margin-bottom:8px;">Alumni</h3>
+    <table id="lb-alumni" style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="text-align:left;border-bottom:1px solid #ddd;">
+        <th style="padding:4px 8px;">#</th>
+        <th style="padding:4px 8px;">Class</th>
+        <th style="padding:4px 8px;text-align:right;">Donors</th>
+      </tr></thead>
+      <tbody id="lb-alumni-body"><tr><td colspan="3" style="padding:8px;color:#999;font-size:12px;">No alumni gifts yet.</td></tr></tbody>
+    </table>
+  </div>
+
+  <div style="flex:1;min-width:200px;">
+    <h3 style="font-size:14px;margin-bottom:8px;">Current Parents</h3>
+    <table id="lb-parents" style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="text-align:left;border-bottom:1px solid #ddd;">
+        <th style="padding:4px 8px;">#</th>
+        <th style="padding:4px 8px;">Grade</th>
+        <th style="padding:4px 8px;text-align:right;">Donors</th>
+      </tr></thead>
+      <tbody id="lb-parents-body"><tr><td colspan="3" style="padding:8px;color:#999;font-size:12px;">No parent gifts yet.</td></tr></tbody>
+    </table>
+  </div>
+
+  <div style="flex:1;min-width:200px;">
+    <h3 style="font-size:14px;margin-bottom:8px;">Recent Gifts</h3>
+    <div id="lb-feed" style="font-size:13px;color:#333;">Loading...</div>
+  </div>
+
+</div>
+
+<script>
+var checkoutService = null;
+var checkoutReady   = false;
+
+// Populate class year dropdowns (1940 to current year)
+function populateYears() {
+  var currentYear = new Date().getFullYear();
+  ['alumni-year'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    for (var y = currentYear; y >= 1940; y--) {
+      var opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+// Show/hide the extra fields when a checkbox is toggled
+function toggleExtra(cb) {
+  var extra = document.getElementById('extra-' + cb.value);
+  if (extra) extra.style.display = cb.checked ? 'block' : 'none';
+}
+
+// Add a second (or third) grade row for current parents with multiple children
+function addGrade() {
+  var container = document.getElementById('parent-grades');
+  var div = document.createElement('div');
+  div.className = 'grade-row';
+  div.innerHTML = '<label class="sub-label">Child\'s grade</label>'
+    + '<select class="sub-select grade-select">'
+    + '<option value="">— select —</option>'
+    + ['K','1','2','3','4','5','6','7','8','9','10','11','12'].map(function(g) {
+        var label = g === 'K' ? 'Kindergarten' : g + (g==='1'?'st':g==='2'?'nd':g==='3'?'rd':'th') + ' Grade';
+        return '<option value="' + g + '">' + label + '</option>';
+      }).join('')
+    + '</select>';
+  container.appendChild(div);
+}
+
+// Collect all selected affiliations into the array for the API call
+function getAffiliations() {
+  var result = [];
+  document.querySelectorAll('.aff-check:checked').forEach(function(cb) {
+    if (cb.value === 'alumni') {
+      result.push({ type: 'alumni', class_year: parseInt(document.getElementById('alumni-year').value) || null });
+    } else if (cb.value === 'current_parent') {
+      document.querySelectorAll('.grade-select').forEach(function(sel) {
+        if (sel.value) result.push({ type: 'current_parent', grade: sel.value });
+      });
+    } else if (cb.value === 'parent_of_alumni') {
+      result.push({ type: 'parent_of_alumni' });
+    } else {
+      result.push({ type: cb.value });
+    }
+  });
+  return result;
+}
+
+function log(msg, data) {
+  var out = document.getElementById('log');
+  var line = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  if (data !== undefined) line += '\n' + JSON.stringify(data, null, 2);
+  out.textContent = line + '\n\n' + out.textContent;
+  console.log(msg, data);
+}
+
+function setStatus(msg, ok) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+}
+
+window.addEventListener('load', function() {
+  populateYears();
+  log('Page loaded — initializing Blackbaud Checkout...');
+
+  if (typeof window.BlackbaudCheckout !== 'function') {
+    log('ERROR: BlackbaudCheckout script did not load.');
+    setStatus('Blackbaud script failed to load.', false);
+    return;
+  }
+
+  log('BlackbaudCheckout function found — calling init...');
+
+  checkoutService = window.BlackbaudCheckout({
+    paymentConfigurationId: '8d2a50a3-deb8-41d0-8f0a-01b5955d69d6',
+    workflowMode: 'modal',
+  });
+
+  checkoutService.checkoutReady.subscribe(function() {
+    log('checkoutReady fired — ready to open modal.');
+    checkoutReady = true;
+
+    var btn = document.getElementById('pay-btn');
+    btn.textContent = 'Pay with Blackbaud';
+    btn.disabled = false;
+  });
+
+  document.getElementById('pay-btn').addEventListener('click', function() {
+    if (!checkoutReady) { log('Not ready yet.'); return; }
+    var amt = parseInt(document.getElementById('amount').value) || 0;
+    if (amt < 1) { log('Enter a valid amount.'); return; }
+    var first = document.getElementById('first').value.trim();
+    var last  = document.getElementById('last').value.trim();
+    var email = document.getElementById('email').value.trim();
+    log('Opening modal for $' + amt + '...');
+    checkoutService.checkoutModal.openPaymentForm({
+      baseAmount: amt * 100,
+      billingDetails: {
+        name:  first + ' ' + last,
+        email: email,
+      },
+    });
+  });
+
+  checkoutService.checkoutComplete.subscribe(function(e) {
+    log('checkoutComplete fired', e);
+
+    if (!e.success) {
+      setStatus('Payment failed or cancelled.', false);
+      return;
+    }
+
+    setStatus('Payment succeeded!', true);
+    var txnId = e.transaction.id;
+    var total  = e.transaction.amountDetails.total; // in cents
+    log('Transaction ID: ' + txnId + '  |  Total: $' + (total / 100).toFixed(2));
+
+    // Post gift to server — resolves constituent in RE, writes to Supabase
+    log('Saving gift...');
+    fetch('/api/gift', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_id: txnId,
+        amount:         total / 100,
+        first_name:     document.getElementById('first').value.trim(),
+        last_name:      document.getElementById('last').value.trim(),
+        email:          document.getElementById('email').value.trim(),
+        affiliations:   getAffiliations(),
+      }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { log('Gift saved', data); })
+    .catch(function(err) { log('Error: ' + err.message); });
+  });
+
+  log('Subscriptions registered — waiting for checkoutReady...');
+});
+</script>
+
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+
+<script>
+function timeAgo(iso) {
+  var diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+  return Math.floor(diff / 3600) + 'h ago';
+}
+
+function gradeLabel(grade) {
+  if (!grade) return '—';
+  if (grade === 'K') return 'Kindergarten';
+  var n = parseInt(grade);
+  var sfx = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+  return n + sfx + ' Grade';
+}
+
+function pollLeaderboard() {
+  fetch('/api/leaderboard')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      // Stats
+      document.getElementById('lb-stats').textContent =
+        d.total_donors + ' donor' + (d.total_donors !== 1 ? 's' : '') +
+        ' · $' + Math.round(d.total_raised).toLocaleString() + ' raised';
+
+      // Alumni table
+      var ab = document.getElementById('lb-alumni-body');
+      if (!d.alumni || d.alumni.length === 0) {
+        ab.innerHTML = '<tr><td colspan="3" style="padding:8px;color:#999;font-size:12px;">No alumni gifts yet.</td></tr>';
+      } else {
+        ab.innerHTML = d.alumni.map(function(row, i) {
+          return '<tr style="border-bottom:1px solid #f0f0f0;">' +
+            '<td style="padding:5px 8px;color:#999;">' + (i+1) + '</td>' +
+            '<td style="padding:5px 8px;">Class of ' + row.class_year + '</td>' +
+            '<td style="padding:5px 8px;text-align:right;font-weight:600;">' + row.donors + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      // Parents table
+      var pb = document.getElementById('lb-parents-body');
+      if (!d.parents || d.parents.length === 0) {
+        pb.innerHTML = '<tr><td colspan="3" style="padding:8px;color:#999;font-size:12px;">No parent gifts yet.</td></tr>';
+      } else {
+        pb.innerHTML = d.parents.map(function(row, i) {
+          var label = row.grade ? gradeLabel(row.grade) : "Class of '" + String(row.class_year).slice(-2);
+          return '<tr style="border-bottom:1px solid #f0f0f0;">' +
+            '<td style="padding:5px 8px;color:#999;">' + (i+1) + '</td>' +
+            '<td style="padding:5px 8px;">' + label + '</td>' +
+            '<td style="padding:5px 8px;text-align:right;font-weight:600;">' + row.donors + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      // Feed
+      var feed = document.getElementById('lb-feed');
+      if (!d.recent_gifts || d.recent_gifts.length === 0) {
+        feed.textContent = 'No gifts yet.';
+      } else {
+        feed.innerHTML = d.recent_gifts.map(function(g) {
+          return '<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;">' +
+            '<span style="font-weight:600;">' + g.name + '</span>' +
+            ' &middot; ' + g.affiliation +
+            ' &middot; $' + Math.round(g.amount).toLocaleString() +
+            ' <span style="color:#999;font-size:11px;">' + timeAgo(g.created_at) + '</span>' +
+            '</div>';
+        }).join('');
+      }
+    })
+    .catch(function(err) {
+      document.getElementById('lb-stats').textContent = 'Leaderboard unavailable: ' + err.message;
+    });
+}
+
+pollLeaderboard();
+setInterval(pollLeaderboard, 30000);
+</script>
+</body>
+</html>
