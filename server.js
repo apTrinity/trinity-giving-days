@@ -10,10 +10,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 require('dotenv').config();
-const express = require('express');
-const axios   = require('axios');
-const path    = require('path');
+const express      = require('express');
+const axios        = require('axios');
+const path         = require('path');
+const { Resend }   = require('resend');
 const { createClient } = require('@supabase/supabase-js');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function gradeLabel(grade) {
@@ -22,6 +25,43 @@ function gradeLabel(grade) {
   const n = parseInt(grade);
   const sfx = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
   return `${n}${sfx} Grade`;
+}
+
+// ─── Confirmation email ───────────────────────────────────────────────────────
+async function sendConfirmationEmail(gift, affiliations) {
+  if (!gift.email) return false;
+
+  const affLabels = (affiliations || []).map(a => {
+    if (a.type === 'alumni'          && a.class_year) return `Alumni, Class of ${a.class_year}`;
+    if ((a.type === 'current_parent' || a.type === 'parents') && a.grade) return `${gradeLabel(a.grade)} Parent`;
+    if (a.type === 'parent_of_alumni') return 'Parent of Alumni';
+    if (a.type === 'faculty')          return 'Faculty / Staff';
+    if (a.type === 'grandparent')      return 'Grandparent';
+    if (a.type === 'friend')           return 'Friend of Trinity';
+    return null;
+  }).filter(Boolean).join(', ');
+
+  const { error } = await resend.emails.send({
+    from: 'Trinity Fund <onboarding@resend.dev>',
+    to:   gift.email,
+    subject: 'Thank you for your gift to Trinity School',
+    html: `
+      <p>Dear ${gift.first_name},</p>
+      <p>Thank you for your generous gift to the Trinity Fund during Trinity Giving Days 2026.</p>
+      <table cellpadding="6" style="border-collapse:collapse;margin:16px 0;">
+        <tr><td style="color:#555;">Amount</td><td><strong>$${parseFloat(gift.amount).toLocaleString()}</strong></td></tr>
+        <tr><td style="color:#555;">Fund</td><td>${gift.fund}</td></tr>
+        ${affLabels ? `<tr><td style="color:#555;">Credited to</td><td>${affLabels}</td></tr>` : ''}
+        <tr><td style="color:#555;">Transaction ID</td><td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td></tr>
+      </table>
+      <p>Your gift makes a meaningful difference for every student at Trinity, K–12.</p>
+      <p>With gratitude,<br>The Trinity Advancement Office</p>
+    `,
+  });
+
+  if (error) { console.error('Resend error:', error); return false; }
+  console.log(`Confirmation email sent to ${gift.email}`);
+  return true;
 }
 
 // ─── Timestamped console logging ─────────────────────────────────────────────
@@ -302,7 +342,7 @@ app.post('/api/lookup', async (req, res) => {
 //   4. RE batch import happens separately (end-of-day job — not built yet)
 
 app.post('/api/gift', async (req, res) => {
-  const { transaction_id, amount, first_name, last_name, email, affiliations } = req.body;
+  const { transaction_id, amount, first_name, last_name, email, fund, affiliations } = req.body;
 
   if (!transaction_id || !amount) {
     return res.status(400).json({ error: 'transaction_id and amount are required.' });
@@ -359,6 +399,15 @@ app.post('/api/gift', async (req, res) => {
 
       if (creditsError) throw new Error('Supabase affiliation insert failed: ' + creditsError.message);
       console.log(`${credits.length} affiliation credit(s) saved for gift ${gift.id}`);
+    }
+
+    // Send confirmation email and mark as sent
+    const emailSent = await sendConfirmationEmail(
+      { ...gift, fund: fund || 'Annual Fund' },
+      affiliations
+    );
+    if (emailSent) {
+      await supabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
     }
 
     return res.json({ success: true, gift_id: gift.id });

@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.104.1",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "resend": "^6.12.2"
   }
 }
