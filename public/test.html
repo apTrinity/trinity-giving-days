@@ -296,7 +296,7 @@ window.addEventListener('load', function() {
       }),
     })
     .then(function(r) { return r.json(); })
-    .then(function(data) { log('Gift saved', data); })
+    .then(function(data) { log('Gift saved', data); pollLeaderboard(); })
     .catch(function(err) { log('Error: ' + err.message); });
   });
 
@@ -381,7 +381,7 @@ function pollLeaderboard() {
 }
 
 pollLeaderboard();
-setInterval(pollLeaderboard, 30000);
+setInterval(pollLeaderboard, 10000);
 </script>
 </body>
 </html>
