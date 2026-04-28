@@ -16,7 +16,7 @@ const path         = require('path');
 const { Resend }   = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function gradeLabel(grade) {
@@ -29,7 +29,7 @@ function gradeLabel(grade) {
 
 // ─── Confirmation email ───────────────────────────────────────────────────────
 async function sendConfirmationEmail(gift, affiliations) {
-  if (!gift.email) return false;
+  if (!resend || !gift.email) return false;
 
   const affLabels = (affiliations || []).map(a => {
     if (a.type === 'alumni'          && a.class_year) return `Alumni, Class of ${a.class_year}`;
@@ -383,14 +383,27 @@ app.post('/api/gift', async (req, res) => {
     if (giftError) throw new Error('Supabase gift insert failed: ' + giftError.message);
     console.log(`Gift saved to Supabase: ${gift.id}`);
 
-    // Save affiliation credits — counts_toward_total set by background job once constituent is known
+    // Save affiliation credits — optimistically set counts_toward_total=true if
+    // this is the first gift we've seen from this email. Background job will
+    // correct it later if constituent lookup reveals a duplicate.
+    let firstGift = true;
+    if (email && process.env.SKIP_RE_RESOLUTION !== 'true') {
+      const { data: prior } = await supabase
+        .from('gifts')
+        .select('id')
+        .eq('email', email)
+        .neq('id', gift.id)
+        .limit(1);
+      if (prior && prior.length > 0) firstGift = false;
+    }
+
     if (affiliations && affiliations.length > 0) {
       const credits = affiliations.map(aff => ({
         gift_id:             gift.id,
         affiliation_type:    aff.type,
         class_year:          aff.class_year || null,
         grade:               aff.grade || null,
-        counts_toward_total: false,
+        counts_toward_total: firstGift,
       }));
 
       const { error: creditsError } = await supabase
@@ -398,7 +411,7 @@ app.post('/api/gift', async (req, res) => {
         .insert(credits);
 
       if (creditsError) throw new Error('Supabase affiliation insert failed: ' + creditsError.message);
-      console.log(`${credits.length} affiliation credit(s) saved for gift ${gift.id}`);
+      console.log(`${credits.length} affiliation credit(s) saved for gift ${gift.id} (counts_toward_total=${firstGift})`);
     }
 
     // Send confirmation email and mark as sent
@@ -435,6 +448,54 @@ async function resolveUnmatchedGifts() {
 
   if (error) { console.error('resolveUnmatchedGifts query error:', error.message); return; }
   if (!gifts || gifts.length === 0) return;
+
+  if (process.env.SKIP_RE_RESOLUTION === 'true') {
+    // Skip RE API calls but still set counts_toward_total so leaderboard works locally
+    for (const gift of gifts) {
+      const { data: existing } = await supabase
+        .from('affiliation_credits')
+        .select('id')
+        .eq('gift_id', gift.id)
+        .eq('counts_toward_total', true)
+        .limit(1);
+      if (existing && existing.length > 0) continue; // already set
+
+      // Check if this email has a prior gift with counts_toward_total=true
+      let isFirst = true;
+      if (gift.email) {
+        const { data: prior } = await supabase
+          .from('gifts')
+          .select('id')
+          .eq('email', gift.email)
+          .neq('id', gift.id)
+          .limit(1);
+        if (prior && prior.length > 0) {
+          const { data: priorCredited } = await supabase
+            .from('affiliation_credits')
+            .select('id')
+            .eq('gift_id', prior[0].id)
+            .eq('counts_toward_total', true)
+            .limit(1);
+          if (priorCredited && priorCredited.length > 0) isFirst = false;
+        }
+      }
+
+      if (isFirst) {
+        await supabase
+          .from('affiliation_credits')
+          .update({ counts_toward_total: true })
+          .eq('gift_id', gift.id);
+        console.log(`SKIP_RE_RESOLUTION: set counts_toward_total=true for gift ${gift.id}`);
+      }
+
+      // Mark constituent_id so Render's background job doesn't pick this up
+      await supabase
+        .from('gifts')
+        .update({ constituent_id: 'LOCAL_TEST', match_type: 'local_test' })
+        .eq('id', gift.id);
+    }
+    return;
+  }
 
   console.log(`Resolving ${gifts.length} unmatched gift(s)...`);
 
@@ -543,6 +604,274 @@ loadTokensFromSupabase().then(() => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Offline gift sync — polls RE NXT every 30 min for gifts entered by staff
+// (checks, DAFs, pledges, etc.) and writes them to Supabase.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Giving day config — set in .env or defaults here
+const GIVING_DAY_START = process.env.GIVING_DAY_START || '2026-05-01'; // YYYY-MM-DD
+const GIVING_DAY_END   = process.env.GIVING_DAY_END   || '2026-05-02'; // YYYY-MM-DD
+const GIVING_DAY_FUND  = process.env.GIVING_DAY_FUND  || 'Annual Fund';
+
+// Current school year's graduating class (seniors).
+// Before July → this calendar year. July onward → next year.
+function currentGradYear() {
+  const now = new Date();
+  return now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+}
+
+// Compute a child's grade from their RE graduation year.
+// Returns 'K', '1'–'12', or null if not currently enrolled.
+function gradeFromGradYear(gradYear) {
+  const grade = 12 - (gradYear - currentGradYear());
+  if (grade < 0 || grade > 12) return null;
+  if (grade === 0) return 'K';
+  return String(grade);
+}
+
+// Given an already-fetched constituent record, derive giving-day affiliations.
+// Calls the relationships endpoint only when needed (current parents).
+async function deriveAffiliations(c, constituentId) {
+  const affiliations = [];
+
+  // Fetch constituent codes (separate endpoint)
+  let codes = [];
+  try {
+    const codesRes = await skyRequest({
+      method: 'get',
+      url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/constituentcodes`,
+    });
+    codes = codesRes.data?.value || [];
+  } catch (err) {
+    console.error(`deriveAffiliations: constituent codes fetch failed for ${constituentId}:`, err.message);
+  }
+
+  // Alumni — fetch education records
+  try {
+    const edRes = await skyRequest({
+      method: 'get',
+      url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/educations`,
+    });
+    const trinityEd = (edRes.data?.value || []).find(e =>
+      e.school === 'Trinity School' && e.class_of
+    );
+    if (trinityEd) {
+      affiliations.push({ type: 'alumni', class_year: parseInt(trinityEd.class_of) });
+    }
+  } catch (err) {
+    console.error(`deriveAffiliations: education fetch failed for ${constituentId}:`, err.message);
+  }
+
+  // Current Parent — fetch relationships to get children's grad years → grades
+  const isCurrentParent = codes.some(
+    code => code.description === 'Current Parent' && !code.inactive
+  );
+  if (isCurrentParent) {
+    try {
+      const relsRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/relationships`,
+        params: { limit: 500 },
+      });
+      const children = (relsRes.data?.value || []).filter(r =>
+        ['Son', 'Daughter', 'Child'].includes(r.type)
+      );
+      if (children.length > 0) {
+        children.forEach(child => {
+          const yearMatch = (child.name || '').match(/\b(20\d{2})\b/);
+          if (yearMatch) {
+            const grade = gradeFromGradYear(parseInt(yearMatch[1]));
+            if (grade) affiliations.push({ type: 'current_parent', grade });
+          } else {
+            affiliations.push({ type: 'current_parent', grade: null });
+          }
+        });
+      } else {
+        affiliations.push({ type: 'current_parent', grade: null });
+      }
+    } catch (err) {
+      console.error(`deriveAffiliations: relationships fetch failed for ${constituentId}:`, err.message);
+      affiliations.push({ type: 'current_parent', grade: null });
+    }
+  }
+
+  // Faculty / Staff
+  const isFaculty = codes.some(code =>
+    ['Faculty', 'Staff', 'Faculty/Staff'].includes(code.description) && !code.inactive
+  );
+  if (isFaculty) affiliations.push({ type: 'faculty' });
+
+  // Fallback
+  if (affiliations.length === 0) affiliations.push({ type: 'friend' });
+
+  return affiliations;
+}
+
+async function syncOfflineGifts() {
+  if (process.env.SKIP_RE_RESOLUTION === 'true') {
+    console.log('syncOfflineGifts: SKIP_RE_RESOLUTION=true, skipping.');
+    return;
+  }
+
+  try {
+    console.log('syncOfflineGifts: checking RE for offline gifts...');
+
+    const listId = process.env.OFFLINE_SYNC_LIST_ID;
+    if (!listId) {
+      console.log('syncOfflineGifts: no OFFLINE_SYNC_LIST_ID set, skipping.');
+      return;
+    }
+
+    // Step 1: Submit the query execution job
+    const execRes = await skyRequest({
+      method: 'post',
+      url: 'https://api.sky.blackbaud.com/query/queries/executebyid',
+      params: { product: 'RE', module: 'None' },
+      data: { id: parseInt(listId) },
+    });
+    const jobId = execRes.data?.id;
+    if (!jobId) throw new Error('No job ID returned from query execution');
+    console.log(`syncOfflineGifts: query job started — ${jobId}`);
+
+    // Step 2: Poll /query/jobs/{jobId} until Completed
+    let sasUri = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const jobRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/query/jobs/${jobId}`,
+        params: { product: 'RE', module: 'None', include_read_url: 1 },
+      });
+      const status = jobRes.data?.status;
+        if (status === 'Completed') { sasUri = jobRes.data.sas_uri; break; }
+      if (['Failed', 'Cancelled'].includes(status)) throw new Error(`Query job ${status}`);
+    }
+    if (!sasUri) throw new Error('Query job did not complete in time');
+
+    // Step 3: Download CSV results from SAS URI (no auth needed — pre-signed URL)
+    const csvRes = await axios.get(sasUri);
+    const csvLines = csvRes.data.trim().split('\n');
+    const headers = csvLines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    // Step 4: Find gift ID column and fetch full detail for each gift
+    const idCol = headers.findIndex(h =>
+      ['Gift ID', 'Gift System ID', 'System Record ID', 'ID'].includes(h)
+    );
+    if (idCol === -1) throw new Error(`Gift ID column not found in query output. Headers: ${headers.join(', ')}`);
+
+    const offlineGifts = [];
+    for (let i = 1; i < csvLines.length; i++) {
+      const cols = csvLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const giftId = cols[idCol];
+      if (!giftId) continue;
+      const giftRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/gift/v1/gifts/${giftId}`,
+      });
+      if (giftRes.data) offlineGifts.push(giftRes.data);
+    }
+    console.log(`syncOfflineGifts: query returned ${offlineGifts.length} gift(s)`);
+
+    if (offlineGifts.length === 0) {
+      console.log('syncOfflineGifts: no gifts found in giving day window.');
+      return;
+    }
+
+    console.log(`syncOfflineGifts: ${offlineGifts.length} gift(s) to process...`);
+
+    for (const reGift of offlineGifts) {
+      const reGiftId = String(reGift.id);
+
+      // Skip if already synced
+      const { data: existing } = await supabase
+        .from('gifts')
+        .select('id')
+        .eq('transaction_id', reGiftId)
+        .eq('source', 'offline')
+        .limit(1);
+      if (existing && existing.length > 0) continue;
+
+      const constituentId = String(reGift.constituent_id);
+
+      // Fetch constituent record
+      let constituent;
+      try {
+        const cRes = await skyRequest({
+          method: 'get',
+          url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}`,
+        });
+        constituent = cRes.data;
+      } catch (err) {
+        console.error(`syncOfflineGifts: can't fetch constituent ${constituentId}:`, err.message);
+        continue;
+      }
+
+      const firstName = constituent.first || '';
+      const lastName  = constituent.last  || '';
+      const email     = constituent.email?.address || null;
+      const amount    = parseFloat(reGift.amount?.value || 0);
+      const fund      = reGift.fund?.description || GIVING_DAY_FUND;
+
+      // Derive affiliations
+      const affiliations = await deriveAffiliations(constituent, constituentId);
+
+      // First-gift check for counts_toward_total
+      const { count: priorCount } = await supabase
+        .from('gifts')
+        .select('id', { count: 'exact', head: true })
+        .eq('constituent_id', constituentId);
+      const isFirstGift = (priorCount || 0) === 0;
+
+      // Insert gift
+      const { data: gift, error: giftError } = await supabase
+        .from('gifts')
+        .insert({
+          transaction_id:    reGiftId,
+          amount,
+          fund,
+          first_name:        firstName,
+          last_name:         lastName,
+          email,
+          constituent_id:    constituentId,
+          match_type:        'offline',
+          source:            'offline',
+          confirmation_sent: false,
+        })
+        .select()
+        .single();
+
+      if (giftError) {
+        console.error(`syncOfflineGifts: insert failed for gift ${reGiftId}:`, giftError.message);
+        continue;
+      }
+
+      // Insert affiliation credits
+      if (affiliations.length > 0) {
+        const credits = affiliations.map(aff => ({
+          gift_id:             gift.id,
+          affiliation_type:    aff.type,
+          class_year:          aff.class_year || null,
+          grade:               aff.grade      || null,
+          counts_toward_total: isFirstGift,
+        }));
+        await supabase.from('affiliation_credits').insert(credits);
+      }
+
+      console.log(`syncOfflineGifts: synced ${firstName} ${lastName} $${amount} — ${affiliations.map(a => a.type + (a.class_year ? ' ' + a.class_year : '') + (a.grade ? ' gr.' + a.grade : '')).join(', ')}`);
+    }
+
+  } catch (err) {
+    console.error('syncOfflineGifts error:', err.response?.data || err.message);
+  }
+}
+
+// Sync offline gifts on startup and every 30 minutes
+setTimeout(() => {
+  syncOfflineGifts();
+  setInterval(syncOfflineGifts, 30 * 60 * 1000);
+}, 5000); // 5s delay so tokens are loaded before first run
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Leaderboard — reads from Supabase, returns ranked alumni + parent boards,
 // overall stats, recent gifts, and challenge progress
 // ─────────────────────────────────────────────────────────────────────────────
@@ -559,7 +888,7 @@ app.get('/api/leaderboard', async (req, res) => {
         .limit(10),
       supabase
         .from('gifts')
-        .select('amount'),
+        .select('id, amount, email, constituent_id, first_name, last_name'),
     ]);
 
     const credits    = creditsResult.data  || [];
@@ -567,11 +896,25 @@ app.get('/api/leaderboard', async (req, res) => {
     const allGifts   = sumResult.data      || [];
 
     const totalRaised  = allGifts.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
-    const totalDonors  = credits.filter(c => c.counts_toward_total).length;
+    const counted      = credits.filter(c => c.counts_toward_total);
 
-    // Group alumni credits by class_year (de-dupe by gift_id)
+    // Count unique donors from the gifts table directly — dedup by constituent_id
+    // when resolved, fall back to email for unresolved gifts.
+    const donorSet = new Set();
+    allGifts.forEach(g => {
+      if (g.constituent_id && g.constituent_id !== 'LOCAL_TEST') {
+        donorSet.add('cid:' + g.constituent_id);
+      } else if (g.first_name && g.last_name) {
+        donorSet.add('name:' + g.first_name.toLowerCase() + '|' + g.last_name.toLowerCase());
+      } else {
+        donorSet.add('gift:' + g.id);
+      }
+    });
+    const totalDonors = donorSet.size;
+
+    // Group alumni credits by class_year — only counted credits
     const alumniMap = {};
-    credits.forEach(c => {
+    counted.forEach(c => {
       if (c.affiliation_type === 'alumni' && c.class_year) {
         if (!alumniMap[c.class_year]) alumniMap[c.class_year] = new Set();
         alumniMap[c.class_year].add(c.gift_id);
@@ -581,9 +924,9 @@ app.get('/api/leaderboard', async (req, res) => {
       .map(([year, set]) => ({ class_year: parseInt(year), donors: set.size }))
       .sort((a, b) => b.donors - a.donors);
 
-    // Group current parents — by grade if present, otherwise by class_year
+    // Group current parents — only counted credits
     const parentsMap = {};
-    credits.forEach(c => {
+    counted.forEach(c => {
       if (c.affiliation_type !== 'current_parent' && c.affiliation_type !== 'parents') return;
       const key = c.grade ? ('grade:' + c.grade) : c.class_year ? ('year:' + c.class_year) : null;
       if (!key) return;

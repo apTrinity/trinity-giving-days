@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Make Your Gift · Trinity Giving Days 2025</title>
+<title>Trinity Giving Days 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
   --navy:      #1C2D5E;
   --navy-deep: #111d3f;
@@ -20,368 +19,630 @@
   --ink-muted: #787878;
   --border:    #D8D5CE;
 }
+html, body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: var(--cream); }
 
-html, body { height: 100%; font-family: 'DM Sans', sans-serif; color: var(--ink); }
-
-/* ── Background ── */
-.page-bg {
-  min-height: 100vh;
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
   background:
-    linear-gradient(to bottom, rgba(11,17,35,.72) 0%, rgba(11,17,35,.82) 100%),
-    /* swap with: url('/images/giving-days-bg.jpg') center/cover no-repeat */
+    linear-gradient(to bottom, rgba(10,16,32,.78) 0%, rgba(14,22,42,.88) 100%),
     linear-gradient(135deg, #0a1120 0%, #1a2748 40%, #243060 70%, #0f1d38 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 16px 64px;
-}
-
-/* ── Nav strip ── */
-.back-bar {
-  width: 100%; max-width: 680px;
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 32px;
-}
-.back-link {
-  font-size: 13px; color: rgba(255,255,255,.6); text-decoration: none;
-  display: flex; align-items: center; gap: 6px; transition: color .15s;
-}
-.back-link:hover { color: #fff; }
-.back-link svg { width: 14px; height: 14px; }
-.nav-brand {
-  font-family: 'Playfair Display', serif;
-  font-size: 14px; color: rgba(255,255,255,.85); font-weight: 600;
-  letter-spacing: .02em;
-}
-
-/* ── Card ── */
-.card {
-  width: 100%; max-width: 680px;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 8px 48px rgba(0,0,0,.35);
-}
-
-.card-header {
-  background: var(--navy-deep);
-  padding: 32px 40px 28px;
+  padding: 40px 24px 36px;
   text-align: center;
+  color: #fff;
+}
+.hero-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+}
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 5vw, 44px); font-weight: 700; line-height: 1.15;
+  margin-bottom: 14px;
+}
+.hero-sub {
+  font-size: 15px; color: rgba(255,255,255,.65); max-width: 480px; margin: 0 auto 28px;
+  line-height: 1.65;
+}
+.btn-give {
+  display: inline-block;
+  background: var(--gold); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  padding: 14px 36px; border-radius: 5px; border: none; cursor: pointer;
+  letter-spacing: .05em; text-transform: uppercase; text-decoration: none;
+  transition: background .15s;
+}
+.btn-give:hover { background: var(--gold-lt); }
+
+/* ── Stats bar ────────────────────────────────────────────────── */
+.stats-bar {
+  background: var(--navy-deep);
+  display: flex; justify-content: center; gap: 0;
   border-bottom: 3px solid var(--gold);
 }
-.card-eyebrow {
-  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 10px;
+.stat-item {
+  flex: 1; max-width: 220px;
+  padding: 18px 20px; text-align: center;
+  border-right: 1px solid rgba(255,255,255,.08);
 }
-.card-title {
+.stat-item:last-child { border-right: none; }
+.stat-num {
   font-family: 'Playfair Display', serif;
-  font-size: 26px; font-weight: 700; color: #fff; line-height: 1.2;
-  margin-bottom: 12px;
+  font-size: 28px; font-weight: 700; color: #fff; line-height: 1;
+  margin-bottom: 4px;
 }
-.card-desc {
-  font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.65;
-  max-width: 480px; margin: 0 auto;
+.stat-lbl { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+
+/* ── Progress bar ─────────────────────────────────────────────── */
+.progress-wrap {
+  background: var(--navy-deep); padding: 20px 24px 22px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.progress-inner { max-width: 760px; margin: 0 auto; }
+.progress-labels {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 10px;
+}
+.progress-count {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 700; color: #fff;
+}
+.progress-count span { color: var(--gold); }
+.progress-goal { font-size: 12px; font-weight: 500; letter-spacing: .06em; color: rgba(255,255,255,.45); text-transform: uppercase; }
+.progress-track {
+  height: 10px; background: rgba(255,255,255,.1); border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-lt) 100%);
+  border-radius: 99px; transition: width .6s ease; width: 0%;
+}
+.progress-sub {
+  margin-top: 8px; font-size: 12px; color: rgba(255,255,255,.4); text-align: center;
 }
 
-.card-body { padding: 36px 40px 40px; }
+/* ── Main layout ──────────────────────────────────────────────── */
+.page-wrap {
+  max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px;
+  display: grid; grid-template-columns: 1fr 340px; gap: 28px;
+}
+@media (max-width: 800px) {
+  .page-wrap { grid-template-columns: 1fr; }
+  .sidebar { order: -1; }
+}
 
-/* ── Section headings ── */
-.section-label {
-  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--navy); margin-bottom: 14px; padding-bottom: 8px;
+/* ── Panel shell ──────────────────────────────────────────────── */
+.panel {
+  background: #fff; border-radius: 6px;
+  border: 1px solid #E2DFD9;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+}
+.panel-head {
+  padding: 18px 22px 14px;
   border-bottom: 1px solid #E8E6E0;
+  display: flex; align-items: center; justify-content: space-between;
 }
+.panel-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px; font-weight: 700; color: var(--navy);
+}
+.panel-tabs { display: flex; gap: 4px; }
+.tab-btn {
+  font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  padding: 6px 14px; border-radius: 4px; border: none;
+  background: transparent; color: var(--ink-muted); cursor: pointer;
+  transition: all .12s;
+}
+.tab-btn.active { background: var(--navy); color: #fff; }
 
-/* ── Amount buttons ── */
-.amount-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  margin-bottom: 12px;
+/* ── Leaderboard tables ──────────────────────────────────────── */
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table thead tr { background: #F4F2ED; }
+.lb-table th {
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-muted); padding: 10px 16px; text-align: left;
 }
-.amt-btn {
-  padding: 11px 8px; border: 1.5px solid var(--border); border-radius: 5px;
-  background: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
-  color: var(--ink); cursor: pointer; transition: all .15s; text-align: center;
+.lb-table th:last-child { text-align: right; }
+.lb-table tbody tr { border-top: 1px solid #F0EDE8; transition: background .1s; }
+.lb-table tbody tr:hover { background: #FAFAF7; }
+.lb-table td { padding: 12px 16px; font-size: 14px; }
+.lb-table td:last-child { text-align: right; }
+.lb-rank {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; flex-shrink: 0;
 }
-.amt-btn:hover { border-color: var(--navy); color: var(--navy); }
-.amt-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
-.custom-amt-wrap { margin-bottom: 24px; }
-.custom-prefix {
-  position: relative;
+.lb-rank-1 { background: var(--gold);      color: #fff; }
+.lb-rank-2 { background: #A0A0A0;          color: #fff; }
+.lb-rank-3 { background: #B87333;          color: #fff; }
+.lb-rank-n { background: #EEE;             color: var(--ink-mid); }
+.rank-cell { display: flex; align-items: center; gap: 12px; }
+.lb-gift-count {
+  background: var(--navy); color: #fff;
+  font-size: 12px; font-weight: 700;
+  padding: 3px 9px; border-radius: 12px;
 }
-.custom-prefix::before {
-  content: '$';
-  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  font-size: 16px; color: var(--ink-muted); pointer-events: none;
-}
-.custom-prefix input { padding-left: 28px; }
+.lb-empty { padding: 40px; text-align: center; color: var(--ink-muted); font-size: 14px; }
 
-/* ── Fields ── */
-.field-row { display: flex; gap: 14px; margin-bottom: 16px; }
-.field-row .field-group { flex: 1; }
-.field-group { margin-bottom: 16px; }
-.field-group:last-child { margin-bottom: 0; }
-label.field-lbl {
-  display: block; font-size: 12px; font-weight: 600; color: var(--ink-mid);
-  letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px;
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.sidebar { display: flex; flex-direction: column; gap: 22px; }
+
+.recent-list { padding: 4px 0; }
+.recent-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 20px; border-top: 1px solid #F0EDE8;
 }
-.field-input, .field-select {
+.recent-item:first-child { border-top: none; }
+.recent-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--navy); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700;
+  flex-shrink: 0;
+}
+.recent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.recent-sub  { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+
+.give-panel {
+  background: var(--navy-deep);
+  border-radius: 6px; padding: 26px 24px; text-align: center;
+  border-top: 3px solid var(--gold);
+}
+.give-panel-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;
+}
+.give-panel-sub { font-size: 13px; color: rgba(255,255,255,.55); line-height: 1.6; margin-bottom: 20px; }
+.btn-give-lg {
+  display: block; width: 100%;
+  background: var(--gold); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  padding: 14px; border-radius: 5px; border: none; cursor: pointer;
+  letter-spacing: .06em; text-transform: uppercase; transition: background .15s;
+}
+.btn-give-lg:hover { background: var(--gold-lt); }
+
+/* ── Gift modal overlay ──────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,15,30,.65); z-index: 1000;
+  align-items: flex-start; justify-content: center;
+  padding: 40px 16px 40px; overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: #fff; border-radius: 8px; width: 100%; max-width: 560px;
+  box-shadow: 0 16px 64px rgba(0,0,0,.4);
+  overflow: hidden; position: relative;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.6); font-size: 22px; line-height: 1; padding: 4px;
+  transition: color .12s;
+}
+.modal-close:hover { color: #fff; }
+.modal-header {
+  background: var(--navy-deep); padding: 28px 36px 22px;
+  border-bottom: 3px solid var(--gold); text-align: center;
+}
+.modal-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.modal-title   { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #fff; }
+.modal-body    { padding: 30px 36px 36px; }
+
+/* ── Form elements (in modal) ────────────────────────────────── */
+.f-label {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-mid); margin-bottom: 6px; margin-top: 18px;
+}
+.f-label:first-child { margin-top: 0; }
+.f-input, .f-select {
   width: 100%; padding: 11px 14px;
   border: 1.5px solid var(--border); border-radius: 5px;
   font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--ink);
-  background: #fff; transition: border-color .15s; outline: none;
-  appearance: none;
+  background: #fff; outline: none; transition: border-color .15s; appearance: none;
+  -webkit-appearance: none;
 }
-.field-input:focus, .field-select:focus { border-color: var(--navy); }
-.field-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23787878' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
-
-/* ── Fund options ── */
-.fund-grid { display: grid; gap: 8px; margin-bottom: 24px; }
-.fund-opt {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 5px;
-  cursor: pointer; transition: border-color .15s;
+.f-input:focus, .f-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(28,45,94,.08); }
+.f-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231C2D5E' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+  cursor: pointer;
 }
-.fund-opt:hover { border-color: var(--navy); }
-.fund-opt input[type="radio"] { margin-top: 2px; accent-color: var(--navy); flex-shrink: 0; }
-.fund-opt-title { font-size: 14px; font-weight: 600; color: var(--ink); }
-.fund-opt-sub   { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+.f-select:hover { border-color: var(--navy); }
+.grade-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231C2D5E' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+  cursor: pointer;
+}
+.f-row { display: flex; gap: 14px; }
+.f-row > * { flex: 1; }
 
-/* ── Affiliation checkboxes ── */
-.affil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.amt-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; margin-bottom: 8px; }
+.amt-btn {
+  padding: 11px 6px; border: 1.5px solid var(--border); border-radius: 5px;
+  background: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--ink); cursor: pointer; transition: all .13s; text-align: center;
+}
+.amt-btn:hover  { border-color: var(--navy); color: var(--navy); }
+.amt-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.affil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
 .affil-opt {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 5px;
-  cursor: pointer; transition: border-color .15s; font-size: 14px; font-weight: 500;
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 5px;
+  cursor: pointer; font-size: 13px; font-weight: 500; transition: border-color .13s;
 }
-.affil-opt:hover { border-color: var(--navy); }
-.affil-opt input[type="checkbox"] { accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; }
-.affil-opt.checked { border-color: var(--navy); background: #F0F3FA; }
-.year-row { display: flex; gap: 12px; margin-bottom: 16px; }
-.year-row .field-group { flex: 1; }
+.affil-opt:hover  { border-color: var(--navy); }
+.affil-opt.active { border-color: var(--navy); background: #F0F3FA; }
+.affil-opt input  { accent-color: var(--navy); width: 15px; height: 15px; flex-shrink: 0; }
 
-/* ── Divider ── */
-.divider { border: none; border-top: 1px solid #E8E6E0; margin: 24px 0; }
-
-/* ── Submit area ── */
-.submit-area { margin-top: 8px; }
-.security-note {
-  text-align: center; font-size: 12px; color: var(--ink-muted);
-  margin-top: 12px; line-height: 1.5;
+.custom-prefix { position: relative; }
+.custom-prefix::before {
+  content: '$'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 15px; color: var(--ink-muted); pointer-events: none;
 }
-.security-note strong { color: var(--ink-mid); }
+.custom-prefix .f-input { padding-left: 26px; }
 
-/* ── Checkout button container ── */
-#checkout-btn-container button,
-#checkout-btn-container [role="button"] {
-  width: 100% !important;
+.divider { border: none; border-top: 1px solid #E8E6E0; margin: 22px 0; }
+
+.btn-submit {
+  width: 100%; padding: 15px; margin-top: 22px;
+  background: var(--navy); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  letter-spacing: .05em; border-radius: 5px; border: 1.5px solid var(--navy);
+  cursor: pointer; transition: background .15s;
 }
+.btn-submit:hover { background: var(--navy-deep); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Thank you state */
-.thank-you { display: none; text-align: center; padding: 48px 24px; }
+.secure-note { text-align: center; font-size: 12px; color: var(--ink-muted); margin-top: 10px; line-height: 1.5; }
+
+/* ── Thank you state ─────────────────────────────────────────── */
+.ty-state { display: none; text-align: center; padding: 48px 36px; }
 .ty-mark {
-  width: 64px; height: 64px; border-radius: 50%;
+  width: 60px; height: 60px; border-radius: 50%;
   background: var(--navy-deep); color: var(--gold);
-  font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700;
+  font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 24px;
+  margin: 0 auto 20px;
 }
-.ty-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 28px; font-weight: 700; color: var(--navy); margin-bottom: 10px;
-}
-.ty-sub { font-size: 15px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 28px; }
-.ty-receipt {
-  background: #F7F5F0; border-radius: 6px; padding: 18px 24px;
-  text-align: left; margin-bottom: 24px;
-}
-.ty-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.ty-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.ty-sub   { font-size: 14px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 22px; }
+.ty-receipt { background: #F7F5F0; border-radius: 5px; padding: 16px 20px; text-align: left; margin-bottom: 22px; }
+.ty-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
 .ty-row + .ty-row { border-top: 1px solid #E8E6E0; }
 .ty-key { color: var(--ink-muted); }
-.ty-val { font-weight: 600; color: var(--ink); }
-.btn-return {
+.ty-val { font-weight: 600; }
+.btn-close-ty {
   background: var(--navy); color: #fff;
-  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-  padding: 13px 28px; border-radius: 5px; border: none; cursor: pointer;
-  letter-spacing: .04em; transition: background .15s; text-decoration: none;
-  display: inline-block;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 11px 24px; border-radius: 5px; border: none; cursor: pointer;
+  letter-spacing: .04em; transition: background .15s;
 }
-.btn-return:hover { background: var(--navy-deep); }
+.btn-close-ty:hover { background: var(--navy-deep); }
 </style>
 </head>
 <body>
 
-<div class="page-bg">
+<!-- ── Hero ──────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-eyebrow">May 1–2, 2026</div>
+  <div class="hero-title">Trinity Giving Days</div>
+  <div class="hero-sub">Two days. One community. Every gift counts — and every donor moves your class up the leaderboard.</div>
+  <button class="btn-give" onclick="openModal()">Make a Gift</button>
+</div>
 
-  <div class="back-bar">
-    <a href="/" class="back-link">
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-        <path d="M9 2L4 7l5 5"/>
-      </svg>
-      Back to Giving Days
-    </a>
-    <div class="nav-brand">Trinity School</div>
+<!-- ── Stats bar ─────────────────────────────────────────────────────── -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num" id="stat-donors">—</div>
+    <div class="stat-lbl">Donors</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="stat-raised">—</div>
+    <div class="stat-lbl">Raised</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="stat-alumni">—</div>
+    <div class="stat-lbl">Alumni Classes</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="stat-parent-grades">—</div>
+    <div class="stat-lbl">Parent Grades</div>
+  </div>
+</div>
+
+<!-- ── Progress bar ───────────────────────────────────────────────────── -->
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="progress-labels">
+      <div class="progress-count"><span id="prog-donors">0</span> donors</div>
+      <div class="progress-goal">Goal: 350</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="prog-fill"></div>
+    </div>
+    <div class="progress-sub" id="prog-sub"></div>
+  </div>
+</div>
+
+<!-- ── Main layout ────────────────────────────────────────────────────── -->
+<div class="page-wrap">
+
+  <!-- Leaderboard -->
+  <div class="main-col">
+    <!-- Alumni leaderboard -->
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="panel-head">
+        <div class="panel-title">Top Alumni Classes</div>
+      </div>
+      <table class="lb-table">
+        <thead><tr>
+          <th>Class</th>
+          <th>Donors</th>
+        </tr></thead>
+        <tbody id="alumni-rows">
+          <tr><td colspan="2" class="lb-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Parents leaderboard -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Top Parent Grades</div>
+      </div>
+      <table class="lb-table">
+        <thead><tr>
+          <th>Grade</th>
+          <th>Donors</th>
+        </tr></thead>
+        <tbody id="parent-rows">
+          <tr><td colspan="2" class="lb-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="card">
+  <!-- Sidebar -->
+  <div class="sidebar">
 
-    <div class="card-header">
-      <div class="card-eyebrow">Trinity Giving Days 2025</div>
-      <div class="card-title">Make Your Gift to the Trinity Fund</div>
-      <div class="card-desc">Every gift — regardless of size — moves your class up the leaderboard and helps unlock challenge gifts from Trinity's most generous donors.</div>
+    <!-- Give CTA -->
+    <div class="give-panel">
+      <div class="give-panel-title">Join your class</div>
+      <div class="give-panel-sub">Every gift — any amount — counts your class toward its donor total and unlocks challenge gifts.</div>
+      <button class="btn-give-lg" onclick="openModal()">Make a Gift</button>
     </div>
 
-    <div class="card-body" id="form-body">
-
-      <!-- Amount -->
-      <div class="section-label">Gift Amount</div>
-      <div class="amount-grid">
-        <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
-        <button class="amt-btn" onclick="pickAmt(100,this)">$100</button>
-        <button class="amt-btn" onclick="pickAmt(250,this)">$250</button>
-        <button class="amt-btn" onclick="pickAmt(500,this)">$500</button>
-        <button class="amt-btn" onclick="pickAmt(1000,this)">$1,000</button>
-        <button class="amt-btn" onclick="pickAmt(2500,this)">$2,500</button>
-        <button class="amt-btn" onclick="pickAmt(5000,this)">$5,000</button>
-        <button class="amt-btn" onclick="showCustom(this)">Other</button>
+    <!-- Recent donors -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Recent Donors</div>
       </div>
-      <div class="custom-amt-wrap" id="custom-wrap" style="display:none">
-        <div class="custom-prefix">
-          <input class="field-input" id="custom-amt" type="number" min="1" placeholder="Enter amount" oninput="selAmt=parseInt(this.value)||null">
+      <div class="recent-list" id="recent-list">
+        <div class="lb-empty">Loading…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Gift modal ─────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+
+    <!-- Form state -->
+    <div id="modal-form">
+      <div class="modal-header">
+        <div class="modal-eyebrow">Trinity Giving Days 2026</div>
+        <div class="modal-title">Make Your Gift</div>
+      </div>
+      <div class="modal-body">
+
+        <label class="f-label">Gift Amount</label>
+        <div class="amt-grid">
+          <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
+          <button class="amt-btn" onclick="pickAmt(100,this)">$100</button>
+          <button class="amt-btn" onclick="pickAmt(250,this)">$250</button>
+          <button class="amt-btn" onclick="pickAmt(500,this)">$500</button>
+          <button class="amt-btn" onclick="pickAmt(1000,this)">$1,000</button>
+          <button class="amt-btn" onclick="pickAmt(2500,this)">$2,500</button>
+          <button class="amt-btn" onclick="pickAmt(5000,this)">$5,000</button>
+          <button class="amt-btn" onclick="showCustomAmt(this)">Other</button>
         </div>
-      </div>
-
-      <hr class="divider">
-
-      <!-- Fund -->
-      <div class="section-label">Fund Designation</div>
-      <div class="fund-grid">
-        <label class="fund-opt">
-          <input type="radio" name="fund" value="Annual Fund" checked>
-          <div>
-            <div class="fund-opt-title">Annual Fund</div>
-            <div class="fund-opt-sub">Greatest impact across all programs</div>
+        <div id="custom-wrap" style="display:none; margin-bottom:8px;">
+          <div class="custom-prefix">
+            <input class="f-input" id="custom-amt" type="number" min="1" placeholder="Enter amount" oninput="selAmt=parseInt(this.value)||null">
           </div>
-        </label>
-        <label class="fund-opt">
-          <input type="radio" name="fund" value="Financial Aid">
-          <div>
-            <div class="fund-opt-title">Financial Aid</div>
-            <div class="fund-opt-sub">Ensure every qualified student can attend</div>
-          </div>
-        </label>
-        <label class="fund-opt">
-          <input type="radio" name="fund" value="Arts & Athletics">
-          <div>
-            <div class="fund-opt-title">Arts &amp; Athletics</div>
-            <div class="fund-opt-sub">Enrich student life beyond the classroom</div>
-          </div>
-        </label>
-      </div>
-
-      <hr class="divider">
-
-      <!-- Donor info -->
-      <div class="section-label">Your Information</div>
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-lbl" for="first-name">First name *</label>
-          <input class="field-input" id="first-name" type="text" autocomplete="given-name" placeholder="First">
         </div>
-        <div class="field-group">
-          <label class="field-lbl" for="last-name">Last name *</label>
-          <input class="field-input" id="last-name" type="text" autocomplete="family-name" placeholder="Last">
+
+        <hr class="divider">
+
+        <label class="f-label">Your Information</label>
+        <div class="f-row" style="margin-bottom:14px">
+          <div>
+            <input class="f-input" id="m-first" type="text" autocomplete="given-name" placeholder="First name">
+          </div>
+          <div>
+            <input class="f-input" id="m-last" type="text" autocomplete="family-name" placeholder="Last name">
+          </div>
         </div>
-      </div>
-      <div class="field-group">
-        <label class="field-lbl" for="email">Email address *</label>
-        <input class="field-input" id="email" type="email" autocomplete="email" placeholder="you@example.com">
-      </div>
+        <input class="f-input" id="m-email" type="email" autocomplete="email" placeholder="Email address">
 
-      <hr class="divider">
+        <hr class="divider">
 
-      <!-- Affiliation -->
-      <div class="section-label">Your Connection to Trinity</div>
-      <div class="affil-grid">
-        <label class="affil-opt" id="opt-alumni" onclick="toggleAffil('alumni',this)">
-          <input type="checkbox" id="chk-alumni"> Alumni
-        </label>
-        <label class="affil-opt" id="opt-parents" onclick="toggleAffil('parents',this)">
-          <input type="checkbox" id="chk-parents"> Current Parent
-        </label>
-        <label class="affil-opt" id="opt-faculty" onclick="toggleAffil('faculty',this)">
-          <input type="checkbox" id="chk-faculty"> Faculty / Staff
-        </label>
-        <label class="affil-opt" id="opt-friend" onclick="toggleAffil('friend',this)">
-          <input type="checkbox" id="chk-friend"> Friend of Trinity
-        </label>
-      </div>
+        <label class="f-label">Your Connection to Trinity</label>
+        <div class="affil-grid">
+          <div class="affil-opt" id="aopt-alumni" onclick="toggleAffil('alumni',this)">
+            <input type="checkbox" id="achk-alumni"> Alumni
+          </div>
+          <div class="affil-opt" id="aopt-parents" onclick="toggleAffil('parents',this)">
+            <input type="checkbox" id="achk-parents"> Current Parent
+          </div>
+          <div class="affil-opt" id="aopt-faculty" onclick="toggleAffil('faculty',this)">
+            <input type="checkbox" id="achk-faculty"> Faculty / Staff
+          </div>
+          <div class="affil-opt" id="aopt-friend" onclick="toggleAffil('friend',this)">
+            <input type="checkbox" id="achk-friend"> Friend of Trinity
+          </div>
+        </div>
 
-      <div id="alumni-year-wrap" style="display:none" class="year-row">
-        <div class="field-group">
-          <label class="field-lbl">Graduation year</label>
-          <select class="field-select" id="alumni-year">
-            <option value="">Select year&hellip;</option>
+        <div id="alumni-detail" style="display:none; margin-top:12px;">
+          <label class="f-label">Graduation Year</label>
+          <select class="f-select" id="m-alumni-year">
+            <option value="">Select year…</option>
           </select>
         </div>
-      </div>
-      <div id="parent-year-wrap" style="display:none" class="year-row">
-        <div class="field-group">
-          <label class="field-lbl">Child's graduation year</label>
-          <select class="field-select" id="parent-year">
-            <option value="">Select year&hellip;</option>
-          </select>
+        <div id="parent-detail" style="display:none; margin-top:12px;">
+          <label class="f-label">Children's Grades</label>
+          <div id="parent-grades"></div>
+          <button type="button" onclick="addGradeRow()" style="margin-top:8px;background:none;border:1.5px solid var(--navy);color:var(--navy);border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add another child</button>
         </div>
+
+        <div id="form-error" style="display:none; background:#FEF2F2; border:1.5px solid #FECACA; border-radius:5px; padding:11px 14px; font-size:13px; color:#B91C1C; margin-bottom:14px;"></div>
+        <button class="btn-submit" id="submit-btn" onclick="submitGift()">Complete Gift</button>
+        <div class="secure-note">Secured by Blackbaud Merchant Services. Trinity never stores your card data.</div>
       </div>
-
-      <hr class="divider">
-
-      <!-- Submit -->
-      <div class="submit-area">
-        <button type="button" id="submit-btn" style="width:100%;padding:15px;font-size:16px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.04em;background:var(--navy);color:#fff;border:1.5px solid var(--navy);border-radius:5px;cursor:pointer;transition:background .15s;" onclick="submitGift()">
-          Complete Gift
-        </button>
-        <div class="security-note">
-          <strong>Secured by Blackbaud Merchant Services.</strong> Trinity never stores your card data.
-        </div>
-      </div>
-
-    </div><!-- /card-body -->
+    </div>
 
     <!-- Thank you state -->
-    <div class="thank-you" id="thank-you">
+    <div class="ty-state" id="ty-state">
       <div class="ty-mark">T</div>
       <div class="ty-title">Thank you.</div>
-      <div class="ty-sub">Your gift has been processed and credited to your class on the leaderboard.</div>
+      <div class="ty-sub">Your gift has been processed. Check the leaderboard — your class just moved up.</div>
       <div class="ty-receipt">
         <div class="ty-row"><span class="ty-key">Amount</span><span class="ty-val" id="ty-amt"></span></div>
-        <div class="ty-row"><span class="ty-key">Fund</span><span class="ty-val" id="ty-fund"></span></div>
         <div class="ty-row"><span class="ty-key">Credited to</span><span class="ty-val" id="ty-class"></span></div>
       </div>
-      <a href="/" class="btn-return">Back to Giving Days</a>
+      <button class="btn-close-ty" onclick="closeModal()">Back to Leaderboard</button>
     </div>
 
-  </div><!-- /card -->
-</div><!-- /page-bg -->
+  </div>
+</div>
+
+<!-- Blackbaud Checkout SDK -->
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
 
 <script>
+// ── Config ──────────────────────────────────────────────────────────────────
+// Swap TEST → LIVE before going live
+var PAYMENT_CONFIG_ID = 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969'; // TEST — swap to 8d2a50a3-deb8-41d0-8f0a-01b5955d69d6 for live
+var DONOR_GOAL = 350;
+
+// ── State ────────────────────────────────────────────────────────────────────
 var selAmt = null;
-var affilAlumni  = false;
-var affilParents = false;
-var affilFaculty = false;
-var affilFriend  = false;
+var affilState = { alumni: false, parents: false, faculty: false, friend: false };
 var checkoutService = null;
 var checkoutReady   = false;
 
-// ── Amount buttons ──────────────────────────────────────────────────────────
+// ── Leaderboard polling ──────────────────────────────────────────────────────
+function pollLeaderboard() {
+  fetch('/api/leaderboard')
+    .then(function(r){ return r.json(); })
+    .then(renderLeaderboard)
+    .catch(function(e){ console.error('Leaderboard fetch error:', e); });
+}
+
+function renderLeaderboard(data) {
+  // Progress bar
+  var donors = data.total_donors || 0;
+  var pct    = Math.min(100, Math.round(donors / DONOR_GOAL * 100));
+  var needed = Math.max(0, DONOR_GOAL - donors);
+  document.getElementById('prog-donors').textContent = donors.toLocaleString();
+  document.getElementById('prog-fill').style.width   = pct + '%';
+  document.getElementById('prog-sub').textContent    = donors >= DONOR_GOAL
+    ? 'Goal reached! Thank you, Trinity community.'
+    : needed + ' more donor' + (needed === 1 ? '' : 's') + ' to reach our goal';
+
+  // Stats bar
+  document.getElementById('stat-donors').textContent    = donors.toLocaleString();
+  document.getElementById('stat-raised').textContent    = '$' + Math.round(data.total_raised || 0).toLocaleString();
+  document.getElementById('stat-alumni').textContent    = (data.alumni || []).length;
+  document.getElementById('stat-parent-grades').textContent = (data.parents || []).length;
+
+  // Alumni table
+  var ar = document.getElementById('alumni-rows');
+  if (!data.alumni || data.alumni.length === 0) {
+    ar.innerHTML = '<tr><td colspan="2" class="lb-empty">No alumni gifts yet — be the first!</td></tr>';
+  } else {
+    ar.innerHTML = data.alumni.map(function(row, i) {
+      var rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : 'lb-rank-n';
+      return '<tr>' +
+        '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
+        '<span>Class of ' + row.class_year + '</span></div></td>' +
+        '<td><span class="lb-gift-count">' + row.donors + '</span></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Parents table
+  var pr = document.getElementById('parent-rows');
+  if (!data.parents || data.parents.length === 0) {
+    pr.innerHTML = '<tr><td colspan="2" class="lb-empty">No parent gifts yet — be the first!</td></tr>';
+  } else {
+    pr.innerHTML = data.parents.map(function(row, i) {
+      var rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : 'lb-rank-n';
+      var label = row.grade ? gradeLabel(row.grade) : (row.class_year ? "Class of '" + String(row.class_year).slice(-2) + ' Parents' : '—');
+      return '<tr>' +
+        '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
+        '<span>' + label + '</span></div></td>' +
+        '<td><span class="lb-gift-count">' + row.donors + '</span></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Recent donors
+  var rl = document.getElementById('recent-list');
+  if (!data.recent_gifts || data.recent_gifts.length === 0) {
+    rl.innerHTML = '<div class="lb-empty">No gifts yet.</div>';
+  } else {
+    rl.innerHTML = data.recent_gifts.map(function(g) {
+      var parts = (g.name || '').split(' ');
+      var initials = parts.map(function(p){ return p[0] || ''; }).join('').slice(0, 2);
+      return '<div class="recent-item">' +
+        '<div class="recent-avatar">' + initials.toUpperCase() + '</div>' +
+        '<div><div class="recent-name">' + (g.name || '') + '</div>' +
+        '<div class="recent-sub">' + (g.affiliation || 'Trinity Community') + '</div></div>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+function gradeLabel(g) {
+  if (!g) return '—';
+  if (g === 'K') return 'Kindergarten';
+  var n = parseInt(g);
+  var s = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+  return n + s + ' Grade';
+}
+
+// Kick off polling
+pollLeaderboard();
+setInterval(pollLeaderboard, 10000);
+
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+// ── Amount buttons ───────────────────────────────────────────────────────────
 function pickAmt(amt, btn) {
   selAmt = amt;
   document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('custom-wrap').style.display = 'none';
   document.getElementById('custom-amt').value = '';
-  if (checkoutService) checkoutService.baseAmount = amt * 100;
 }
-function showCustom(btn) {
+function showCustomAmt(btn) {
   selAmt = null;
   document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
@@ -389,117 +650,163 @@ function showCustom(btn) {
   document.getElementById('custom-amt').focus();
 }
 
-// ── Affiliation ─────────────────────────────────────────────────────────────
-function toggleAffil(type, label) {
-  var map = { alumni: 'affilAlumni', parents: 'affilParents', faculty: 'affilFaculty', friend: 'affilFriend' };
-  window[map[type]] = !window[map[type]];
-  label.classList.toggle('checked', window[map[type]]);
-  document.getElementById('chk-' + type).checked = window[map[type]];
+// ── Grade row helpers ────────────────────────────────────────────────────────
+var GRADE_OPTIONS = ['K','1','2','3','4','5','6','7','8','9','10','11','12'];
 
-  document.getElementById('alumni-year-wrap').style.display = affilAlumni  ? 'flex' : 'none';
-  document.getElementById('parent-year-wrap').style.display = affilParents ? 'flex' : 'none';
+function gradeOptionsHTML() {
+  return '<option value="">Select grade…</option>' +
+    GRADE_OPTIONS.map(function(g) {
+      var label = g === 'K' ? 'Kindergarten' : g + (g==='1'?'st':g==='2'?'nd':g==='3'?'rd':'th') + ' Grade';
+      return '<option value="' + g + '">' + label + '</option>';
+    }).join('');
 }
 
-// ── Populate year dropdowns ─────────────────────────────────────────────────
-(function() {
-  var alumSel = document.getElementById('alumni-year');
-  for (var y = 2025; y >= 1940; y--) {
-    var o = document.createElement('option'); o.value = y; o.textContent = y; alumSel.appendChild(o);
+function addGradeRow() {
+  var container = document.getElementById('parent-grades');
+  var div = document.createElement('div');
+  div.style.marginBottom = '8px';
+  div.innerHTML = '<select class="f-select grade-select" style="margin-bottom:0">' + gradeOptionsHTML() + '</select>';
+  container.appendChild(div);
+}
+
+// ── Affiliation toggles ──────────────────────────────────────────────────────
+function toggleAffil(type, label) {
+  affilState[type] = !affilState[type];
+  label.classList.toggle('active', affilState[type]);
+  document.getElementById('achk-' + type).checked = affilState[type];
+  document.getElementById('alumni-detail').style.display = affilState.alumni  ? 'block' : 'none';
+  document.getElementById('parent-detail').style.display = affilState.parents ? 'block' : 'none';
+  if (type === 'parents') {
+    var container = document.getElementById('parent-grades');
+    if (affilState.parents && container.children.length === 0) addGradeRow();
+    if (!affilState.parents) container.innerHTML = '';
   }
-  var parSel = document.getElementById('parent-year');
-  for (var y = 2026; y <= 2037; y++) {
-    var o = document.createElement('option'); o.value = y; o.textContent = y; parSel.appendChild(o);
+}
+
+// ── Populate alumni year dropdown ────────────────────────────────────────────
+(function() {
+  var sel = document.getElementById('m-alumni-year');
+  for (var y = new Date().getFullYear(); y >= 1940; y--) {
+    var o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o);
   }
 })();
 
-// ── Class label for thank you ───────────────────────────────────────────────
-function classLabel() {
-  if (affilAlumni)  { var y = document.getElementById('alumni-year').value; return y ? 'Class of ' + y : 'Alumni'; }
-  if (affilParents) { var y = document.getElementById('parent-year').value; return y ? "Class of '" + String(y).slice(-2) + ' Parents' : 'Current Parent'; }
-  if (affilFaculty) return 'Faculty / Staff';
-  if (affilFriend)  return 'Friend of Trinity';
+// ── Build affiliations array from form state ─────────────────────────────────
+function buildAffiliations() {
+  var list = [];
+  if (affilState.alumni) {
+    var y = parseInt(document.getElementById('m-alumni-year').value) || null;
+    list.push({ type: 'alumni', class_year: y });
+  }
+  if (affilState.parents) {
+    document.querySelectorAll('.grade-select').forEach(function(sel) {
+      if (sel.value) list.push({ type: 'current_parent', grade: sel.value });
+    });
+    if (!list.some(function(a){ return a.type === 'current_parent'; })) {
+      list.push({ type: 'current_parent', grade: null });
+    }
+  }
+  if (affilState.faculty) list.push({ type: 'faculty' });
+  if (affilState.friend)  list.push({ type: 'friend' });
+  return list;
+}
+
+function affilLabel() {
+  if (affilState.alumni)  { var y = document.getElementById('m-alumni-year').value; return y ? 'Class of ' + y : 'Alumni'; }
+  if (affilState.parents) { var sel = document.querySelector('.grade-select'); var g = sel ? sel.value : null; return g ? gradeLabel(g) + ' Parent' : 'Current Parent'; }
+  if (affilState.faculty) return 'Faculty / Staff';
+  if (affilState.friend)  return 'Friend of Trinity';
   return 'Trinity Community';
 }
 
-// ── Validate & submit ───────────────────────────────────────────────────────
+// ── Validate & launch BBMS modal ─────────────────────────────────────────────
+function showError(msg) {
+  var el = document.getElementById('form-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function clearError() {
+  document.getElementById('form-error').style.display = 'none';
+}
+
 function submitGift() {
+  clearError();
   var amt = selAmt || (parseInt(document.getElementById('custom-amt').value) || null);
-  if (!amt || amt < 1) { alert('Please select or enter a gift amount.'); return; }
+  if (!amt || amt < 1) { showError('Please select or enter a gift amount.'); return; }
 
-  var first = document.getElementById('first-name').value.trim();
-  var last  = document.getElementById('last-name').value.trim();
-  var email = document.getElementById('email').value.trim();
-  if (!first || !last)         { alert('Please enter your first and last name.'); return; }
-  if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+  var first = document.getElementById('m-first').value.trim();
+  var last  = document.getElementById('m-last').value.trim();
+  var email = document.getElementById('m-email').value.trim();
+  if (!first || !last)  { showError('Please enter your first and last name.'); return; }
+  if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
 
-  if (!affilAlumni && !affilParents && !affilFaculty && !affilFriend) {
-    alert('Please select your connection to Trinity.'); return;
+  if (!affilState.alumni && !affilState.parents && !affilState.faculty && !affilState.friend) {
+    showError('Please select your connection to Trinity.'); return;
+  }
+
+  if (!checkoutService || !checkoutReady) {
+    showError('Payment system is still loading. Please try again in a moment.'); return;
   }
 
   selAmt = amt;
-
-  if (!checkoutService) { alert('Payment service not loaded. Please refresh and try again.'); return; }
-
-  // Set amount and billing, then open the Blackbaud payment modal
-  checkoutService.baseAmount = amt * 100;
-  checkoutService.billingDetails = { name: first + ' ' + last, emailAddress: email };
-
-  if (!checkoutReady) {
-    alert('Payment system is still loading. Please try again in a moment.');
-    return;
-  }
-  checkoutService.checkoutModal.openPaymentForm({ baseAmount: amt * 100 });
+  checkoutService.checkoutModal.openPaymentForm({
+    baseAmount: amt * 100,
+    billingDetails: { name: first + ' ' + last, email: email },
+  });
 }
 
-// ── Checkout complete ───────────────────────────────────────────────────────
+// ── Checkout SDK ─────────────────────────────────────────────────────────────
 window.addEventListener('load', function() {
   if (typeof window.BlackbaudCheckout !== 'function') {
-    console.warn('BlackbaudCheckout script did not load.');
+    console.warn('BlackbaudCheckout SDK did not load.');
     return;
   }
 
   checkoutService = window.BlackbaudCheckout({
-    paymentConfigurationId: 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969', // TEST — DOES NOT CHARGE
+    paymentConfigurationId: PAYMENT_CONFIG_ID,
     workflowMode: 'modal',
-    primaryColor: '#1C2D5E',
-    fontFamily: 'DM Sans, sans-serif',
-    fontColor: '#1A1A1A',
   });
 
   checkoutService.checkoutReady.subscribe(function() {
     checkoutReady = true;
-    console.log('Blackbaud checkout ready.');
   });
 
   checkoutService.checkoutComplete.subscribe(function(e) {
-    if (!e.success) return;
+    if (!e || !e.success) return;
 
-    var amt  = selAmt;
-    var fund = (document.querySelector('input[name="fund"]:checked') || {}).value || 'Annual Fund';
-    var cls  = classLabel();
+    var txnId = e.transaction.id;
+    var total = e.transaction.amountDetails.total; // cents
 
-    document.getElementById('ty-amt').textContent   = '$' + amt.toLocaleString();
-    document.getElementById('ty-fund').textContent  = fund;
-    document.getElementById('ty-class').textContent = cls;
-    document.getElementById('form-body').style.display  = 'none';
-    document.getElementById('thank-you').style.display  = 'block';
+    var first  = document.getElementById('m-first').value.trim();
+    var last   = document.getElementById('m-last').value.trim();
+    var email  = document.getElementById('m-email').value.trim();
+    var affils = buildAffiliations();
 
-    // POST to server for gift record
-    fetch('/api/capture', {
+    // Show thank you immediately
+    document.getElementById('ty-amt').textContent   = '$' + (selAmt || (total/100)).toLocaleString();
+    document.getElementById('ty-class').textContent = affilLabel();
+    document.getElementById('modal-form').style.display = 'none';
+    document.getElementById('ty-state').style.display   = 'block';
+
+    // Save gift → then refresh leaderboard instantly
+    fetch('/api/gift', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        transaction_id: e.id,
-        total:          e.total,
-        affiliation:    affilAlumni ? 'alumni' : affilParents ? 'parents' : affilFaculty ? 'faculty' : 'friend',
-        year:           affilAlumni ? document.getElementById('alumni-year').value : affilParents ? document.getElementById('parent-year').value : null,
-        fund:           fund,
+        transaction_id: txnId,
+        amount:         total / 100,
+        first_name:     first,
+        last_name:      last,
+        email:          email,
+        affiliations:   affils,
+        fund:           'Annual Fund',
       }),
-    }).catch(function(err) { console.error('Capture error:', err); });
+    })
+    .then(function() { pollLeaderboard(); })
+    .catch(function(err) { console.error('Gift save error:', err); });
   });
 });
 </script>
-
-<script src="https://pay.blackbaud.com/scripts/checkout"></script>
 </body>
 </html>
