@@ -981,6 +981,15 @@ app.get('/api/health', async (req, res) => {
   res.json({ ok: true, gifts_in_db: count });
 });
 
+app.get('/api/sync-offline', async (req, res) => {
+  try {
+    await syncOfflineGifts();
+    res.json({ ok: true, message: 'Offline sync complete' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Start
 // ─────────────────────────────────────────────────────────────────────────────
