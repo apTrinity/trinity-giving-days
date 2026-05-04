@@ -42,7 +42,7 @@ async function sendConfirmationEmail(gift, affiliations) {
   }).filter(Boolean).join(', ');
 
   const { error } = await resend.emails.send({
-    from: 'Trinity Fund <onboarding@resend.dev>',
+    from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>',
     to:   gift.email,
     subject: 'Thank you for your gift to Trinity School',
     html: `
