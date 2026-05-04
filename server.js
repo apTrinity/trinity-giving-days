@@ -41,21 +41,55 @@ async function sendConfirmationEmail(gift, affiliations) {
     return null;
   }).filter(Boolean).join(', ');
 
+  const amountFormatted = '$' + parseFloat(gift.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const { error } = await resend.emails.send({
     from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>',
     to:   gift.email,
     subject: 'Thank you for your gift to Trinity School',
     html: `
-      <p>Dear ${gift.first_name},</p>
-      <p>Thank you for your generous gift to the Trinity Fund during Trinity Giving Days 2026.</p>
-      <table cellpadding="6" style="border-collapse:collapse;margin:16px 0;">
-        <tr><td style="color:#555;">Amount</td><td><strong>$${parseFloat(gift.amount).toLocaleString()}</strong></td></tr>
-        <tr><td style="color:#555;">Fund</td><td>${gift.fund}</td></tr>
-        ${affLabels ? `<tr><td style="color:#555;">Credited to</td><td>${affLabels}</td></tr>` : ''}
-        <tr><td style="color:#555;">Transaction ID</td><td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td></tr>
-      </table>
-      <p>Your gift makes a meaningful difference for every student at Trinity, K–12.</p>
-      <p>With gratitude,<br>The Trinity Advancement Office</p>
+      <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;">
+
+        <!-- Header -->
+        <div style="padding:24px 32px 20px;border-bottom:1px solid #ddd;">
+          <img src="https://givecampus.s3-accelerate.amazonaws.com/uploads/project/share_image/72106/facebook_small_trinity_giving_days_2025_logo.png"
+               alt="Trinity School" width="180" style="display:block;" />
+        </div>
+
+        <!-- Body -->
+        <div style="padding:28px 32px 8px;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 16px;">Dear ${gift.first_name},</p>
+          <p style="margin:0 0 16px;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025-2026 Trinity Fund during Trinity Giving Days 2026. Your generosity means a great deal to our school and helps us continue to provide the very best education for our students.</p>
+          <p style="margin:0 0 16px;">Should you have any questions or need assistance regarding your gift, please don't hesitate to contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#1C2D5E;">trinityfund@trinityschoolnyc.org</a>.</p>
+          <p style="margin:0 0 16px;">Again, thank you so much for your support.</p>
+          <p style="margin:0 0 4px;">Gratefully,</p>
+          <p style="margin:0 0 28px;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+
+        <!-- Matching gifts -->
+        <div style="padding:20px 32px;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 8px;"><strong><em>DOUBLE THE IMPACT OF YOUR SUPPORT!</em></strong></p>
+          <p style="margin:0 0 8px;">Did you know that many companies match employee donations to Trinity?</p>
+          <p style="margin:0;"><a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="color:#1C2D5E;">CLICK HERE to find out if your employer participates and what the next steps would be.</a></p>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+
+        <!-- Transaction details -->
+        <div style="padding:20px 32px 32px;font-size:13px;color:#555;">
+          <table cellpadding="5" style="border-collapse:collapse;">
+            <tr><td style="padding-right:20px;">Amount</td><td><strong style="color:#222;">${amountFormatted}</strong></td></tr>
+            <tr><td style="padding-right:20px;">Fund</td><td style="color:#222;">${gift.fund}</td></tr>
+            ${affLabels ? `<tr><td style="padding-right:20px;">Credited to</td><td style="color:#222;">${affLabels}</td></tr>` : ''}
+            <tr><td style="padding-right:20px;">Transaction ID</td><td style="font-family:monospace;font-size:11px;color:#222;">${gift.transaction_id}</td></tr>
+          </table>
+        </div>
+
+      </div>
     `,
   });
 
