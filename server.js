@@ -156,6 +156,10 @@ async function sendStaffNotification(gift, affiliations) {
               <td style="color:#666;">Affiliation(s)</td>
               <td>${affilRows.length > 0 ? affilRows.join('<br>') : '—'}</td>
             </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Date</td>
+              <td>${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
+            </tr>
             <tr>
               <td style="color:#666;">Transaction ID</td>
               <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
