@@ -98,6 +98,79 @@ async function sendConfirmationEmail(gift, affiliations) {
   return true;
 }
 
+// ─── Staff notification email ─────────────────────────────────────────────────
+const STAFF_EMAILS = [
+  'abigail.bedrick@trinityschoolnyc.org',
+  'andrew.peterson@trinityschoolnyc.org',
+  'edward.griffin@trinityschoolnyc.org',
+  'frances.shafer@trinityschoolnyc.org',
+  'migdalia.villanueva@trinityschoolnyc.org',
+  'myles.amend@trinityschoolnyc.org',
+  'philip.bien@trinityschoolnyc.org',
+];
+
+async function sendStaffNotification(gift, affiliations) {
+  if (!resend) return false;
+
+  const amountFormatted = '$' + parseFloat(gift.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const affilRows = (affiliations || []).map(a => {
+    if (a.type === 'alumni'          && a.class_year) return `Alumni — Class of ${a.class_year}`;
+    if ((a.type === 'current_parent' || a.type === 'parents') && a.grade)       return `Current Parent — ${gradeLabel(a.grade)}`;
+    if ((a.type === 'current_parent' || a.type === 'parents') && a.class_year)  return `Current Parent — Class of '${String(a.class_year).slice(-2)}`;
+    if (a.type === 'current_parent' || a.type === 'parents') return 'Current Parent';
+    if (a.type === 'faculty')     return 'Faculty / Staff';
+    if (a.type === 'grandparent') return 'Grandparent';
+    if (a.type === 'friend')      return 'Friend of Trinity';
+    return a.type;
+  }).filter(Boolean);
+
+  const { error } = await resend.emails.send({
+    from:    'Trinity Fund <trinityfund@trinityschoolnyc.org>',
+    to:      STAFF_EMAILS,
+    subject: `[Giving Days] ${amountFormatted} — ${gift.first_name} ${gift.last_name}`,
+    html: `
+      <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222;">
+        <div style="background:#1C2D5E;color:#fff;padding:16px 24px;border-bottom:3px solid #B8922A;">
+          <strong style="font-size:16px;">New Gift — Trinity Giving Days 2026</strong>
+        </div>
+        <div style="padding:20px 24px;">
+          <table cellpadding="7" style="border-collapse:collapse;width:100%;">
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;width:130px;">Donor</td>
+              <td><strong>${gift.first_name} ${gift.last_name}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Email</td>
+              <td>${gift.email || '—'}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Amount</td>
+              <td><strong>${amountFormatted}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Fund</td>
+              <td>${gift.fund}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Affiliation(s)</td>
+              <td>${affilRows.length > 0 ? affilRows.join('<br>') : '—'}</td>
+            </tr>
+            <tr>
+              <td style="color:#666;">Transaction ID</td>
+              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) { console.error('Staff notification error:', error); return false; }
+  console.log(`Staff notification sent for gift ${gift.id}`);
+  return true;
+}
+
 // ─── Timestamped console logging ─────────────────────────────────────────────
 const _log  = console.log.bind(console);
 const _warn = console.warn.bind(console);
@@ -449,13 +522,14 @@ app.post('/api/gift', async (req, res) => {
     }
 
     // Send confirmation email and mark as sent
-    const emailSent = await sendConfirmationEmail(
-      { ...gift, fund: fund || 'Annual Fund' },
-      affiliations
-    );
+    const giftWithFund = { ...gift, fund: fund || 'Annual Fund' };
+    const emailSent = await sendConfirmationEmail(giftWithFund, affiliations);
     if (emailSent) {
       await supabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
     }
+
+    // Send internal staff notification
+    await sendStaffNotification(giftWithFund, affiliations);
 
     return res.json({ success: true, gift_id: gift.id });
 
