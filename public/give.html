@@ -517,6 +517,13 @@ html, body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: 
           <button type="button" onclick="addGradeRow()" style="margin-top:8px;background:none;border:1.5px solid var(--navy);color:var(--navy);border-radius:4px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add another child</button>
         </div>
 
+        <hr class="divider">
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--ink-mid);">
+          <input type="checkbox" id="m-anonymous" style="width:15px;height:15px;accent-color:var(--navy);flex-shrink:0;">
+          Make my gift anonymous — my name won't appear in the donor feed
+        </label>
+
         <div id="form-error" style="display:none; background:#FEF2F2; border:1.5px solid #FECACA; border-radius:5px; padding:11px 14px; font-size:13px; color:#B91C1C; margin-bottom:14px;"></div>
         <button class="btn-submit" id="submit-btn" onclick="submitGift()">Complete Gift</button>
         <div class="secure-note">Secured by Blackbaud Merchant Services. Trinity never stores your card data.</div>
@@ -839,6 +846,7 @@ window.addEventListener('load', function() {
         last_name:      last,
         email:          email,
         affiliations:   affils,
+        anonymous:      document.getElementById('m-anonymous').checked,
         fund:           'Annual Fund',
       }),
     })

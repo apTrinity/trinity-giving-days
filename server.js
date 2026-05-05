@@ -448,7 +448,7 @@ app.post('/api/lookup', async (req, res) => {
 //   4. RE batch import happens separately (end-of-day job — not built yet)
 
 app.post('/api/gift', async (req, res) => {
-  const { transaction_id, amount, first_name, last_name, email, fund, affiliations } = req.body;
+  const { transaction_id, amount, first_name, last_name, email, fund, affiliations, anonymous } = req.body;
 
   if (!transaction_id || !amount) {
     return res.status(400).json({ error: 'transaction_id and amount are required.' });
@@ -481,6 +481,7 @@ app.post('/api/gift', async (req, res) => {
         constituent_id:    null, // resolved async by background job
         match_type:        null,
         source:            'online',
+        anonymous:         anonymous || false,
         confirmation_sent: false,
       })
       .select()
@@ -1027,6 +1028,7 @@ app.get('/api/leaderboard', async (req, res) => {
       supabase
         .from('gifts')
         .select('id, first_name, last_name, amount, created_at, affiliation_credits(affiliation_type, class_year, grade)')
+        .neq('anonymous', true)
         .order('created_at', { ascending: false })
         .limit(10),
       supabase
