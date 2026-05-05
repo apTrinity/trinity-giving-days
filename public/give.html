@@ -479,6 +479,12 @@ html, body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: 
           <div class="affil-opt" id="aopt-parents" onclick="toggleAffil('parents',this)">
             <input type="checkbox" id="achk-parents"> Current Parent
           </div>
+          <div class="affil-opt" id="aopt-parent_of_alumni" onclick="toggleAffil('parent_of_alumni',this)">
+            <input type="checkbox" id="achk-parent_of_alumni"> Parent of Alumni
+          </div>
+          <div class="affil-opt" id="aopt-grandparent" onclick="toggleAffil('grandparent',this)">
+            <input type="checkbox" id="achk-grandparent"> Grandparent
+          </div>
           <div class="affil-opt" id="aopt-faculty" onclick="toggleAffil('faculty',this)">
             <input type="checkbox" id="achk-faculty"> Faculty / Staff
           </div>
@@ -531,7 +537,7 @@ var DONOR_GOAL = 350;
 
 // ── State ────────────────────────────────────────────────────────────────────
 var selAmt = null;
-var affilState = { alumni: false, parents: false, faculty: false, friend: false };
+var affilState = { alumni: false, parents: false, parent_of_alumni: false, grandparent: false, faculty: false, friend: false };
 var checkoutService = null;
 var checkoutReady   = false;
 
@@ -706,16 +712,20 @@ function buildAffiliations() {
       list.push({ type: 'current_parent', grade: null });
     }
   }
-  if (affilState.faculty) list.push({ type: 'faculty' });
-  if (affilState.friend)  list.push({ type: 'friend' });
+  if (affilState.parent_of_alumni) list.push({ type: 'parent_of_alumni' });
+  if (affilState.grandparent)      list.push({ type: 'grandparent' });
+  if (affilState.faculty)          list.push({ type: 'faculty' });
+  if (affilState.friend)           list.push({ type: 'friend' });
   return list;
 }
 
 function affilLabel() {
   if (affilState.alumni)  { var y = document.getElementById('m-alumni-year').value; return y ? 'Class of ' + y : 'Alumni'; }
   if (affilState.parents) { var sel = document.querySelector('.grade-select'); var g = sel ? sel.value : null; return g ? gradeLabel(g) + ' Parent' : 'Current Parent'; }
-  if (affilState.faculty) return 'Faculty / Staff';
-  if (affilState.friend)  return 'Friend of Trinity';
+  if (affilState.parent_of_alumni) return 'Parent of Alumni';
+  if (affilState.grandparent)      return 'Grandparent';
+  if (affilState.faculty)          return 'Faculty / Staff';
+  if (affilState.friend)           return 'Friend of Trinity';
   return 'Trinity Community';
 }
 
@@ -741,7 +751,7 @@ function submitGift() {
   if (!first || !last)  { showError('Please enter your first and last name.'); return; }
   if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
 
-  if (!affilState.alumni && !affilState.parents && !affilState.faculty && !affilState.friend) {
+  if (!affilState.alumni && !affilState.parents && !affilState.parent_of_alumni && !affilState.grandparent && !affilState.faculty && !affilState.friend) {
     showError('Please select your connection to Trinity.'); return;
   }
 

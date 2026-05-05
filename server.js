@@ -113,9 +113,10 @@ async function sendStaffNotification(gift, affiliations) {
     if ((a.type === 'current_parent' || a.type === 'parents') && a.grade)       return `Current Parent — ${gradeLabel(a.grade)}`;
     if ((a.type === 'current_parent' || a.type === 'parents') && a.class_year)  return `Current Parent — Class of '${String(a.class_year).slice(-2)}`;
     if (a.type === 'current_parent' || a.type === 'parents') return 'Current Parent';
-    if (a.type === 'faculty')     return 'Faculty / Staff';
-    if (a.type === 'grandparent') return 'Grandparent';
-    if (a.type === 'friend')      return 'Friend of Trinity';
+    if (a.type === 'parent_of_alumni') return 'Parent of Alumni';
+    if (a.type === 'grandparent')      return 'Grandparent';
+    if (a.type === 'faculty')          return 'Faculty / Staff';
+    if (a.type === 'friend')           return 'Friend of Trinity';
     return a.type;
   }).filter(Boolean);
 
@@ -735,12 +736,41 @@ function gradeFromGradYear(gradYear) {
   return String(grade);
 }
 
+// Maps every Trinity constituent code description to a giving-day affiliation type.
+// Codes not listed here are ignored (orgs, incoming, vendors, etc.)
+const CODE_TO_AFFILIATION = {
+  'Trustee':                                   'friend',
+  'Current Parent':                            'current_parent',
+  'Alumni':                                    'alumni',
+  'Current Grandparent':                       'grandparent',
+  'Current Faculty & Staff':                   'faculty',
+  'Former Trustee':                            'friend',
+  'Parent of Alumni':                          'parent_of_alumni',
+  'Grandparent of Alumni':                     'grandparent',
+  'Withdrawn Alumni':                          'alumni',
+  'Faculty and Staff Emeriti':                 'faculty',
+  'St Agatha Alumnae':                         'alumni',
+  'AfterSchool/Athletics/Coaches/Other staff': 'friend',
+  'Current Student':                           'friend',
+  'Current Parent on Leave':                   'current_parent',
+  'Current Student on Leave':                  'friend',
+  'Withdrawn Parent':                          'parent_of_alumni',
+  'Withdrawn Grandparent':                     'grandparent',
+  'Withdrawn Student':                         'friend',
+  'Former Faculty & Staff':                    'friend',
+  'Incoming Parent':                           'friend',
+  'Incoming Grandparent':                      'friend',
+  'Friend':                                    'friend',
+  'Widow of Alumni':                           'friend',
+};
+
 // Given an already-fetched constituent record, derive giving-day affiliations.
-// Calls the relationships endpoint only when needed (current parents).
+// Uses constituent codes as the source of truth for affiliation type.
+// Fetches education records (for alumni class year) and relationships (for parent grade) as needed.
 async function deriveAffiliations(c, constituentId) {
   const affiliations = [];
 
-  // Fetch constituent codes (separate endpoint)
+  // Fetch constituent codes
   let codes = [];
   try {
     const codesRes = await skyRequest({
@@ -752,27 +782,35 @@ async function deriveAffiliations(c, constituentId) {
     console.error(`deriveAffiliations: constituent codes fetch failed for ${constituentId}:`, err.message);
   }
 
-  // Alumni — fetch education records
-  try {
-    const edRes = await skyRequest({
-      method: 'get',
-      url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/educations`,
-    });
-    const trinityEd = (edRes.data?.value || []).find(e =>
-      e.school === 'Trinity School' && e.class_of
-    );
-    if (trinityEd) {
-      affiliations.push({ type: 'alumni', class_year: parseInt(trinityEd.class_of) });
+  // Map active codes → unique affiliation types.
+  // 'friend' is a fallback — drop it if any more specific affiliation exists.
+  const affilTypes = new Set();
+  codes.filter(c => !c.inactive).forEach(code => {
+    const type = CODE_TO_AFFILIATION[code.description];
+    if (type) affilTypes.add(type);
+  });
+  if (affilTypes.size > 1 && affilTypes.has('friend')) affilTypes.delete('friend');
+
+  // Alumni — look up education records for class year
+  if (affilTypes.has('alumni')) {
+    try {
+      const edRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/educations`,
+      });
+      const trinityEd = (edRes.data?.value || []).find(e =>
+        e.school === 'Trinity School' && e.class_of
+      );
+      affiliations.push({ type: 'alumni', class_year: trinityEd ? parseInt(trinityEd.class_of) : null });
+    } catch (err) {
+      console.error(`deriveAffiliations: education fetch failed for ${constituentId}:`, err.message);
+      affiliations.push({ type: 'alumni', class_year: null });
     }
-  } catch (err) {
-    console.error(`deriveAffiliations: education fetch failed for ${constituentId}:`, err.message);
+    affilTypes.delete('alumni');
   }
 
-  // Current Parent — fetch relationships to get children's grad years → grades
-  const isCurrentParent = codes.some(
-    code => code.description === 'Current Parent' && !code.inactive
-  );
-  if (isCurrentParent) {
+  // Current Parent — look up relationships for children's grades
+  if (affilTypes.has('current_parent')) {
     try {
       const relsRes = await skyRequest({
         method: 'get',
@@ -788,6 +826,7 @@ async function deriveAffiliations(c, constituentId) {
           if (yearMatch) {
             const grade = gradeFromGradYear(parseInt(yearMatch[1]));
             if (grade) affiliations.push({ type: 'current_parent', grade });
+            else       affiliations.push({ type: 'current_parent', grade: null });
           } else {
             affiliations.push({ type: 'current_parent', grade: null });
           }
@@ -799,13 +838,11 @@ async function deriveAffiliations(c, constituentId) {
       console.error(`deriveAffiliations: relationships fetch failed for ${constituentId}:`, err.message);
       affiliations.push({ type: 'current_parent', grade: null });
     }
+    affilTypes.delete('current_parent');
   }
 
-  // Faculty / Staff
-  const isFaculty = codes.some(code =>
-    ['Faculty', 'Staff', 'Faculty/Staff'].includes(code.description) && !code.inactive
-  );
-  if (isFaculty) affiliations.push({ type: 'faculty' });
+  // All remaining types (grandparent, parent_of_alumni, faculty, friend)
+  affilTypes.forEach(type => affiliations.push({ type }));
 
   // Fallback
   if (affiliations.length === 0) affiliations.push({ type: 'friend' });
