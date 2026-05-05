@@ -1106,7 +1106,30 @@ app.get('/api/leaderboard', async (req, res) => {
       };
     });
 
-    res.json({ alumni, parents, total_donors: totalDonors, total_raised: totalRaised, recent_gifts });
+    // Affiliation breakdown — percentage of total donors per type
+    const AFFIL_LABELS = {
+      alumni:           'Alumni',
+      current_parent:   'Current Parent',
+      parent_of_alumni: 'Parent of Alumni',
+      grandparent:      'Grandparent',
+      faculty:          'Faculty / Staff',
+      friend:           'Friend of Trinity',
+    };
+    const affilMap = {};
+    counted.forEach(c => {
+      if (!affilMap[c.affiliation_type]) affilMap[c.affiliation_type] = new Set();
+      affilMap[c.affiliation_type].add(c.gift_id);
+    });
+    const affil_breakdown = totalDonors > 0
+      ? Object.entries(affilMap)
+          .map(([type, gifts]) => ({
+            label: AFFIL_LABELS[type] || type,
+            pct:   Math.round(gifts.size / totalDonors * 100),
+          }))
+          .sort((a, b) => b.pct - a.pct)
+      : [];
+
+    res.json({ alumni, parents, total_donors: totalDonors, total_raised: totalRaised, recent_gifts, affil_breakdown });
   } catch (err) {
     console.error('Leaderboard error:', err.message);
     res.status(500).json({ error: 'Leaderboard query failed.' });

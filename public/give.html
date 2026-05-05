@@ -106,7 +106,8 @@ html, body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: 
 }
 @media (max-width: 800px) {
   .page-wrap { grid-template-columns: 1fr; }
-  .sidebar { order: -1; }
+  .main-col { order: 1; }
+  .sidebar { order: 2; }
 }
 
 /* ── Panel shell ──────────────────────────────────────────────── */
@@ -423,6 +424,16 @@ html, body { font-family: 'DM Sans', sans-serif; color: var(--ink); background: 
       </div>
     </div>
 
+    <!-- Donor affiliations -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Donor Affiliations</div>
+      </div>
+      <div id="affil-breakdown" style="padding:16px 20px;">
+        <div class="lb-empty">Loading…</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -594,6 +605,23 @@ function renderLeaderboard(data) {
         '<span>' + label + '</span></div></td>' +
         '<td><span class="lb-gift-count">' + row.donors + '</span></td>' +
         '</tr>';
+    }).join('');
+  }
+
+  // Affiliation breakdown
+  var ab = document.getElementById('affil-breakdown');
+  if (!data.affil_breakdown || data.affil_breakdown.length === 0) {
+    ab.innerHTML = '<div class="lb-empty">No data yet.</div>';
+  } else {
+    ab.innerHTML = data.affil_breakdown.map(function(row) {
+      return '<div style="margin-bottom:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">' +
+        '<span style="font-size:13px;color:var(--ink-mid);">' + row.label + '</span>' +
+        '<span style="font-size:13px;font-weight:700;color:var(--navy);">' + row.pct + '%</span>' +
+        '</div>' +
+        '<div style="height:6px;background:#F0EDE8;border-radius:99px;overflow:hidden;">' +
+        '<div style="height:100%;width:' + Math.min(row.pct, 100) + '%;background:var(--navy);border-radius:99px;transition:width .6s ease;"></div>' +
+        '</div></div>';
     }).join('');
   }
 
