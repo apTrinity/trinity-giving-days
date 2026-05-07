@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Challenge Concepts — B &amp; C Variations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    header {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    header h1 { font-size: 14px; font-weight: 600; color: #374151; }
+    header p { font-size: 12px; color: #9ca3af; margin-left: 8px; }
+
+    .tab-groups { display: flex; gap: 24px; margin-left: auto; align-items: center; }
+    .tab-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+    .tabs { display: flex; gap: 5px; }
+    .tab-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1.5px solid #d1d5db;
+      background: white;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { border-color: #1a3a5c; color: #1a3a5c; }
+    .tab-btn.active { background: #1a3a5c; border-color: #1a3a5c; color: white; }
+
+    .concept { display: none; padding: 36px 32px; max-width: 960px; margin: 0 auto; }
+    .concept.active { display: block; }
+
+    .concept-meta { margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid #e5e7eb; }
+    .concept-meta h2 { font-size: 17px; font-weight: 700; color: #111; margin-bottom: 3px; }
+    .concept-meta p { font-size: 13px; color: #6b7280; }
+
+    /* ── SVG helpers ── */
+    .icon-trophy-sm { display: inline-flex; }
+    .icon-gift-sm { display: inline-flex; }
+
+    /* ================================================
+       ACCORDION — expand/collapse on tap
+       ================================================ */
+    .expandable-row { cursor: pointer; user-select: none; }
+
+    .desc-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease;
+    }
+    .expandable-row.open .desc-panel { max-height: 300px; }
+
+    .chevron {
+      flex-shrink: 0;
+      transition: transform 0.22s ease;
+      opacity: 0.35;
+      margin-left: auto;
+    }
+    .expandable-row.open .chevron { transform: rotate(180deg); opacity: 0.65; }
+
+    /* C-variant desc panels must span the full grid */
+    .c1-row .desc-panel,
+    .c2-row .desc-panel,
+    .c3-row .desc-panel { grid-column: 1 / -1; }
+
+    /* Prevent tall grid cells misaligning when row expands */
+    .c1-row.open,
+    .c2-row.open,
+    .c3-row.open { align-items: start; }
+
+    .c-desc {
+      font-size: 12px; color: #6b7280; line-height: 1.5;
+      padding: 6px 0 4px;
+      border-top: 1px solid #f3f4f6;
+      margin-top: 4px;
+    }
+
+    /* ================================================
+       B-1: Refined Original — Left border + fraction right
+       ================================================ */
+    .b1-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .b1-row {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      border-left: 4px solid #d1d5db;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .b1-row.active   { border-left-color: #1a3a5c; }
+    .b1-row.complete { border-left-color: #10b981; }
+    .b1-row.locked   { border-left-color: #d1d5db; opacity: 0.6; }
+
+    .b1-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .b1-icon.challenge { background: #eef2ff; }
+    .b1-icon.match     { background: #fef3c7; }
+
+    .b1-center { flex: 1; min-width: 0; }
+    .b1-title  {
+      font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px;
+      display: flex; align-items: flex-start; gap: 6px;
+    }
+    .b1-title .title-text { flex: 1; }
+    .b1-desc-inner { font-size: 12px; color: #6b7280; line-height: 1.45; margin-bottom: 7px; padding-top: 2px; }
+    .b1-tags   { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .b1-tag    { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: #f3f4f6; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 3px; }
+    .b1-tag.time { background: #fef9c3; color: #854d0e; }
+
+    .b1-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; min-width: 145px; }
+    .b1-frac  { font-size: 28px; font-weight: 800; color: #111827; line-height: 1; }
+    .b1-frac .d { font-size: 16px; color: #9ca3af; font-weight: 500; }
+    .b1-frac.complete { color: #10b981; }
+    .b1-frac.locked   { color: #d1d5db; }
+    .b1-bar   { width: 145px; height: 4px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .b1-fill  { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .b1-fill.complete { background: #10b981; }
+    .b1-label { font-size: 11px; font-weight: 600; color: #1a3a5c; }
+    .b1-label.complete { color: #065f46; }
+    .b1-label.locked   { color: #d1d5db; }
+
+    /* ================================================
+       B-2: Goal Cell — stat box on right
+       ================================================ */
+    .b2-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .b2-row {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .b2-row.locked { opacity: 0.6; }
+
+    .b2-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .b2-icon.challenge { background: #eef2ff; }
+    .b2-icon.match     { background: #fef3c7; }
+
+    .b2-center { flex: 1; min-width: 0; }
+    .b2-title  {
+      font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px;
+      display: flex; align-items: flex-start; gap: 6px;
+    }
+    .b2-title .title-text { flex: 1; }
+    .b2-desc-inner { font-size: 12px; color: #6b7280; line-height: 1.45; margin-bottom: 8px; padding-top: 2px; }
+    .b2-tags   { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .b2-tag    { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: #f3f4f6; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 3px; }
+    .b2-tag.time { background: #fef9c3; color: #854d0e; }
+
+    .b2-cell {
+      flex-shrink: 0;
+      width: 130px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-align: center;
+    }
+    .b2-cell.active   { background: #f0f4ff; border-color: #c7d7f7; }
+    .b2-cell.complete { background: #ecfdf5; border-color: #a7f3d0; }
+    .b2-cell.locked   { background: #f9fafb; border-color: #e5e7eb; }
+
+    .b2-num {
+      font-size: 30px; font-weight: 800; line-height: 1; color: #111827;
+    }
+    .b2-num.complete { color: #10b981; }
+    .b2-num.locked   { color: #d1d5db; }
+    .b2-num.dollars  { font-size: 20px; }
+
+    .b2-goal { font-size: 10px; color: #9ca3af; font-weight: 500; }
+    .b2-cbar { width: 100%; height: 4px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: 3px; }
+    .b2-cfill { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .b2-cfill.complete { background: #10b981; }
+    .b2-unlock { font-size: 10px; font-weight: 700; color: #1a3a5c; margin-top: 2px; }
+    .b2-unlock.complete { color: #065f46; }
+    .b2-unlock.locked   { color: #9ca3af; }
+
+    /* ================================================
+       B-3: Progress Stack — full-width bar below title
+       ================================================ */
+    .b3-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .b3-row {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 16px 20px;
+    }
+    .b3-row.locked { opacity: 0.6; }
+
+    .b3-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+
+    .b3-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .b3-icon.challenge { background: #eef2ff; }
+    .b3-icon.match     { background: #fef3c7; }
+
+    .b3-head { flex: 1; }
+    .b3-title {
+      font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 2px;
+      display: flex; align-items: flex-start; gap: 6px;
+    }
+    .b3-title .title-text { flex: 1; }
+    .b3-desc-inner  { font-size: 12px; color: #6b7280; line-height: 1.45; padding-top: 2px; }
+
+    .b3-amount-badge {
+      font-size: 13px; font-weight: 800; color: #1a3a5c;
+      background: #eef2ff; padding: 4px 12px; border-radius: 999px;
+      flex-shrink: 0; white-space: nowrap; align-self: flex-start; margin-top: 2px;
+    }
+    .b3-amount-badge.match   { color: #92400e; background: #fef3c7; }
+    .b3-amount-badge.complete { color: #065f46; background: #d1fae5; }
+
+    .b3-progress { }
+    .b3-bar-wrap { position: relative; margin-bottom: 6px; }
+    .b3-track { height: 10px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .b3-fill  { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .b3-fill.complete { background: #10b981; }
+    .b3-fill.locked   { background: #e5e7eb; }
+
+    .b3-meta { display: flex; justify-content: space-between; align-items: center; }
+    .b3-count { font-size: 12px; font-weight: 700; color: #374151; }
+    .b3-count.complete { color: #065f46; }
+    .b3-count.locked   { color: #9ca3af; }
+    .b3-by    { font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+
+    /* ================================================
+       C-1: Refined Original — Dots + inline bar
+       ================================================ */
+    .c1-wrap {
+      background: white; border-radius: 12px;
+      border: 1px solid #e5e7eb; overflow: hidden;
+    }
+    .c1-head {
+      padding: 12px 20px; background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex; justify-content: space-between;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: #9ca3af;
+    }
+    .c1-row {
+      padding: 13px 20px;
+      display: grid;
+      grid-template-columns: 12px 1fr 210px 90px;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .c1-row:last-child { border-bottom: none; }
+    .c1-row.locked { opacity: 0.55; }
+
+    .c1-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .c1-dot.active   { background: #1a3a5c; }
+    .c1-dot.complete { background: #10b981; }
+    .c1-dot.locked   { background: #d1d5db; }
+
+    .c1-name { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+    .c1-name .name-text { flex: 1; }
+    .c1-sub  { font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+
+    .c1-bar-area { display: flex; align-items: center; gap: 10px; }
+    .c1-track { flex: 1; height: 5px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .c1-fill  { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .c1-fill.complete { background: #10b981; }
+    .c1-tally { font-size: 11px; color: #6b7280; white-space: nowrap; min-width: 55px; text-align: right; }
+    .c1-tally.complete { color: #10b981; }
+    .c1-tally.locked   { color: #d1d5db; }
+
+    .c1-amount { font-size: 12px; font-weight: 700; color: #1a3a5c; text-align: right; }
+    .c1-amount.complete { color: #065f46; }
+    .c1-amount.locked   { color: #d1d5db; }
+
+    /* ================================================
+       C-2: Striped + Type Badges
+       ================================================ */
+    .c2-wrap {
+      background: white; border-radius: 12px;
+      border: 1px solid #e5e7eb; overflow: hidden;
+    }
+    .c2-row {
+      padding: 14px 20px 14px 0;
+      display: grid;
+      grid-template-columns: 4px 1fr 210px 90px;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .c2-row:last-child { border-bottom: none; }
+    .c2-row.locked { opacity: 0.55; }
+
+    .c2-stripe { height: 100%; border-radius: 0; width: 4px; align-self: stretch; }
+    .c2-stripe.active   { background: #1a3a5c; }
+    .c2-stripe.complete { background: #10b981; }
+    .c2-stripe.locked   { background: #e5e7eb; }
+
+    .c2-left { padding-left: 16px; }
+    .c2-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+    .c2-name { font-size: 13px; font-weight: 600; color: #111827; flex: 1; }
+    .c2-badge {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; padding: 2px 6px; border-radius: 4px;
+    }
+    .c2-badge.challenge { background: #eef2ff; color: #1e40af; }
+    .c2-badge.match     { background: #fef3c7; color: #92400e; }
+    .c2-sub { font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+
+    .c2-bar-area { display: flex; align-items: center; gap: 10px; }
+    .c2-track { flex: 1; height: 7px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .c2-fill  { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .c2-fill.complete { background: #10b981; }
+    .c2-tally { font-size: 11px; color: #6b7280; white-space: nowrap; min-width: 55px; text-align: right; }
+    .c2-tally.complete { color: #10b981; }
+    .c2-tally.locked   { color: #d1d5db; }
+
+    .c2-pill {
+      font-size: 11px; font-weight: 700; padding: 3px 9px;
+      border-radius: 999px; text-align: right; white-space: nowrap;
+    }
+    .c2-pill.active   { color: #1e3a5f; background: #eef2ff; }
+    .c2-pill.complete { color: #065f46; background: #d1fae5; }
+    .c2-pill.locked   { color: #9ca3af; background: #f3f4f6; }
+    .c2-pill.match    { color: #92400e; background: #fef3c7; }
+
+    /* C-2 chevron sits inside name-row */
+    .c2-name-row .chevron { margin-left: 4px; }
+
+    /* ================================================
+       C-3: Grouped Sections
+       ================================================ */
+    .c3-wrap {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .c3-section {
+      background: white; border-radius: 12px;
+      border: 1px solid #e5e7eb; overflow: hidden;
+    }
+    .c3-section-head {
+      padding: 9px 18px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .c3-section-head.active-head   { background: #f0f4ff; }
+    .c3-section-head.upcoming-head { background: #fefce8; }
+    .c3-section-head.complete-head { background: #ecfdf5; }
+
+    .c3-sh-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .c3-sh-dot.active   { background: #1a3a5c; }
+    .c3-sh-dot.upcoming { background: #d97706; }
+    .c3-sh-dot.complete { background: #10b981; }
+
+    .c3-sh-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .c3-sh-label.active   { color: #1a3a5c; }
+    .c3-sh-label.upcoming { color: #92400e; }
+    .c3-sh-label.complete { color: #065f46; }
+
+    .c3-sh-count { font-size: 10px; color: #9ca3af; margin-left: auto; }
+
+    .c3-row {
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: 1fr 200px 85px;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .c3-row:last-child { border-bottom: none; }
+
+    .c3-name { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+    .c3-name .name-text { flex: 1; }
+    .c3-sub  { font-size: 11px; color: #9ca3af; }
+
+    .c3-bar-area { display: flex; align-items: center; gap: 9px; }
+    .c3-track { flex: 1; height: 5px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .c3-fill  { height: 100%; border-radius: 999px; background: #1a3a5c; }
+    .c3-fill.complete { background: #10b981; }
+    .c3-fill.upcoming { background: #fbbf24; }
+    .c3-tally { font-size: 11px; color: #6b7280; white-space: nowrap; min-width: 52px; text-align: right; }
+    .c3-tally.complete { color: #10b981; font-weight: 600; }
+    .c3-tally.upcoming { color: #d97706; }
+
+    .c3-amount { font-size: 12px; font-weight: 700; color: #1a3a5c; text-align: right; }
+    .c3-amount.complete { color: #065f46; }
+    .c3-amount.upcoming { color: #d97706; }
+
+    /* =============================================
+       DESKTOP — B variants: descriptions always open
+       ============================================= */
+    @media (min-width: 641px) {
+      .b1-row .desc-panel,
+      .b2-row .desc-panel,
+      .b3-row .desc-panel { max-height: none; }
+
+      .b1-title .chevron,
+      .b2-title .chevron,
+      .b3-title .chevron { display: none; }
+
+      .b1-row.expandable-row,
+      .b2-row.expandable-row,
+      .b3-row.expandable-row { cursor: default; }
+    }
+
+    /* =============================================
+       MOBILE — all breakpoints
+       ============================================= */
+    @media (max-width: 640px) {
+      header { padding: 10px 14px; gap: 6px; flex-wrap: wrap; }
+      header h1 { font-size: 13px; }
+      header p { display: none; }
+      .tab-groups { gap: 8px; margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .tab-group-label { font-size: 9px; }
+      .tab-btn { padding: 5px 11px; font-size: 11px; }
+
+      .concept { padding: 20px 14px; }
+      .concept-meta h2 { font-size: 15px; }
+
+      /* B-1 mobile: icon+title share top row, fraction row below */
+      .b1-row { flex-wrap: wrap; gap: 10px; padding: 14px; }
+      .b1-icon { flex-shrink: 0; align-self: flex-start; }
+      .b1-center { flex: 1; min-width: 0; }
+      .b1-right { min-width: 100%; flex-direction: row; align-items: center;
+                  justify-content: space-between; gap: 12px;
+                  padding-top: 10px; border-top: 1px solid #f3f4f6; }
+      .b1-bar { flex: 1; min-width: 0; width: auto; }
+      .b1-frac { font-size: 18px; white-space: nowrap; }
+      .b1-label { white-space: nowrap; font-size: 11px; }
+
+      /* B-2 mobile: stat cell expands to full-width bottom strip */
+      .b2-row { flex-wrap: wrap; gap: 10px; }
+      .b2-center { flex: 1; min-width: 0; }
+      .b2-cell { min-width: 100%; flex-direction: row; justify-content: space-between;
+                 align-items: center; padding: 10px 14px; gap: 10px; }
+      .b2-num { font-size: 22px; }
+      .b2-goal { font-size: 10px; flex: 1; text-align: center; }
+      .b2-cbar { display: none; }
+      .b2-unlock { white-space: nowrap; }
+
+      /* B-3 mobile: already stacks well, tighten meta row */
+      .b3-top { gap: 8px; }
+      .b3-meta { flex-direction: column; align-items: flex-start; gap: 2px; }
+      .b3-by { font-size: 10px; }
+
+      /* C-1 mobile: 2-col grid — dot | content, then bar+amount span col 2 */
+      .c1-row { grid-template-columns: 12px 1fr; row-gap: 6px; }
+      .c1-bar-area { grid-column: 2; }
+      .c1-amount { grid-column: 2; text-align: left; }
+      .c1-tally { min-width: 0; }
+
+      /* C-2 mobile: 2-col — stripe | content, bar+pill span col 2 */
+      .c2-row { grid-template-columns: 4px 1fr; row-gap: 6px; padding: 12px 14px 12px 0; }
+      .c2-bar-area { grid-column: 2; padding-left: 16px; }
+      .c2-pill { grid-column: 2; padding-left: 16px; text-align: left; }
+
+      /* C-3 mobile: 2-col — name | amount on row 1, bar spans full width on row 2 */
+      .c3-row { grid-template-columns: 1fr auto; row-gap: 6px; }
+      .c3-bar-area { grid-column: 1 / -1; }
+      .c3-amount { font-size: 11px; align-self: start; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>B &amp; C Variations</h1>
+  <p>3 variations each · tap any row to expand · same mock data throughout</p>
+  <div class="tab-groups">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="tab-group-label">B · List</span>
+      <div class="tabs">
+        <button class="tab-btn b active" onclick="show('b1',this)">B-1</button>
+        <button class="tab-btn b" onclick="show('b2',this)">B-2</button>
+        <button class="tab-btn b" onclick="show('b3',this)">B-3</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="tab-group-label">C · Compact</span>
+      <div class="tabs">
+        <button class="tab-btn c" onclick="show('c1',this)">C-1</button>
+        <button class="tab-btn c" onclick="show('c2',this)">C-2</button>
+        <button class="tab-btn c" onclick="show('c3',this)">C-3</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Chevron SVG template (reused inline throughout) -->
+<template id="chevron-tpl">
+  <svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+</template>
+
+<!-- ============================================================
+     B-1: Refined Original
+     ============================================================ -->
+<div id="concept-b1" class="concept active">
+  <div class="concept-meta">
+    <h2>B-1 — Left Border + Fraction Right</h2>
+    <p>Refined version of the original. Left accent border signals status at a glance. Big X/Y fraction on the right. Tap any row for the full description.</p>
+  </div>
+  <div class="b1-list">
+
+    <div class="b1-row active expandable-row">
+      <div class="b1-icon challenge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b1-center">
+        <div class="b1-title"><span class="title-text">Trinity Giving Days Challenge — 350 for 150!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b1-desc-inner">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div>
+          <div class="b1-tags"><span class="b1-tag">All donors</span><span class="b1-tag">By a group of Trinity Parents, Alumni &amp; Friends</span></div>
+        </div>
+      </div>
+      <div class="b1-right">
+        <div class="b1-frac">247<span class="d"> / 350</span></div>
+        <div class="b1-bar"><div class="b1-fill" style="width:70.6%"></div></div>
+        <div class="b1-label">Unlocks $150,000</div>
+      </div>
+    </div>
+
+    <div class="b1-row locked expandable-row">
+      <div class="b1-icon challenge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b1-center">
+        <div class="b1-title"><span class="title-text">Final Day Challenge — 50 for 50!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b1-desc-inner">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund.</div>
+          <div class="b1-tags">
+            <span class="b1-tag">All donors</span>
+            <span class="b1-tag time"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5</span>
+            <span class="b1-tag">By Trinity Donors</span>
+          </div>
+        </div>
+      </div>
+      <div class="b1-right">
+        <div class="b1-frac locked">—<span class="d"> / 50</span></div>
+        <div class="b1-bar"><div class="b1-fill" style="width:0%"></div></div>
+        <div class="b1-label locked">Unlocks $50,000</div>
+      </div>
+    </div>
+
+    <div class="b1-row active expandable-row">
+      <div class="b1-icon challenge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b1-center">
+        <div class="b1-title"><span class="title-text">She Roars Alumnae Challenge</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b1-desc-inner">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div>
+          <div class="b1-tags"><span class="b1-tag">Alumnae only</span><span class="b1-tag">By Trinity Alumnae</span></div>
+        </div>
+      </div>
+      <div class="b1-right">
+        <div class="b1-frac">83<span class="d"> / 125</span></div>
+        <div class="b1-bar"><div class="b1-fill" style="width:66.4%"></div></div>
+        <div class="b1-label">Unlocks $25,000</div>
+      </div>
+    </div>
+
+    <div class="b1-row complete expandable-row">
+      <div class="b1-icon challenge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b1-center">
+        <div class="b1-title"><span class="title-text">New Families at Trinity — 25 for 25!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b1-desc-inner">25 gifts from 25 new Trinity families will unlock an additional $25,000 in Trinity Fund support.</div>
+          <div class="b1-tags"><span class="b1-tag">New families only</span><span class="b1-tag">By Anonymous</span></div>
+        </div>
+      </div>
+      <div class="b1-right">
+        <div class="b1-frac complete">25<span class="d"> / 25</span></div>
+        <div class="b1-bar"><div class="b1-fill complete" style="width:100%"></div></div>
+        <div class="b1-label complete">$25,000 Unlocked</div>
+      </div>
+    </div>
+
+    <div class="b1-row active expandable-row">
+      <div class="b1-icon match"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+      <div class="b1-center">
+        <div class="b1-title"><span class="title-text">Gifts from Young Alumni Matched up to $25,000</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b1-desc-inner">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div>
+          <div class="b1-tags"><span class="b1-tag">Alum 2011–2025</span><span class="b1-tag">By Trinity Alumni Board</span></div>
+        </div>
+      </div>
+      <div class="b1-right">
+        <div class="b1-frac" style="font-size:20px">$8,450<span class="d"> / $25k</span></div>
+        <div class="b1-bar"><div class="b1-fill" style="width:33.8%"></div></div>
+        <div class="b1-label">Match cap: $25,000</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     B-2: Goal Cell
+     ============================================================ -->
+<div id="concept-b2" class="concept">
+  <div class="concept-meta">
+    <h2>B-2 — Goal Cell</h2>
+    <p>The progress lives in a distinct stat box on the right — color-coded by status. Tap any row to reveal description and tags.</p>
+  </div>
+  <div class="b2-list">
+
+    <div class="b2-row expandable-row">
+      <div class="b2-icon challenge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b2-center">
+        <div class="b2-title"><span class="title-text">Trinity Giving Days Challenge — 350 for 150!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b2-desc-inner">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div>
+          <div class="b2-tags"><span class="b2-tag">All donors</span><span class="b2-tag">By a group of Trinity Parents, Alumni &amp; Friends</span></div>
+        </div>
+      </div>
+      <div class="b2-cell active">
+        <div class="b2-num">247</div>
+        <div class="b2-goal">of 350 donors</div>
+        <div class="b2-cbar"><div class="b2-cfill" style="width:70.6%"></div></div>
+        <div class="b2-unlock">Unlocks $150,000</div>
+      </div>
+    </div>
+
+    <div class="b2-row locked expandable-row">
+      <div class="b2-icon challenge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b2-center">
+        <div class="b2-title"><span class="title-text">Final Day Challenge — 50 for 50!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b2-desc-inner">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund.</div>
+          <div class="b2-tags">
+            <span class="b2-tag">All donors</span>
+            <span class="b2-tag time"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5</span>
+          </div>
+        </div>
+      </div>
+      <div class="b2-cell locked">
+        <div class="b2-num locked">—</div>
+        <div class="b2-goal">of 50 donors</div>
+        <div class="b2-cbar"><div class="b2-cfill" style="width:0%"></div></div>
+        <div class="b2-unlock locked">Unlocks $50,000</div>
+      </div>
+    </div>
+
+    <div class="b2-row expandable-row">
+      <div class="b2-icon challenge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b2-center">
+        <div class="b2-title"><span class="title-text">She Roars Alumnae Challenge</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b2-desc-inner">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div>
+          <div class="b2-tags"><span class="b2-tag">Alumnae only</span><span class="b2-tag">By Trinity Alumnae</span></div>
+        </div>
+      </div>
+      <div class="b2-cell active">
+        <div class="b2-num">83</div>
+        <div class="b2-goal">of 125 alumnae</div>
+        <div class="b2-cbar"><div class="b2-cfill" style="width:66.4%"></div></div>
+        <div class="b2-unlock">Unlocks $25,000</div>
+      </div>
+    </div>
+
+    <div class="b2-row expandable-row">
+      <div class="b2-icon challenge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+      <div class="b2-center">
+        <div class="b2-title"><span class="title-text">New Families at Trinity — 25 for 25!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b2-desc-inner">25 gifts from 25 new Trinity families will unlock an additional $25,000 in Trinity Fund support.</div>
+          <div class="b2-tags"><span class="b2-tag">New families only</span><span class="b2-tag">By Anonymous</span></div>
+        </div>
+      </div>
+      <div class="b2-cell complete">
+        <div class="b2-num complete">25</div>
+        <div class="b2-goal">of 25 donors</div>
+        <div class="b2-cbar"><div class="b2-cfill complete" style="width:100%"></div></div>
+        <div class="b2-unlock complete">$25,000 Unlocked</div>
+      </div>
+    </div>
+
+    <div class="b2-row expandable-row">
+      <div class="b2-icon match"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+      <div class="b2-center">
+        <div class="b2-title"><span class="title-text">Gifts from Young Alumni Matched up to $25,000</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="desc-panel">
+          <div class="b2-desc-inner">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div>
+          <div class="b2-tags"><span class="b2-tag">Alum 2011–2025</span><span class="b2-tag">By Trinity Alumni Board</span></div>
+        </div>
+      </div>
+      <div class="b2-cell active">
+        <div class="b2-num dollars">$8,450</div>
+        <div class="b2-goal">of $25,000</div>
+        <div class="b2-cbar"><div class="b2-cfill" style="width:33.8%"></div></div>
+        <div class="b2-unlock">Match cap: $25k</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     B-3: Progress Stack
+     ============================================================ -->
+<div id="concept-b3" class="concept">
+  <div class="concept-meta">
+    <h2>B-3 — Progress Stack</h2>
+    <p>Full-width layout. The progress bar spans the entire row width. Tap any row to reveal or hide the description.</p>
+  </div>
+  <div class="b3-list">
+
+    <div class="b3-row expandable-row">
+      <div class="b3-top">
+        <div class="b3-icon challenge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+        <div class="b3-head">
+          <div class="b3-title"><span class="title-text">Trinity Giving Days Challenge — 350 for 150!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="desc-panel"><div class="b3-desc-inner">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div></div>
+        </div>
+        <div class="b3-amount-badge">$150,000</div>
+      </div>
+      <div class="b3-progress">
+        <div class="b3-track"><div class="b3-fill" style="width:70.6%"></div></div>
+        <div class="b3-meta">
+          <div class="b3-count">247 of 350 donors</div>
+          <div class="b3-by">A group of Trinity Parents, Alumni &amp; Friends</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="b3-row locked expandable-row">
+      <div class="b3-top">
+        <div class="b3-icon challenge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+        <div class="b3-head">
+          <div class="b3-title"><span class="title-text">Final Day Challenge — 50 for 50!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="desc-panel"><div class="b3-desc-inner">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund.</div></div>
+        </div>
+        <div class="b3-amount-badge">$50,000</div>
+      </div>
+      <div class="b3-progress">
+        <div class="b3-track"><div class="b3-fill locked" style="width:0%"></div></div>
+        <div class="b3-meta">
+          <div class="b3-count locked" style="display:flex;align-items:center;gap:5px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5</div>
+          <div class="b3-by">Trinity Donors</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="b3-row expandable-row">
+      <div class="b3-top">
+        <div class="b3-icon challenge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+        <div class="b3-head">
+          <div class="b3-title"><span class="title-text">She Roars Alumnae Challenge</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="desc-panel"><div class="b3-desc-inner">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div></div>
+        </div>
+        <div class="b3-amount-badge">$25,000</div>
+      </div>
+      <div class="b3-progress">
+        <div class="b3-track"><div class="b3-fill" style="width:66.4%"></div></div>
+        <div class="b3-meta">
+          <div class="b3-count">83 of 125 alumnae donors</div>
+          <div class="b3-by">Trinity Alumnae</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="b3-row expandable-row">
+      <div class="b3-top">
+        <div class="b3-icon challenge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+        <div class="b3-head">
+          <div class="b3-title"><span class="title-text">New Families at Trinity — 25 for 25!</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="desc-panel"><div class="b3-desc-inner">25 gifts from 25 new Trinity families will unlock an additional $25,000 in Trinity Fund support.</div></div>
+        </div>
+        <div class="b3-amount-badge complete">$25,000 Unlocked</div>
+      </div>
+      <div class="b3-progress">
+        <div class="b3-track"><div class="b3-fill complete" style="width:100%"></div></div>
+        <div class="b3-meta">
+          <div class="b3-count complete" style="display:flex;align-items:center;gap:5px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>25 of 25 donors — Complete!</div>
+          <div class="b3-by">Anonymous</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="b3-row expandable-row">
+      <div class="b3-top">
+        <div class="b3-icon match"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+        <div class="b3-head">
+          <div class="b3-title"><span class="title-text">Gifts from Young Alumni Matched up to $25,000</span><svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="desc-panel"><div class="b3-desc-inner">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div></div>
+        </div>
+        <div class="b3-amount-badge match">$25k Match Cap</div>
+      </div>
+      <div class="b3-progress">
+        <div class="b3-track"><div class="b3-fill" style="width:33.8%"></div></div>
+        <div class="b3-meta">
+          <div class="b3-count">$8,450 of $25,000 matched</div>
+          <div class="b3-by">Trinity Alumni Board</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     C-1: Refined Original
+     ============================================================ -->
+<div id="concept-c1" class="concept">
+  <div class="concept-meta">
+    <h2>C-1 — Compact Rows, Refined</h2>
+    <p>Cleaned up original. Status dot, challenge name, inline progress bar, amount. Tap any row to reveal the full description.</p>
+  </div>
+  <div class="c1-wrap">
+    <div class="c1-head">
+      <span>Challenge</span>
+      <span style="display:flex;gap:96px"><span>Progress</span><span>Unlocks</span></span>
+    </div>
+
+    <div class="c1-row expandable-row">
+      <div class="c1-dot active"></div>
+      <div>
+        <div class="c1-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">Trinity Giving Days — 350 for 150!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c1-sub">All donors · Trinity Parents, Alumni &amp; Friends</div>
+      </div>
+      <div class="c1-bar-area"><div class="c1-track"><div class="c1-fill" style="width:70.6%"></div></div><span class="c1-tally">247 / 350</span></div>
+      <div class="c1-amount">$150,000</div>
+      <div class="desc-panel"><div class="c-desc">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div></div>
+    </div>
+
+    <div class="c1-row locked expandable-row">
+      <div class="c1-dot locked"></div>
+      <div>
+        <div class="c1-name" style="color:#9ca3af"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">Final Day Challenge — 50 for 50!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c1-sub"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5</div>
+      </div>
+      <div class="c1-bar-area"><div class="c1-track"><div class="c1-fill" style="width:0%"></div></div><span class="c1-tally locked">— / 50</span></div>
+      <div class="c1-amount locked">$50,000</div>
+      <div class="desc-panel"><div class="c-desc">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund. Activates December 5.</div></div>
+    </div>
+
+    <div class="c1-row expandable-row">
+      <div class="c1-dot active"></div>
+      <div>
+        <div class="c1-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">She Roars Alumnae Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c1-sub">Alumnae only · Trinity Alumnae</div>
+      </div>
+      <div class="c1-bar-area"><div class="c1-track"><div class="c1-fill" style="width:66.4%"></div></div><span class="c1-tally">83 / 125</span></div>
+      <div class="c1-amount">$25,000</div>
+      <div class="desc-panel"><div class="c-desc">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div></div>
+    </div>
+
+    <div class="c1-row expandable-row">
+      <div class="c1-dot complete"></div>
+      <div>
+        <div class="c1-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">New Families at Trinity — 25 for 25!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c1-sub">New families · Anonymous</div>
+      </div>
+      <div class="c1-bar-area"><div class="c1-track"><div class="c1-fill complete" style="width:100%"></div></div><span class="c1-tally complete">25 / 25</span></div>
+      <div class="c1-amount complete">$25,000</div>
+      <div class="desc-panel"><div class="c-desc">25 gifts from 25 new Trinity families unlocked an additional $25,000 in Trinity Fund support.</div></div>
+    </div>
+
+    <div class="c1-row expandable-row">
+      <div class="c1-dot active"></div>
+      <div>
+        <div class="c1-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span class="name-text">Young Alumni Match — up to $25,000</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c1-sub">Alum 2011–2025 · Trinity Alumni Board</div>
+      </div>
+      <div class="c1-bar-area"><div class="c1-track"><div class="c1-fill" style="width:33.8%"></div></div><span class="c1-tally">$8,450</span></div>
+      <div class="c1-amount">$25,000</div>
+      <div class="desc-panel"><div class="c-desc">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     C-2: Striped + Type Badges
+     ============================================================ -->
+<div id="concept-c2" class="concept">
+  <div class="concept-meta">
+    <h2>C-2 — Color Stripe + Type Badges</h2>
+    <p>Left color stripe per status replaces the dot. A small "Challenge" or "Match" type badge distinguishes rows. Tap any row for the full description.</p>
+  </div>
+  <div class="c2-wrap">
+
+    <div class="c2-row expandable-row">
+      <div class="c2-stripe active"></div>
+      <div class="c2-left">
+        <div class="c2-name-row"><span class="c2-name">Trinity Giving Days — 350 for 150!</span><span class="c2-badge challenge">Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c2-sub">All donors · Trinity Parents, Alumni &amp; Friends</div>
+      </div>
+      <div class="c2-bar-area"><div class="c2-track"><div class="c2-fill" style="width:70.6%"></div></div><span class="c2-tally">247 / 350</span></div>
+      <div class="c2-pill active">$150,000</div>
+      <div class="desc-panel"><div class="c-desc" style="padding-left:16px">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div></div>
+    </div>
+
+    <div class="c2-row locked expandable-row">
+      <div class="c2-stripe locked"></div>
+      <div class="c2-left">
+        <div class="c2-name-row"><span class="c2-name" style="color:#9ca3af">Final Day Challenge — 50 for 50!</span><span class="c2-badge challenge">Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c2-sub"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5</div>
+      </div>
+      <div class="c2-bar-area"><div class="c2-track"><div class="c2-fill" style="width:0%"></div></div><span class="c2-tally locked">— / 50</span></div>
+      <div class="c2-pill locked">$50,000</div>
+      <div class="desc-panel"><div class="c-desc" style="padding-left:16px">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund. Activates December 5.</div></div>
+    </div>
+
+    <div class="c2-row expandable-row">
+      <div class="c2-stripe active"></div>
+      <div class="c2-left">
+        <div class="c2-name-row"><span class="c2-name">She Roars Alumnae Challenge</span><span class="c2-badge challenge">Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c2-sub">Alumnae only · Trinity Alumnae</div>
+      </div>
+      <div class="c2-bar-area"><div class="c2-track"><div class="c2-fill" style="width:66.4%"></div></div><span class="c2-tally">83 / 125</span></div>
+      <div class="c2-pill active">$25,000</div>
+      <div class="desc-panel"><div class="c-desc" style="padding-left:16px">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div></div>
+    </div>
+
+    <div class="c2-row expandable-row">
+      <div class="c2-stripe complete"></div>
+      <div class="c2-left">
+        <div class="c2-name-row"><span class="c2-name">New Families at Trinity — 25 for 25!</span><span class="c2-badge challenge">Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c2-sub">New families · Anonymous</div>
+      </div>
+      <div class="c2-bar-area"><div class="c2-track"><div class="c2-fill complete" style="width:100%"></div></div><span class="c2-tally complete">25 / 25</span></div>
+      <div class="c2-pill complete">$25,000 Unlocked</div>
+      <div class="desc-panel"><div class="c-desc" style="padding-left:16px">25 gifts from 25 new Trinity families unlocked an additional $25,000 in Trinity Fund support.</div></div>
+    </div>
+
+    <div class="c2-row expandable-row">
+      <div class="c2-stripe active"></div>
+      <div class="c2-left">
+        <div class="c2-name-row"><span class="c2-name">Young Alumni Match — up to $25,000</span><span class="c2-badge match">Match</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="c2-sub">Alum 2011–2025 · Trinity Alumni Board</div>
+      </div>
+      <div class="c2-bar-area"><div class="c2-track"><div class="c2-fill" style="width:33.8%"></div></div><span class="c2-tally">$8,450</span></div>
+      <div class="c2-pill match">$25k Cap</div>
+      <div class="desc-panel"><div class="c-desc" style="padding-left:16px">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     C-3: Grouped by Status
+     ============================================================ -->
+<div id="concept-c3" class="concept">
+  <div class="concept-meta">
+    <h2>C-3 — Grouped by Status</h2>
+    <p>Same compact rows, grouped into Active / Coming Soon / Unlocked sections. Tap any row to reveal the full description.</p>
+  </div>
+  <div class="c3-wrap">
+
+    <!-- Active -->
+    <div class="c3-section">
+      <div class="c3-section-head active-head">
+        <div class="c3-sh-dot active"></div>
+        <span class="c3-sh-label active">Active</span>
+        <span class="c3-sh-count">3 challenges</span>
+      </div>
+
+      <div class="c3-row expandable-row">
+        <div>
+          <div class="c3-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">Trinity Giving Days — 350 for 150!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="c3-sub">All donors · Trinity Parents, Alumni &amp; Friends</div>
+        </div>
+        <div class="c3-bar-area"><div class="c3-track"><div class="c3-fill" style="width:70.6%"></div></div><span class="c3-tally">247 / 350</span></div>
+        <div class="c3-amount">$150,000</div>
+        <div class="desc-panel"><div class="c-desc">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div></div>
+      </div>
+
+      <div class="c3-row expandable-row">
+        <div>
+          <div class="c3-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">She Roars Alumnae Challenge</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="c3-sub">Alumnae only · Trinity Alumnae</div>
+        </div>
+        <div class="c3-bar-area"><div class="c3-track"><div class="c3-fill" style="width:66.4%"></div></div><span class="c3-tally">83 / 125</span></div>
+        <div class="c3-amount">$25,000</div>
+        <div class="desc-panel"><div class="c-desc">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div></div>
+      </div>
+
+      <div class="c3-row expandable-row">
+        <div>
+          <div class="c3-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span class="name-text">Young Alumni Match — up to $25,000</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="c3-sub">Alum 2011–2025 · Trinity Alumni Board</div>
+        </div>
+        <div class="c3-bar-area"><div class="c3-track"><div class="c3-fill" style="width:33.8%"></div></div><span class="c3-tally">$8,450</span></div>
+        <div class="c3-amount">$25,000</div>
+        <div class="desc-panel"><div class="c-desc">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar, up to $25,000.</div></div>
+      </div>
+    </div>
+
+    <!-- Upcoming -->
+    <div class="c3-section">
+      <div class="c3-section-head upcoming-head">
+        <div class="c3-sh-dot upcoming"></div>
+        <span class="c3-sh-label upcoming">Coming Soon</span>
+        <span class="c3-sh-count">1 challenge</span>
+      </div>
+
+      <div class="c3-row expandable-row">
+        <div>
+          <div class="c3-name" style="color:#9ca3af"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">Final Day Challenge — 50 for 50!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="c3-sub"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activates December 5 · All donors</div>
+        </div>
+        <div class="c3-bar-area"><div class="c3-track"><div class="c3-fill upcoming" style="width:0%"></div></div><span class="c3-tally upcoming">— / 50</span></div>
+        <div class="c3-amount upcoming">$50,000</div>
+        <div class="desc-panel"><div class="c-desc">50 gifts on the final day of Giving Days unlocks $50,000 in additional money for the Trinity Fund. Activates December 5.</div></div>
+      </div>
+    </div>
+
+    <!-- Unlocked -->
+    <div class="c3-section">
+      <div class="c3-section-head complete-head">
+        <div class="c3-sh-dot complete"></div>
+        <span class="c3-sh-label complete">Unlocked</span>
+        <span class="c3-sh-count">1 challenge</span>
+      </div>
+
+      <div class="c3-row expandable-row">
+        <div>
+          <div class="c3-name"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg><span class="name-text">New Families at Trinity — 25 for 25!</span><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="c3-sub">New families · Anonymous</div>
+        </div>
+        <div class="c3-bar-area"><div class="c3-track"><div class="c3-fill complete" style="width:100%"></div></div><span class="c3-tally complete">25 / 25</span></div>
+        <div class="c3-amount complete">$25,000</div>
+        <div class="desc-panel"><div class="c-desc">25 gifts from 25 new Trinity families unlocked an additional $25,000 in Trinity Fund support.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Tab switcher
+  function show(id, btn) {
+    document.querySelectorAll('.concept').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('concept-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Accordion — tap any expandable-row to toggle description
+  document.addEventListener('click', function(e) {
+    // Don't fire if clicking a tab button
+    if (e.target.closest('.tab-btn')) return;
+    const row = e.target.closest('.expandable-row');
+    if (row) row.classList.toggle('open');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Challenge Display Concepts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    header {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    header h1 { font-size: 14px; font-weight: 600; color: #374151; }
+    header p { font-size: 12px; color: #9ca3af; margin-left: 12px; }
+
+    .tabs { display: flex; gap: 6px; margin-left: auto; }
+    .tab-btn {
+      padding: 7px 18px;
+      border-radius: 999px;
+      border: 1.5px solid #d1d5db;
+      background: white;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { border-color: #1a3a5c; color: #1a3a5c; }
+    .tab-btn.active { background: #1a3a5c; border-color: #1a3a5c; color: white; }
+
+    .concept { display: none; padding: 36px 32px; max-width: 1080px; margin: 0 auto; }
+    .concept.active { display: block; }
+
+    .concept-meta { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .concept-meta h2 { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 4px; }
+    .concept-meta p { font-size: 13px; color: #6b7280; }
+
+    /* =============================================
+       CONCEPT A: Card Grid with Progress Bar
+       ============================================= */
+
+    .ca-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .ca-card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ca-card.complete { border-color: #10b981; }
+    .ca-card.locked { opacity: 0.6; }
+
+    .ca-type-row { display: flex; align-items: center; gap: 8px; }
+    .ca-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .ca-icon.challenge { background: #eef2ff; }
+    .ca-icon.match { background: #fef3c7; }
+    .ca-type-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+    .ca-badge {
+      margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 999px; display: flex; align-items: center; gap: 4px;
+    }
+    .ca-badge.active { background: #dbeafe; color: #1e40af; }
+    .ca-badge.complete { background: #d1fae5; color: #065f46; }
+    .ca-badge.locked { background: #f3f4f6; color: #9ca3af; }
+
+    .ca-title { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; }
+    .ca-desc { font-size: 12px; color: #6b7280; line-height: 1.5; flex: 1; }
+
+    .ca-progress-labels { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+    .ca-count { font-size: 22px; font-weight: 800; color: #111827; }
+    .ca-count.locked { color: #d1d5db; }
+    .ca-count.complete { color: #10b981; }
+    .ca-goal { font-size: 12px; color: #9ca3af; }
+    .ca-track { height: 5px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .ca-fill { height: 100%; border-radius: 999px; background: #1a3a5c; }
+    .ca-fill.complete { background: #10b981; }
+
+    .ca-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 10px; border-top: 1px solid #f3f4f6;
+    }
+    .ca-by { font-size: 10px; color: #9ca3af; line-height: 1.4; max-width: 60%; }
+    .ca-amount { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .ca-amount.challenge { color: #1e3a5f; background: #eef2ff; }
+    .ca-amount.match { color: #92400e; background: #fef3c7; }
+    .ca-amount.complete { color: #065f46; background: #d1fae5; }
+
+    /* =============================================
+       CONCEPT B: List View with Big Fractions
+       ============================================= */
+
+    .cb-list { display: flex; flex-direction: column; gap: 10px; }
+    .cb-row {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      border-left: 4px solid #e5e7eb;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .cb-row.active { border-left-color: #1a3a5c; }
+    .cb-row.complete { border-left-color: #10b981; }
+    .cb-row.locked { border-left-color: #e5e7eb; opacity: 0.65; }
+
+    .cb-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .cb-icon.challenge { background: #eef2ff; }
+    .cb-icon.match { background: #fef3c7; }
+
+    .cb-content { flex: 1; min-width: 0; }
+    .cb-title { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+    .cb-desc { font-size: 12px; color: #6b7280; margin-bottom: 8px; line-height: 1.4; }
+    .cb-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .cb-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; color: #6b7280; font-weight: 500; display: flex; align-items: center; gap: 3px; }
+    .cb-tag.time { background: #fef9c3; color: #854d0e; }
+
+    .cb-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 150px; }
+    .cb-fraction { font-size: 26px; font-weight: 800; color: #111827; line-height: 1; }
+    .cb-fraction .denom { font-size: 15px; color: #9ca3af; font-weight: 500; }
+    .cb-fraction.complete { color: #10b981; }
+    .cb-fraction.locked { color: #d1d5db; }
+    .cb-mini-bar { width: 150px; height: 4px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .cb-mini-fill { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .cb-mini-fill.complete { background: #10b981; }
+    .cb-unlock { font-size: 12px; font-weight: 700; color: #1a3a5c; }
+    .cb-unlock.complete { color: #065f46; }
+    .cb-unlock.locked { color: #d1d5db; }
+
+    /* =============================================
+       CONCEPT C: Compact Rows (Dashboard Style)
+       ============================================= */
+
+    .cc-wrap {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .cc-header {
+      padding: 13px 20px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: #9ca3af;
+      display: flex; justify-content: space-between;
+    }
+    .cc-row {
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 10px 1fr 220px 90px;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .cc-row:last-child { border-bottom: none; }
+    .cc-row.locked { opacity: 0.55; }
+
+    .cc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .cc-dot.active { background: #1a3a5c; }
+    .cc-dot.complete { background: #10b981; }
+    .cc-dot.locked { background: #d1d5db; }
+
+    .cc-name { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+    .cc-sub { font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+
+    .cc-bar-area { display: flex; align-items: center; gap: 10px; }
+    .cc-track { flex: 1; height: 5px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+    .cc-fill { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .cc-fill.complete { background: #10b981; }
+    .cc-tally { font-size: 11px; color: #6b7280; white-space: nowrap; min-width: 56px; text-align: right; }
+    .cc-tally.complete { color: #10b981; }
+    .cc-tally.locked { color: #d1d5db; }
+
+    .cc-amount { font-size: 12px; font-weight: 700; color: #1a3a5c; text-align: right; }
+    .cc-amount.complete { color: #065f46; }
+    .cc-amount.locked { color: #d1d5db; }
+
+    /* =============================================
+       CONCEPT D: Big Number Cards
+       ============================================= */
+
+    .cd-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .cd-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cd-head {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .cd-head-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .cd-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+    .cd-icon-wrap {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cd-icon-wrap.challenge { background: #eef2ff; }
+    .cd-icon-wrap.match { background: #fef3c7; }
+    .cd-title { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; margin-bottom: 3px; }
+    .cd-for { font-size: 11px; color: #9ca3af; }
+
+    .cd-body { padding: 20px 18px 14px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .cd-big { font-size: 54px; font-weight: 800; line-height: 1; color: #111827; }
+    .cd-big.complete { color: #10b981; }
+    .cd-big.locked { color: #e5e7eb; }
+    .cd-big.match { font-size: 36px; }
+    .cd-sub-label { font-size: 13px; color: #9ca3af; }
+    .cd-bar-t { width: 100%; height: 7px; background: #f3f4f6; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .cd-bar-f { height: 100%; background: #1a3a5c; border-radius: 999px; }
+    .cd-bar-f.complete { background: #10b981; }
+
+    .cd-foot { padding: 11px 18px; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; }
+    .cd-foot.complete { background: #ecfdf5; }
+    .cd-foot-by { font-size: 11px; color: #9ca3af; max-width: 65%; line-height: 1.3; }
+    .cd-foot-amt { font-size: 13px; font-weight: 700; color: #1a3a5c; }
+    .cd-foot-amt.complete { color: #065f46; }
+
+    .cd-banner-complete {
+      background: #10b981; color: white; text-align: center;
+      padding: 9px; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .cd-banner-locked {
+      background: #f3f4f6; color: #9ca3af; text-align: center;
+      padding: 9px; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Matches &amp; Challenges — Visual Concepts</h1>
+  <p>Mock data shown · some in progress, one complete, one time-locked</p>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="show('a', this)">A · Card Grid</button>
+    <button class="tab-btn" onclick="show('b', this)">B · List View</button>
+    <button class="tab-btn" onclick="show('c', this)">C · Compact Rows</button>
+    <button class="tab-btn" onclick="show('d', this)">D · Big Number</button>
+  </div>
+</header>
+
+<!-- SVG icon snippets defined once, referenced inline throughout -->
+
+<!-- ================================================
+     CONCEPT A: Card Grid
+     ================================================ -->
+<div id="concept-a" class="concept active">
+  <div class="concept-meta">
+    <h2>Concept A — Card Grid with Progress Bar</h2>
+    <p>Compact 3-column grid. Each card shows a progress bar and count. Familiar layout, easy to scan. Cards stack to 1 column on mobile.</p>
+  </div>
+  <div class="ca-grid">
+
+    <div class="ca-card active">
+      <div class="ca-type-row">
+        <div class="ca-icon challenge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        </div>
+        <span class="ca-type-label">Donation Challenge</span>
+        <span class="ca-badge active">Active</span>
+      </div>
+      <div class="ca-title">Trinity Giving Days — 350 for 150!</div>
+      <div class="ca-desc">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div>
+      <div>
+        <div class="ca-progress-labels">
+          <span class="ca-count">247</span>
+          <span class="ca-goal">of 350 donors</span>
+        </div>
+        <div class="ca-track"><div class="ca-fill" style="width:70.6%"></div></div>
+      </div>
+      <div class="ca-footer">
+        <span class="ca-by">A group of Trinity Parents, Alumni &amp; Friends</span>
+        <span class="ca-amount challenge">$150,000</span>
+      </div>
+    </div>
+
+    <div class="ca-card locked">
+      <div class="ca-type-row">
+        <div class="ca-icon challenge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        </div>
+        <span class="ca-type-label">Donation Challenge</span>
+        <span class="ca-badge locked">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Dec 5 Only
+        </span>
+      </div>
+      <div class="ca-title">Final Day Challenge — 50 for 50!</div>
+      <div class="ca-desc">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund.</div>
+      <div>
+        <div class="ca-progress-labels">
+          <span class="ca-count locked">—</span>
+          <span class="ca-goal">of 50 donors</span>
+        </div>
+        <div class="ca-track"><div class="ca-fill" style="width:0%"></div></div>
+      </div>
+      <div class="ca-footer">
+        <span class="ca-by">Trinity Donors</span>
+        <span class="ca-amount challenge">$50,000</span>
+      </div>
+    </div>
+
+    <div class="ca-card active">
+      <div class="ca-type-row">
+        <div class="ca-icon challenge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        </div>
+        <span class="ca-type-label">Donation Challenge</span>
+        <span class="ca-badge active">Alumnae</span>
+      </div>
+      <div class="ca-title">She Roars Alumnae Challenge</div>
+      <div class="ca-desc">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div>
+      <div>
+        <div class="ca-progress-labels">
+          <span class="ca-count">83</span>
+          <span class="ca-goal">of 125 alumnae donors</span>
+        </div>
+        <div class="ca-track"><div class="ca-fill" style="width:66.4%"></div></div>
+      </div>
+      <div class="ca-footer">
+        <span class="ca-by">Trinity Alumnae</span>
+        <span class="ca-amount challenge">$25,000</span>
+      </div>
+    </div>
+
+    <div class="ca-card complete">
+      <div class="ca-type-row">
+        <div class="ca-icon challenge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        </div>
+        <span class="ca-type-label">Donation Challenge</span>
+        <span class="ca-badge complete">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Complete
+        </span>
+      </div>
+      <div class="ca-title">New Families at Trinity — 25 for 25!</div>
+      <div class="ca-desc">25 gifts from 25 new Trinity families will unlock an additional $25,000 in Trinity Fund support.</div>
+      <div>
+        <div class="ca-progress-labels">
+          <span class="ca-count complete">25</span>
+          <span class="ca-goal">of 25 donors</span>
+        </div>
+        <div class="ca-track"><div class="ca-fill complete" style="width:100%"></div></div>
+      </div>
+      <div class="ca-footer">
+        <span class="ca-by">Anonymous</span>
+        <span class="ca-amount complete">$25,000 Unlocked</span>
+      </div>
+    </div>
+
+    <div class="ca-card active">
+      <div class="ca-type-row">
+        <div class="ca-icon match">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        </div>
+        <span class="ca-type-label">Donation Match</span>
+        <span class="ca-badge active">Alum 2011–2025</span>
+      </div>
+      <div class="ca-title">Gifts from Young Alumni Matched up to $25,000</div>
+      <div class="ca-desc">All gifts from young alumni donors between the classes of 2011 and 2025 will be matched dollar for dollar.</div>
+      <div>
+        <div class="ca-progress-labels">
+          <span class="ca-count" style="font-size:18px">$8,450</span>
+          <span class="ca-goal">of $25,000 matched</span>
+        </div>
+        <div class="ca-track"><div class="ca-fill" style="width:33.8%"></div></div>
+      </div>
+      <div class="ca-footer">
+        <span class="ca-by">Trinity Alumni Board</span>
+        <span class="ca-amount match">$25k cap</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================
+     CONCEPT B: List View
+     ================================================ -->
+<div id="concept-b" class="concept">
+  <div class="concept-meta">
+    <h2>Concept B — List View with Big Fractions</h2>
+    <p>Single-column rows. The donor count fraction is front and center on the right. Easy to read quickly, handles long descriptions well.</p>
+  </div>
+  <div class="cb-list">
+
+    <div class="cb-row active">
+      <div class="cb-icon challenge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </div>
+      <div class="cb-content">
+        <div class="cb-title">Trinity Giving Days Challenge — 350 for 150!</div>
+        <div class="cb-desc">350 new gifts will unlock $150,000 in additional money for the Trinity Fund.</div>
+        <div class="cb-tags">
+          <span class="cb-tag">All donors</span>
+          <span class="cb-tag">By a group of Trinity Parents, Alumni &amp; Friends</span>
+        </div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-fraction">247<span class="denom"> / 350</span></div>
+        <div class="cb-mini-bar"><div class="cb-mini-fill" style="width:70.6%"></div></div>
+        <div class="cb-unlock">Unlocks $150,000</div>
+      </div>
+    </div>
+
+    <div class="cb-row locked">
+      <div class="cb-icon challenge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </div>
+      <div class="cb-content">
+        <div class="cb-title">Final Day Challenge — 50 for 50!</div>
+        <div class="cb-desc">50 gifts on the final day unlocks $50,000 in additional money for the Trinity Fund.</div>
+        <div class="cb-tags">
+          <span class="cb-tag">All donors</span>
+          <span class="cb-tag time">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Activates December 5
+          </span>
+          <span class="cb-tag">By Trinity Donors</span>
+        </div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-fraction locked">—<span class="denom"> / 50</span></div>
+        <div class="cb-mini-bar"><div class="cb-mini-fill" style="width:0%"></div></div>
+        <div class="cb-unlock locked">Unlocks $50,000</div>
+      </div>
+    </div>
+
+    <div class="cb-row active">
+      <div class="cb-icon challenge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </div>
+      <div class="cb-content">
+        <div class="cb-title">She Roars Alumnae Challenge</div>
+        <div class="cb-desc">125 gifts from Trinity alumnae will unlock an additional $25,000 in Trinity Fund support.</div>
+        <div class="cb-tags">
+          <span class="cb-tag">Alumnae only</span>
+          <span class="cb-tag">By Trinity Alumnae</span>
+        </div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-fraction">83<span class="denom"> / 125</span></div>
+        <div class="cb-mini-bar"><div class="cb-mini-fill" style="width:66.4%"></div></div>
+        <div class="cb-unlock">Unlocks $25,000</div>
+      </div>
+    </div>
+
+    <div class="cb-row complete">
+      <div class="cb-icon challenge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      </div>
+      <div class="cb-content">
+        <div class="cb-title">New Families at Trinity — 25 for 25!</div>
+        <div class="cb-desc">25 gifts from 25 new Trinity families will unlock an additional $25,000 in Trinity Fund support.</div>
+        <div class="cb-tags">
+          <span class="cb-tag">New families only</span>
+          <span class="cb-tag">By Anonymous</span>
+        </div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-fraction complete">25<span class="denom"> / 25</span></div>
+        <div class="cb-mini-bar"><div class="cb-mini-fill complete" style="width:100%"></div></div>
+        <div class="cb-unlock complete">$25,000 Unlocked</div>
+      </div>
+    </div>
+
+    <div class="cb-row active">
+      <div class="cb-icon match">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      </div>
+      <div class="cb-content">
+        <div class="cb-title">Gifts from Young Alumni Matched up to $25,000</div>
+        <div class="cb-desc">All gifts from young alumni donors (classes 2011–2025) will be matched dollar for dollar.</div>
+        <div class="cb-tags">
+          <span class="cb-tag">Alum 2011–2025</span>
+          <span class="cb-tag">By Trinity Alumni Board</span>
+        </div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-fraction" style="font-size:20px">$8,450<span class="denom"> / $25k</span></div>
+        <div class="cb-mini-bar"><div class="cb-mini-fill" style="width:33.8%"></div></div>
+        <div class="cb-unlock">Match cap: $25,000</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================
+     CONCEPT C: Compact Rows
+     ================================================ -->
+<div id="concept-c" class="concept">
+  <div class="concept-meta">
+    <h2>Concept C — Compact Rows</h2>
+    <p>Ultra-minimal. One or two lines per challenge, progress bar inline. Best if challenges live inside a dense page layout alongside leaderboards.</p>
+  </div>
+  <div class="cc-wrap">
+    <div class="cc-header">
+      <span>Challenge</span>
+      <span style="display:flex;gap:100px"><span>Progress</span><span>Amount</span></span>
+    </div>
+
+    <div class="cc-row">
+      <div class="cc-dot active"></div>
+      <div>
+        <div class="cc-name">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          Trinity Giving Days — 350 for 150!
+        </div>
+        <div class="cc-sub">All donors · By a group of Trinity Parents, Alumni &amp; Friends</div>
+      </div>
+      <div class="cc-bar-area">
+        <div class="cc-track"><div class="cc-fill" style="width:70.6%"></div></div>
+        <span class="cc-tally">247 / 350</span>
+      </div>
+      <div class="cc-amount">$150,000</div>
+    </div>
+
+    <div class="cc-row locked">
+      <div class="cc-dot locked"></div>
+      <div>
+        <div class="cc-name" style="color:#9ca3af">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          Final Day Challenge — 50 for 50!
+        </div>
+        <div class="cc-sub">
+          All donors ·
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Activates December 5
+        </div>
+      </div>
+      <div class="cc-bar-area">
+        <div class="cc-track"><div class="cc-fill" style="width:0%"></div></div>
+        <span class="cc-tally locked">— / 50</span>
+      </div>
+      <div class="cc-amount locked">$50,000</div>
+    </div>
+
+    <div class="cc-row">
+      <div class="cc-dot active"></div>
+      <div>
+        <div class="cc-name">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          She Roars Alumnae Challenge
+        </div>
+        <div class="cc-sub">Alumnae only · By Trinity Alumnae</div>
+      </div>
+      <div class="cc-bar-area">
+        <div class="cc-track"><div class="cc-fill" style="width:66.4%"></div></div>
+        <span class="cc-tally">83 / 125</span>
+      </div>
+      <div class="cc-amount">$25,000</div>
+    </div>
+
+    <div class="cc-row">
+      <div class="cc-dot complete"></div>
+      <div>
+        <div class="cc-name">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          New Families at Trinity — 25 for 25!
+        </div>
+        <div class="cc-sub">New families · By Anonymous</div>
+      </div>
+      <div class="cc-bar-area">
+        <div class="cc-track"><div class="cc-fill complete" style="width:100%"></div></div>
+        <span class="cc-tally complete">25 / 25</span>
+      </div>
+      <div class="cc-amount complete">$25,000</div>
+    </div>
+
+    <div class="cc-row">
+      <div class="cc-dot active"></div>
+      <div>
+        <div class="cc-name">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          Young Alumni Match — up to $25,000
+        </div>
+        <div class="cc-sub">Alum 2011–2025 · By Trinity Alumni Board</div>
+      </div>
+      <div class="cc-bar-area">
+        <div class="cc-track"><div class="cc-fill" style="width:33.8%"></div></div>
+        <span class="cc-tally">$8,450</span>
+      </div>
+      <div class="cc-amount">$25,000</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================
+     CONCEPT D: Big Number Cards
+     ================================================ -->
+<div id="concept-d" class="concept">
+  <div class="concept-meta">
+    <h2>Concept D — Big Number Cards</h2>
+    <p>The donor count takes center stage in huge type. High visual impact — satisfying to watch the number climb. Good as a main section on the giving page.</p>
+  </div>
+  <div class="cd-grid">
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-head-row">
+          <span class="cd-type">Donation Challenge</span>
+          <div class="cd-icon-wrap challenge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </div>
+        </div>
+        <div class="cd-title">Trinity Giving Days — 350 for 150!</div>
+        <div class="cd-for">All donors</div>
+      </div>
+      <div class="cd-body">
+        <div class="cd-big">247</div>
+        <div class="cd-sub-label">of 350 donors</div>
+        <div class="cd-bar-t"><div class="cd-bar-f" style="width:70.6%"></div></div>
+      </div>
+      <div class="cd-foot">
+        <span class="cd-foot-by">A group of Trinity Parents, Alumni &amp; Friends</span>
+        <span class="cd-foot-amt">$150,000</span>
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-head-row">
+          <span class="cd-type">Donation Challenge</span>
+          <div class="cd-icon-wrap challenge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </div>
+        </div>
+        <div class="cd-title">Final Day Challenge — 50 for 50!</div>
+        <div class="cd-for">All donors</div>
+      </div>
+      <div class="cd-body">
+        <div class="cd-big locked">—</div>
+        <div class="cd-sub-label">of 50 donors</div>
+        <div class="cd-bar-t"><div class="cd-bar-f" style="width:0%"></div></div>
+      </div>
+      <div class="cd-banner-locked">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Activates December 5 — $50,000
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-head-row">
+          <span class="cd-type">Donation Challenge</span>
+          <div class="cd-icon-wrap challenge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </div>
+        </div>
+        <div class="cd-title">She Roars Alumnae Challenge</div>
+        <div class="cd-for">Alumnae only</div>
+      </div>
+      <div class="cd-body">
+        <div class="cd-big">83</div>
+        <div class="cd-sub-label">of 125 alumnae donors</div>
+        <div class="cd-bar-t"><div class="cd-bar-f" style="width:66.4%"></div></div>
+      </div>
+      <div class="cd-foot">
+        <span class="cd-foot-by">Trinity Alumnae</span>
+        <span class="cd-foot-amt">$25,000</span>
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-head-row">
+          <span class="cd-type">Donation Challenge</span>
+          <div class="cd-icon-wrap challenge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          </div>
+        </div>
+        <div class="cd-title">New Families at Trinity — 25 for 25!</div>
+        <div class="cd-for">New families only</div>
+      </div>
+      <div class="cd-body">
+        <div class="cd-big complete">25</div>
+        <div class="cd-sub-label">of 25 donors</div>
+        <div class="cd-bar-t"><div class="cd-bar-f complete" style="width:100%"></div></div>
+      </div>
+      <div class="cd-banner-complete">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Challenge Complete — $25,000 Unlocked!
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-head-row">
+          <span class="cd-type">Donation Match</span>
+          <div class="cd-icon-wrap match">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          </div>
+        </div>
+        <div class="cd-title">Gifts from Young Alumni Matched up to $25,000</div>
+        <div class="cd-for">Alum 2011–2025</div>
+      </div>
+      <div class="cd-body">
+        <div class="cd-big match">$8,450</div>
+        <div class="cd-sub-label">of $25,000 matched</div>
+        <div class="cd-bar-t"><div class="cd-bar-f" style="width:33.8%"></div></div>
+      </div>
+      <div class="cd-foot">
+        <span class="cd-foot-by">Trinity Alumni Board</span>
+        <span class="cd-foot-amt">$25k match cap</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.concept').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('concept-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
