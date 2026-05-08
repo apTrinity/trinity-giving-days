@@ -367,7 +367,24 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   <div class="modal-card">
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
 
-    <div id="modal-form">
+    <!-- Step 1: identity (non-fid users only) -->
+    <div id="modal-step1" style="display:none">
+      <div class="modal-header">
+        <img class="modal-logo" src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
+      </div>
+      <div class="modal-body">
+        <div class="f-row" style="margin-bottom:14px">
+          <div><input class="f-input" id="s1-first" type="text" autocomplete="given-name"  placeholder="First name"></div>
+          <div><input class="f-input" id="s1-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
+        </div>
+        <input class="f-input" id="s1-email" type="email" autocomplete="email" placeholder="Email address" style="margin-bottom:0">
+        <div id="step1-error" style="display:none;background:#FEF2F2;border:1px solid #FECACA;padding:11px 14px;font-size:13px;color:#B91C1C;margin-top:14px;"></div>
+        <button class="btn-submit" onclick="nextStep()">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: gift form -->
+    <div id="modal-step2" style="display:none">
       <div class="modal-header">
         <img class="modal-logo" src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
       </div>
@@ -390,20 +407,24 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           </div>
         </div>
 
-        <hr class="divider">
-
-        <label class="f-label">Your Information</label>
-        <div class="f-row" style="margin-bottom:14px">
-          <div><input class="f-input" id="m-first" type="text" autocomplete="given-name" placeholder="First name"></div>
-          <div><input class="f-input" id="m-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
+        <!-- Identity fields — shown for fid users; hidden for step-1 completers -->
+        <div id="identity-section">
+          <hr class="divider">
+          <label class="f-label">Your Information</label>
+          <div class="f-row" style="margin-bottom:14px">
+            <div><input class="f-input" id="m-first" type="text" autocomplete="given-name"  placeholder="First name"></div>
+            <div><input class="f-input" id="m-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
+          </div>
+          <input class="f-input" id="m-email" type="email" autocomplete="email" placeholder="Email address">
         </div>
-        <input class="f-input" id="m-email" type="email" autocomplete="email" placeholder="Email address">
 
-        <hr class="divider">
-
-        <label class="f-label">Your Child's Grade</label>
-        <div id="parent-grades"></div>
-        <button type="button" onclick="addGradeRow()" style="margin-top:8px;background:none;border:1.5px solid var(--trinity-blue);color:var(--trinity-blue);border-radius:0;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Open Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;">+ Add another child</button>
+        <!-- Grade selector — shown only when household lookup found nothing -->
+        <div id="grade-section" style="display:none">
+          <hr class="divider">
+          <label class="f-label">Your Child's Grade</label>
+          <div id="parent-grades"></div>
+          <button type="button" onclick="addGradeRow('force')" style="margin-top:8px;background:none;border:1.5px solid var(--trinity-blue);color:var(--trinity-blue);border-radius:0;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Open Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;">+ Add another child</button>
+        </div>
 
         <hr class="divider">
 
@@ -444,12 +465,14 @@ var PARENT_TOTAL = 772;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 var selAmt = null;
-var checkoutService = null;
-var checkoutReady   = false;
-var dotsBuilt       = false;
-var currentDotCount = 0;
-var dots            = [];
-var householdImportId = null; // set from ?fid= lookup
+var checkoutService   = null;
+var checkoutReady     = false;
+var dotsBuilt         = false;
+var currentDotCount   = 0;
+var dots              = [];
+var householdImportId = null;  // set from ?fid= lookup or step-1 email lookup
+var gradeSelectNeeded = false; // true only when no household match found
+var identityFromStep1 = false; // true when step-1 collected name/email
 
 // ── ?fid= personalisation ─────────────────────────────────────────────────────
 (function() {
@@ -598,8 +621,78 @@ pollLeaderboard();
 setInterval(pollLeaderboard, 10000);
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-function openModal()  { document.getElementById('modal-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); document.body.style.overflow=''; }
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (householdImportId) {
+    // Case 1: fid arrival — go straight to step 2, show identity fields
+    showStep2(false);
+  } else {
+    // Cases 2 & 3: show step 1 first
+    showStep(1);
+  }
+}
+
+function showStep(n) {
+  document.getElementById('modal-step1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('modal-step2').style.display = n === 2 ? '' : 'none';
+  document.getElementById('ty-state').style.display    = 'none';
+}
+
+function showStep2(hideIdentity) {
+  showStep(2);
+  document.getElementById('identity-section').style.display = hideIdentity ? 'none' : '';
+  document.getElementById('grade-section').style.display    = gradeSelectNeeded  ? '' : 'none';
+}
+
+function nextStep() {
+  var first = document.getElementById('s1-first').value.trim();
+  var last  = document.getElementById('s1-last').value.trim();
+  var email = document.getElementById('s1-email').value.trim();
+  var errEl = document.getElementById('step1-error');
+  errEl.style.display = 'none';
+
+  if (!first || !last)                { errEl.textContent = 'Please enter your first and last name.'; errEl.style.display='block'; return; }
+  if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.';   errEl.style.display='block'; return; }
+
+  // Copy identity to step-2 fields
+  document.getElementById('m-first').value = first;
+  document.getElementById('m-last').value  = last;
+  document.getElementById('m-email').value = email;
+  identityFromStep1 = true;
+
+  // Silent email lookup
+  fetch('/api/parents/lookup?email=' + encodeURIComponent(email))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.found && data.household_import_id) {
+        householdImportId = data.household_import_id;
+        gradeSelectNeeded = false;
+      } else {
+        gradeSelectNeeded = true;
+        addGradeRow(); // ensure at least one grade row is present
+      }
+      showStep2(true); // identity already captured in step 1 — hide those fields
+    })
+    .catch(function() {
+      // On error, default to grade selector
+      gradeSelectNeeded = true;
+      addGradeRow();
+      showStep2(true);
+    });
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  // Reset step-1 fields and errors for next open
+  ['s1-first','s1-last','s1-email'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('step1-error').style.display = 'none';
+  document.getElementById('form-error').style.display  = 'none';
+  identityFromStep1 = false;
+}
 function overlayClick(e) { if (e.target===document.getElementById('modal-overlay')) closeModal(); }
 
 // ── Amount buttons ────────────────────────────────────────────────────────────
@@ -629,6 +722,9 @@ function gradeOptionsHTML() {
 }
 function addGradeRow() {
   var container = document.getElementById('parent-grades');
+  // Don't add if a row already exists (avoids duplicates when called multiple times)
+  if (container.querySelectorAll('.grade-select').length > 0 &&
+      arguments[0] !== 'force') return;
   var div = document.createElement('div');
   div.style.marginBottom = '8px';
   div.innerHTML = '<select class="f-select grade-select" style="margin-bottom:0">' + gradeOptionsHTML() + '</select>';
@@ -669,10 +765,12 @@ function submitGift() {
   if (!first || !last)               { showError('Please enter your first and last name.'); return; }
   if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
 
-  var grades = document.querySelectorAll('.grade-select');
-  var hasGrade = false;
-  grades.forEach(function(s){ if (s.value) hasGrade = true; });
-  if (!hasGrade) { showError('Please select your child\'s grade.'); return; }
+  if (gradeSelectNeeded) {
+    var grades = document.querySelectorAll('.grade-select');
+    var hasGrade = false;
+    grades.forEach(function(s){ if (s.value) hasGrade = true; });
+    if (!hasGrade) { showError('Please select your child\'s grade.'); return; }
+  }
 
   if (!checkoutService || !checkoutReady) {
     showError('Payment system is still loading. Please try again in a moment.'); return;
@@ -687,8 +785,6 @@ function submitGift() {
 
 // ── Blackbaud Checkout SDK ────────────────────────────────────────────────────
 window.addEventListener('load', function() {
-  // Add first grade row
-  addGradeRow();
 
   if (typeof window.BlackbaudCheckout !== 'function') {
     console.warn('BlackbaudCheckout SDK did not load.');

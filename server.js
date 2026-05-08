@@ -1175,16 +1175,46 @@ const PARENT_GRADE_TOTALS = {
 app.get('/api/parents/lookup', async (req, res) => {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
 
-  let { fid } = req.query;
-  if (!fid) return res.status(400).json({ error: 'fid is required.' });
+  const { fid, email } = req.query;
+  if (!fid && !email) return res.status(400).json({ error: 'fid or email required.' });
 
   try {
+    // ── Email lookup (step-1 form path) ──────────────────────────────────────
+    if (email) {
+      const { data: constituent } = await parentsSupabase
+        .from('parent_constituents')
+        .select('fid, household_import_id, first_name')
+        .ilike('email', email.trim())
+        .maybeSingle();
+
+      if (!constituent) return res.json({ found: false });
+
+      const { data: household } = await parentsSupabase
+        .from('parent_households')
+        .select('household_name, grades')
+        .eq('household_import_id', constituent.household_import_id)
+        .maybeSingle();
+
+      const { data: priorGift } = await parentsSupabase
+        .from('gifts')
+        .select('id')
+        .eq('household_import_id', constituent.household_import_id)
+        .limit(1);
+
+      return res.json({
+        found:                true,
+        fid:                  constituent.fid,
+        first_name:           constituent.first_name,
+        household_import_id:  constituent.household_import_id,
+        grades:               household?.grades || [],
+        already_gave:         !!(priorGift && priorGift.length > 0),
+      });
+    }
+
+    // ── fid lookup ────────────────────────────────────────────────────────────
     let firstName         = null;
     let householdImportId = null;
-    const isSpouse        = fid.endsWith('S');
-    const baseFid         = isSpouse ? fid.slice(0, -1) : fid;
 
-    // Look up constituent record (primary or spouse fid)
     const { data: constituent } = await parentsSupabase
       .from('parent_constituents')
       .select('household_import_id, first_name')
@@ -1195,11 +1225,10 @@ app.get('/api/parents/lookup', async (req, res) => {
       householdImportId = constituent.household_import_id;
       firstName         = constituent.first_name;
     } else {
-      // fid might be a household_import_id directly (before constituent table is seeded)
+      // fid may be a household_import_id directly (before constituent table is seeded)
       householdImportId = fid;
     }
 
-    // Look up household
     const { data: household } = await parentsSupabase
       .from('parent_households')
       .select('household_name, grades, is_hh2')
@@ -1208,7 +1237,6 @@ app.get('/api/parents/lookup', async (req, res) => {
 
     if (!household) return res.status(404).json({ error: 'Household not found.' });
 
-    // Check if household has already given
     const { data: priorGift } = await parentsSupabase
       .from('gifts')
       .select('id')
@@ -1216,6 +1244,7 @@ app.get('/api/parents/lookup', async (req, res) => {
       .limit(1);
 
     return res.json({
+      found:                true,
       fid,
       first_name:           firstName,
       household_import_id:  householdImportId,
