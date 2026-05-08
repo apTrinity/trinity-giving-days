@@ -1153,6 +1153,17 @@ app.get('/api/leaderboard', async (req, res) => {
 // Parents campaign — separate Supabase, grade-only leaderboard
 // ─────────────────────────────────────────────────────────────────────────────
 
+// YTD parent participation baseline — families that gave before this campaign page.
+// Grade key matches the grade stored in affiliation_credits ('K', '1'–'12').
+// PARENT_BASELINE_TOTAL is the count of UNIQUE families (< sum of per-grade counts,
+// because families with multiple children appear in more than one grade row).
+const PARENT_GRADE_BASELINE = {
+  '12': 85, '11': 52, '10': 61, '9': 61, '8': 28,
+   '7': 29,  '6': 27,  '5': 24, '4': 35, '3': 36,
+   '2': 43,  '1': 42,  'K': 47,
+};
+const PARENT_BASELINE_TOTAL = 429;
+
 app.get('/api/parents/leaderboard', async (req, res) => {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
 
@@ -1176,10 +1187,11 @@ app.get('/api/parents/leaderboard', async (req, res) => {
     const recentRows = giftsResult.data    || [];
     const allGifts   = sumResult.data      || [];
 
+    // Live totals — only real gifts from this page
     const totalRaised = allGifts.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
     const counted     = credits.filter(c => c.counts_toward_total);
 
-    // Unique donor count — dedup by constituent_id when resolved, else email/name
+    // Unique live donor count
     const donorSet = new Set();
     allGifts.forEach(g => {
       if (g.constituent_id && g.constituent_id !== 'LOCAL_TEST') {
@@ -1190,22 +1202,33 @@ app.get('/api/parents/leaderboard', async (req, res) => {
         donorSet.add('gift:' + g.id);
       }
     });
-    const totalDonors = donorSet.size;
+    // Total = baseline (families who gave YTD) + new live gifts through this page
+    const totalDonors = PARENT_BASELINE_TOTAL + donorSet.size;
 
-    // Group parents by grade — counted credits only
-    const parentsMap = {};
+    // Per-grade live counts from this page
+    const liveGradeMap = {};
     counted.forEach(c => {
       if (c.affiliation_type !== 'current_parent') return;
-      const key = c.grade ? ('grade:' + c.grade) : c.class_year ? ('year:' + c.class_year) : null;
+      const key = c.grade || (c.class_year ? ('cy:' + c.class_year) : null);
       if (!key) return;
-      if (!parentsMap[key]) parentsMap[key] = { grade: c.grade || null, class_year: c.class_year || null, gifts: new Set() };
-      parentsMap[key].gifts.add(c.gift_id);
+      if (!liveGradeMap[key]) liveGradeMap[key] = { grade: c.grade || null, class_year: c.class_year || null, liveGifts: new Set() };
+      liveGradeMap[key].liveGifts.add(c.gift_id);
     });
-    const parents = Object.values(parentsMap)
-      .map(e => ({ grade: e.grade, class_year: e.class_year, donors: e.gifts.size }))
-      .sort((a, b) => b.donors - a.donors);
 
-    // Recent gifts
+    // Merge baseline + live counts
+    const gradeKeys = new Set([...Object.keys(PARENT_GRADE_BASELINE), ...Object.keys(liveGradeMap)]);
+    const parents = Array.from(gradeKeys).map(key => {
+      const baseline = PARENT_GRADE_BASELINE[key] || 0;
+      const live     = liveGradeMap[key] ? liveGradeMap[key].liveGifts.size : 0;
+      const entry    = liveGradeMap[key];
+      return {
+        grade:      entry ? entry.grade      : key === 'K' ? 'K' : key.startsWith('cy:') ? null : key,
+        class_year: entry ? entry.class_year : null,
+        donors:     baseline + live,
+      };
+    }).sort((a, b) => b.donors - a.donors);
+
+    // Recent gifts — live only, non-anonymous
     const recent_gifts = recentRows.map(g => {
       const affs = g.affiliation_credits || [];
       const pick = affs.find(a => a.affiliation_type === 'current_parent' && (a.grade || a.class_year)) || affs[0];
