@@ -24,7 +24,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 /* ── Logo header ─────────────────────────────────────── */
 .logo-header {
-  background: #1C2D5E;
+  background: #172853;
   padding: 28px 24px;
   text-align: center;
 }
@@ -32,24 +32,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   max-width: 460px; width: 100%; height: auto; display: inline-block;
 }
 
-/* ── Stats bar ───────────────────────────────────────── */
-.stats-bar {
-  background: var(--trinity-blue);
-  border-top: 3px solid var(--trinity-yellow);
-  display: flex; justify-content: center;
-}
-.stat-item {
-  flex: 1; max-width: 220px;
-  padding: 18px 20px; text-align: center;
-  border-right: 1px solid rgba(255,255,255,.08);
-}
-.stat-item:last-child { border-right: none; }
-.stat-num {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 28px; font-weight: 700; color: #fff; line-height: 1;
-  letter-spacing: -.02em; margin-bottom: 4px;
-}
-.stat-lbl { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.5); }
+/* ── Stats bar — removed ─────────────────────────────── */
 
 /* ── Progress bar ────────────────────────────────────── */
 .progress-wrap {
@@ -102,11 +85,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: var(--ink-muted); padding: 10px 16px; text-align: left;
 }
-.lb-table th:last-child { text-align: right; }
+.lb-table th.th-pct { text-align: right; width: 54px; }
 .lb-table tbody tr { border-top: 1px solid var(--border-lt); transition: background .1s; }
 .lb-table tbody tr:hover { background: var(--cream); }
-.lb-table td { padding: 12px 16px; font-size: 14px; }
-.lb-table td:last-child { text-align: right; }
+.lb-table td { padding: 11px 16px; font-size: 14px; vertical-align: middle; }
 .lb-rank {
   width: 28px; height: 28px; border-radius: 0;
   display: flex; align-items: center; justify-content: center;
@@ -117,10 +99,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .lb-rank-3 { background: #B87333; color: #fff; }
 .lb-rank-n { background: #EEE;    color: var(--ink-mid); }
 .rank-cell { display: flex; align-items: center; gap: 12px; }
-.lb-gift-count {
-  background: var(--trinity-blue); color: #fff;
-  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 2px;
-}
+/* inline % bar */
+.pct-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.pct-bar-track { flex: 1; height: 6px; background: #E8E6E0; overflow: hidden; }
+.pct-bar-fill  { height: 100%; background: var(--trinity-blue); transition: width .5s ease; }
+.pct-label { font-size: 13px; font-weight: 700; color: var(--ink); min-width: 38px; text-align: right; }
 .lb-empty { padding: 40px; text-align: center; color: var(--ink-muted); font-size: 14px; }
 
 /* ── Sidebar ─────────────────────────────────────────── */
@@ -271,22 +254,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   <img src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
 </header>
 
-<!-- ── Stats bar ───────────────────────────────────────────────────────────── -->
-<div class="stats-bar">
-  <div class="stat-item">
-    <div class="stat-num" id="stat-donors">—</div>
-    <div class="stat-lbl">Parent Donors</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num" id="stat-raised">—</div>
-    <div class="stat-lbl">Raised</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num" id="stat-grades">—</div>
-    <div class="stat-lbl">Grades Participating</div>
-  </div>
-</div>
-
 <!-- ── Progress bar ────────────────────────────────────────────────────────── -->
 <div class="progress-wrap">
   <div class="progress-inner">
@@ -314,7 +281,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       <table class="lb-table">
         <thead><tr>
           <th>Grade</th>
-          <th style="text-align:right">Families</th>
+          <th>Participation</th>
+          <th class="th-pct"></th>
         </tr></thead>
         <tbody id="parent-rows">
           <tr><td colspan="2" class="lb-empty">Loading…</td></tr>
@@ -448,7 +416,7 @@ function gradeLabel(g) {
 
 function renderLeaderboard(data) {
   if (data.error) {
-    document.getElementById('parent-rows').innerHTML = '<tr><td colspan="2" class="lb-empty">Leaderboard coming soon.</td></tr>';
+    document.getElementById('parent-rows').innerHTML = '<tr><td colspan="3" class="lb-empty">Leaderboard coming soon.</td></tr>';
     document.getElementById('recent-list').innerHTML = '<div class="lb-empty">Coming soon.</div>';
     return;
   }
@@ -463,24 +431,25 @@ function renderLeaderboard(data) {
     ? 'Goal reached — 100% parent participation!'
     : needed + ' more ' + (needed === 1 ? 'family' : 'families') + ' to reach 100%';
 
-  document.getElementById('stat-donors').textContent = donors.toLocaleString();
-  document.getElementById('stat-raised').textContent = '$' + Math.round(data.total_raised || 0).toLocaleString();
-  document.getElementById('stat-grades').textContent = (data.parents || []).length;
-
-  // Parent grades table
+  // Parent grades table — sorted by participation %
   var pr = document.getElementById('parent-rows');
   if (!data.parents || data.parents.length === 0) {
-    pr.innerHTML = '<tr><td colspan="2" class="lb-empty">No gifts yet — be the first!</td></tr>';
+    pr.innerHTML = '<tr><td colspan="3" class="lb-empty">No gifts yet — be the first!</td></tr>';
   } else {
     pr.innerHTML = data.parents.map(function(row, i) {
       var rankClass = i===0?'lb-rank-1':i===1?'lb-rank-2':i===2?'lb-rank-3':'lb-rank-n';
       var label = row.grade
         ? gradeLabel(row.grade)
         : (row.class_year ? "Class of '" + String(row.class_year).slice(-2) + ' Parents' : '—');
+      var rowPct   = row.pct != null ? row.pct : 0;
+      var subtext  = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
       return '<tr>' +
         '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
-        '<span>' + label + '</span></div></td>' +
-        '<td><span class="lb-gift-count">' + row.donors + '</span></td>' +
+        '<div><div style="font-size:14px;font-weight:600">' + label + '</div>' +
+        '<div style="font-size:11px;color:var(--ink-muted);margin-top:1px">' + subtext + '</div></div>' +
+        '</div></td>' +
+        '<td><div class="pct-bar-wrap"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:' + rowPct + '%"></div></div></div></td>' +
+        '<td class="th-pct"><span class="pct-label">' + rowPct + '%</span></td>' +
         '</tr>';
     }).join('');
   }

@@ -1164,6 +1164,13 @@ const PARENT_GRADE_BASELINE = {
 };
 const PARENT_BASELINE_TOTAL = 429;
 
+// Total families per grade (denominator for participation %)
+const PARENT_GRADE_TOTALS = {
+  '12': 125, '11': 114, '10': 118, '9': 114, '8': 62,
+   '7':  65,  '6':  58,  '5':  60, '4':  61, '3': 63,
+   '2':  62,  '1':  58,  'K':  62,
+};
+
 app.get('/api/parents/leaderboard', async (req, res) => {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
 
@@ -1215,18 +1222,23 @@ app.get('/api/parents/leaderboard', async (req, res) => {
       liveGradeMap[key].liveGifts.add(c.gift_id);
     });
 
-    // Merge baseline + live counts
+    // Merge baseline + live counts, compute participation %
     const gradeKeys = new Set([...Object.keys(PARENT_GRADE_BASELINE), ...Object.keys(liveGradeMap)]);
     const parents = Array.from(gradeKeys).map(key => {
       const baseline = PARENT_GRADE_BASELINE[key] || 0;
       const live     = liveGradeMap[key] ? liveGradeMap[key].liveGifts.size : 0;
       const entry    = liveGradeMap[key];
+      const donors   = baseline + live;
+      const total    = PARENT_GRADE_TOTALS[key] || null;
+      const pct      = total ? Math.round(donors / total * 100) : null;
       return {
         grade:      entry ? entry.grade      : key === 'K' ? 'K' : key.startsWith('cy:') ? null : key,
         class_year: entry ? entry.class_year : null,
-        donors:     baseline + live,
+        donors,
+        total,
+        pct,
       };
-    }).sort((a, b) => b.donors - a.donors);
+    }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
 
     // Recent gifts — live only, non-anonymous
     const recent_gifts = recentRows.map(g => {
