@@ -1183,7 +1183,7 @@ app.get('/api/parents/lookup', async (req, res) => {
     if (email) {
       const { data: constituent } = await parentsSupabase
         .from('parent_constituents')
-        .select('fid, household_import_id, first_name')
+        .select('fid, household_import_id, first_name, last_name, email')
         .ilike('email', email.trim())
         .maybeSingle();
 
@@ -1205,6 +1205,7 @@ app.get('/api/parents/lookup', async (req, res) => {
         found:                true,
         fid:                  constituent.fid,
         first_name:           constituent.first_name,
+        last_name:            constituent.last_name || null,
         household_import_id:  constituent.household_import_id,
         grades:               household?.grades || [],
         already_gave:         !!(priorGift && priorGift.length > 0),
@@ -1217,7 +1218,7 @@ app.get('/api/parents/lookup', async (req, res) => {
 
     const { data: constituent } = await parentsSupabase
       .from('parent_constituents')
-      .select('household_import_id, first_name')
+      .select('household_import_id, first_name, last_name, email')
       .eq('fid', fid)
       .maybeSingle();
 
@@ -1247,6 +1248,8 @@ app.get('/api/parents/lookup', async (req, res) => {
       found:                true,
       fid,
       first_name:           firstName,
+      last_name:            constituent?.last_name || null,
+      email:                constituent?.email     || null,
       household_import_id:  householdImportId,
       household_name:       household.household_name,
       grades:               household.grades,

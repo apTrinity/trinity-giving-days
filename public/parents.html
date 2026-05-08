@@ -32,16 +32,16 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   max-width: 460px; width: 100%; height: auto; display: inline-block;
 }
 
-/* ── Personalised fid banner ─────────────────────────── */
-.fid-banner {
-  padding: 14px 24px; text-align: center;
-  font-size: 15px; font-weight: 600;
+/* ── Grade chips (known household display) ───────────── */
+.grade-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.grade-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: var(--trinity-blue); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
 }
-.fid-banner--cta {
-  background: var(--trinity-yellow); color: var(--trinity-blue);
-}
-.fid-banner--thanks {
-  background: #172853; color: rgba(255,255,255,.85);
+.grade-chip::before {
+  content: '✓'; font-size: 11px; opacity: .8;
 }
 
 /* ── Stats bar — removed ─────────────────────────────── */
@@ -294,11 +294,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 </header>
 
 <!-- ── Progress bar ────────────────────────────────────────────────────────── -->
-<!-- Personalised ?fid= banner — hidden until lookup resolves -->
-<div id="fid-banner" class="fid-banner" style="display:none">
-  <span id="fid-msg"></span>
-</div>
-
 <div class="progress-wrap">
   <div class="progress-inner">
     <div class="progress-top">
@@ -390,6 +385,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       </div>
       <div class="modal-body">
 
+        <!-- Personalised greeting — only shown for fid arrivals -->
+        <div id="modal-greeting" style="display:none;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)">
+          <span id="modal-greeting-text" style="font-size:17px;font-weight:700;color:var(--ink)"></span>
+        </div>
+
         <label class="f-label">Gift Amount</label>
         <div class="amt-grid">
           <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
@@ -416,6 +416,13 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
             <div><input class="f-input" id="m-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
           </div>
           <input class="f-input" id="m-email" type="email" autocomplete="email" placeholder="Email address">
+        </div>
+
+        <!-- Grade display — shown when household is known (chips, pre-selected) -->
+        <div id="grade-display" style="display:none">
+          <hr class="divider">
+          <label class="f-label">Your Child's Grade</label>
+          <div class="grade-chips" id="grade-chips"></div>
         </div>
 
         <!-- Grade selector — shown only when household lookup found nothing -->
@@ -474,6 +481,40 @@ var householdImportId = null;  // set from ?fid= lookup or step-1 email lookup
 var gradeSelectNeeded = false; // true only when no household match found
 var identityFromStep1 = false; // true when step-1 collected name/email
 
+// ── Shared: apply lookup data to modal ───────────────────────────────────────
+function applyLookupData(data, firstName) {
+  // Pre-fill identity fields
+  if (data.first_name || firstName) {
+    document.getElementById('m-first').value = data.first_name || firstName || '';
+  }
+  if (data.last_name)  document.getElementById('m-last').value  = data.last_name;
+  if (data.email)      document.getElementById('m-email').value = data.email;
+
+  // Greeting
+  var name = data.first_name || firstName;
+  var greetingText = document.getElementById('modal-greeting-text');
+  var greeting     = document.getElementById('modal-greeting');
+  if (name && greeting && greetingText) {
+    greetingText.textContent = 'Hi, ' + name + ' — thanks for being here.';
+    greeting.style.display = 'block';
+  }
+
+  // Grade chips
+  if (data.grades && data.grades.length > 0) {
+    buildGradeChips(data.grades);
+  }
+}
+
+function buildGradeChips(grades) {
+  var chipsEl  = document.getElementById('grade-chips');
+  var displayEl = document.getElementById('grade-display');
+  chipsEl.innerHTML = grades.map(function(g) {
+    return '<span class="grade-chip">' + gradeLabel(g) + '</span>';
+  }).join('');
+  displayEl.style.display = '';
+  document.getElementById('grade-section').style.display = 'none';
+}
+
 // ── ?fid= personalisation ─────────────────────────────────────────────────────
 (function() {
   var params = new URLSearchParams(window.location.search);
@@ -483,33 +524,11 @@ var identityFromStep1 = false; // true when step-1 collected name/email
   fetch('/api/parents/lookup?fid=' + encodeURIComponent(fid))
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.error) return;
-
+      if (!data.found && !data.household_import_id) return;
       householdImportId = data.household_import_id;
-
-      // Show personalised banner
-      var banner = document.getElementById('fid-banner');
-      var msg    = document.getElementById('fid-msg');
-      if (banner && msg) {
-        if (data.already_gave) {
-          msg.innerHTML = (data.first_name ? 'Hi, ' + data.first_name + ' — ' : '') +
-            'Your family has already given this year. <strong>Thank you!</strong>';
-          banner.className = 'fid-banner fid-banner--thanks';
-        } else {
-          msg.innerHTML = (data.first_name ? 'Hi, ' + data.first_name + '!' : 'Hi there!') +
-            ' Add your family\'s dot today.';
-          banner.className = 'fid-banner fid-banner--cta';
-        }
-        banner.style.display = 'block';
-      }
-
-      // Pre-fill name if we have it
-      if (data.first_name) {
-        var mFirst = document.getElementById('m-first');
-        if (mFirst && !mFirst.value) mFirst.value = data.first_name;
-      }
+      applyLookupData(data, null);
     })
-    .catch(function() {}); // silently ignore lookup errors
+    .catch(function() {});
 })();
 
 // ── Build dot grid (once) ─────────────────────────────────────────────────────
@@ -643,7 +662,11 @@ function showStep(n) {
 function showStep2(hideIdentity) {
   showStep(2);
   document.getElementById('identity-section').style.display = hideIdentity ? 'none' : '';
-  document.getElementById('grade-section').style.display    = gradeSelectNeeded  ? '' : 'none';
+  // Grade section vs display managed by applyLookupData / addGradeRow — don't override here
+  if (gradeSelectNeeded) {
+    document.getElementById('grade-section').style.display  = '';
+    document.getElementById('grade-display').style.display  = 'none';
+  }
 }
 
 function nextStep() {
@@ -669,14 +692,14 @@ function nextStep() {
       if (data.found && data.household_import_id) {
         householdImportId = data.household_import_id;
         gradeSelectNeeded = false;
+        applyLookupData(data, first); // show greeting + grade chips
       } else {
         gradeSelectNeeded = true;
-        addGradeRow(); // ensure at least one grade row is present
+        addGradeRow();
       }
-      showStep2(true); // identity already captured in step 1 — hide those fields
+      showStep2(true); // identity captured in step 1 — hide those fields
     })
     .catch(function() {
-      // On error, default to grade selector
       gradeSelectNeeded = true;
       addGradeRow();
       showStep2(true);
