@@ -4,7 +4,12 @@
 // Route map:
 //   GET  /                        → serves the giving day HTML page
 //   POST /api/lookup              → searches RE NXT for a constituent by email
-//   POST /api/gift                → resolves constituent in RE, writes gift + affiliations to Supabase
+//   POST /api/gift                → BBMS capture, writes gift + affiliations to Supabase
+//   GET  /api/leaderboard         → alumni + parent leaderboard, stats, recent gifts
+//   GET  /api/parents/leaderboard → parent-only leaderboard (parentsSupabase)
+//   POST /api/parents/gift        → BBMS capture, writes to parentsSupabase
+//   GET  /api/health              → Supabase connection check
+//   GET  /api/sync-offline        → manual trigger for offline gift sync
 //   GET  /auth/blackbaud          → starts the SKY API OAuth flow (one-time browser visit)
 //   GET  /auth/blackbaud/callback → receives the OAuth code and exchanges it for tokens
 // ─────────────────────────────────────────────────────────────────────────────
@@ -184,6 +189,12 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
+
+// ─── Parents campaign Supabase client ─────────────────────────────────────────
+const parentsSupabase = (process.env.SUPABASE_URL_PARENTS && process.env.SUPABASE_KEY_PARENTS)
+  ? createClient(process.env.SUPABASE_URL_PARENTS, process.env.SUPABASE_KEY_PARENTS)
+  : null;
+if (!parentsSupabase) console.warn('SUPABASE_URL_PARENTS / SUPABASE_KEY_PARENTS not set — /api/parents/* routes will return 503.');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -1135,6 +1146,168 @@ app.get('/api/leaderboard', async (req, res) => {
   } catch (err) {
     console.error('Leaderboard error:', err.message);
     res.status(500).json({ error: 'Leaderboard query failed.' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parents campaign — separate Supabase, grade-only leaderboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/parents/leaderboard', async (req, res) => {
+  if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
+
+  try {
+    const [creditsResult, giftsResult, sumResult] = await Promise.all([
+      parentsSupabase
+        .from('affiliation_credits')
+        .select('gift_id, affiliation_type, class_year, grade, counts_toward_total'),
+      parentsSupabase
+        .from('gifts')
+        .select('id, first_name, last_name, amount, created_at, affiliation_credits(affiliation_type, class_year, grade)')
+        .neq('anonymous', true)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      parentsSupabase
+        .from('gifts')
+        .select('id, amount, email, constituent_id, first_name, last_name'),
+    ]);
+
+    const credits    = creditsResult.data  || [];
+    const recentRows = giftsResult.data    || [];
+    const allGifts   = sumResult.data      || [];
+
+    const totalRaised = allGifts.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
+    const counted     = credits.filter(c => c.counts_toward_total);
+
+    // Unique donor count — dedup by constituent_id when resolved, else email/name
+    const donorSet = new Set();
+    allGifts.forEach(g => {
+      if (g.constituent_id && g.constituent_id !== 'LOCAL_TEST') {
+        donorSet.add('cid:' + g.constituent_id);
+      } else if (g.first_name && g.last_name) {
+        donorSet.add('name:' + g.first_name.toLowerCase() + '|' + g.last_name.toLowerCase());
+      } else {
+        donorSet.add('gift:' + g.id);
+      }
+    });
+    const totalDonors = donorSet.size;
+
+    // Group parents by grade — counted credits only
+    const parentsMap = {};
+    counted.forEach(c => {
+      if (c.affiliation_type !== 'current_parent') return;
+      const key = c.grade ? ('grade:' + c.grade) : c.class_year ? ('year:' + c.class_year) : null;
+      if (!key) return;
+      if (!parentsMap[key]) parentsMap[key] = { grade: c.grade || null, class_year: c.class_year || null, gifts: new Set() };
+      parentsMap[key].gifts.add(c.gift_id);
+    });
+    const parents = Object.values(parentsMap)
+      .map(e => ({ grade: e.grade, class_year: e.class_year, donors: e.gifts.size }))
+      .sort((a, b) => b.donors - a.donors);
+
+    // Recent gifts
+    const recent_gifts = recentRows.map(g => {
+      const affs = g.affiliation_credits || [];
+      const pick = affs.find(a => a.affiliation_type === 'current_parent' && (a.grade || a.class_year)) || affs[0];
+      let affiliation = 'Trinity Parent';
+      if (pick && pick.grade) affiliation = gradeLabel(pick.grade) + ' Parent';
+      else if (pick && pick.class_year) affiliation = `Class of '${String(pick.class_year).slice(-2)} Parent`;
+      return {
+        name:       g.first_name ? `${g.first_name[0]}. ${g.last_name}` : 'Anonymous',
+        affiliation,
+        amount:     parseFloat(g.amount) || 0,
+        created_at: g.created_at,
+      };
+    });
+
+    res.json({ parents, total_donors: totalDonors, total_raised: totalRaised, recent_gifts });
+  } catch (err) {
+    console.error('Parents leaderboard error:', err.message);
+    res.status(500).json({ error: 'Parents leaderboard query failed.' });
+  }
+});
+
+app.post('/api/parents/gift', async (req, res) => {
+  if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
+
+  const { transaction_id, amount, first_name, last_name, email, fund, affiliations, anonymous } = req.body;
+  if (!transaction_id || !amount) {
+    return res.status(400).json({ error: 'transaction_id and amount are required.' });
+  }
+
+  try {
+    // 1. Capture payment via BBMS (shared credentials with main campaign)
+    const captureRes = await skyRequest({
+      method: 'post',
+      url: `https://api.sky.blackbaud.com/payments/v1/transactions/${transaction_id}/capture`,
+      data: { amount: Math.round(amount * 100) },
+      headers: { 'Content-Type': 'application/json' },
+    }, process.env.BBMS_API_KEY);
+    console.log(`[Parents] Payment captured: ${transaction_id} — state: ${captureRes.data?.state || captureRes.status}`);
+
+    // 2. Save gift to parentsSupabase
+    const { data: gift, error: giftError } = await parentsSupabase
+      .from('gifts')
+      .insert({
+        transaction_id,
+        amount,
+        fund:              fund || 'Annual Fund',
+        first_name,
+        last_name,
+        email,
+        constituent_id:    null,
+        match_type:        null,
+        source:            'online',
+        anonymous:         anonymous || false,
+        confirmation_sent: false,
+      })
+      .select()
+      .single();
+
+    if (giftError) throw new Error('Parents Supabase gift insert failed: ' + giftError.message);
+    console.log(`[Parents] Gift saved: ${gift.id}`);
+
+    // 3. First-gift check (dedup within parents DB by email)
+    let firstGift = true;
+    if (email) {
+      const { data: prior } = await parentsSupabase
+        .from('gifts')
+        .select('id')
+        .eq('email', email)
+        .neq('id', gift.id)
+        .limit(1);
+      if (prior && prior.length > 0) firstGift = false;
+    }
+
+    // 4. Save affiliation credits
+    if (affiliations && affiliations.length > 0) {
+      const credits = affiliations.map(aff => ({
+        gift_id:             gift.id,
+        affiliation_type:    aff.type,
+        class_year:          aff.class_year || null,
+        grade:               aff.grade      || null,
+        counts_toward_total: firstGift,
+      }));
+      const { error: creditsError } = await parentsSupabase
+        .from('affiliation_credits')
+        .insert(credits);
+      if (creditsError) throw new Error('Parents affiliation insert failed: ' + creditsError.message);
+      console.log(`[Parents] ${credits.length} affiliation credit(s) saved for gift ${gift.id} (counts_toward_total=${firstGift})`);
+    }
+
+    // 5. Confirmation email and staff notification
+    const giftWithFund = { ...gift, fund: fund || 'Annual Fund' };
+    const emailSent = await sendConfirmationEmail(giftWithFund, affiliations);
+    if (emailSent) {
+      await parentsSupabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
+    }
+    await sendStaffNotification(giftWithFund, affiliations);
+
+    return res.json({ success: true, gift_id: gift.id });
+
+  } catch (err) {
+    console.error('[Parents] Gift error:', err.response?.status, JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: 'Gift failed.', detail: err.response?.data || err.message });
   }
 });
 
