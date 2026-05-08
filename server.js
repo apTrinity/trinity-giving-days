@@ -1171,6 +1171,65 @@ const PARENT_GRADE_TOTALS = {
    '2':  62,  '1':  58,  'K':  62,
 };
 
+// ─── Parents: constituent / household lookup ───────────────────────────────
+app.get('/api/parents/lookup', async (req, res) => {
+  if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
+
+  let { fid } = req.query;
+  if (!fid) return res.status(400).json({ error: 'fid is required.' });
+
+  try {
+    let firstName         = null;
+    let householdImportId = null;
+    const isSpouse        = fid.endsWith('S');
+    const baseFid         = isSpouse ? fid.slice(0, -1) : fid;
+
+    // Look up constituent record (primary or spouse fid)
+    const { data: constituent } = await parentsSupabase
+      .from('parent_constituents')
+      .select('household_import_id, first_name')
+      .eq('fid', fid)
+      .maybeSingle();
+
+    if (constituent) {
+      householdImportId = constituent.household_import_id;
+      firstName         = constituent.first_name;
+    } else {
+      // fid might be a household_import_id directly (before constituent table is seeded)
+      householdImportId = fid;
+    }
+
+    // Look up household
+    const { data: household } = await parentsSupabase
+      .from('parent_households')
+      .select('household_name, grades, is_hh2')
+      .eq('household_import_id', householdImportId)
+      .maybeSingle();
+
+    if (!household) return res.status(404).json({ error: 'Household not found.' });
+
+    // Check if household has already given
+    const { data: priorGift } = await parentsSupabase
+      .from('gifts')
+      .select('id')
+      .eq('household_import_id', householdImportId)
+      .limit(1);
+
+    return res.json({
+      fid,
+      first_name:           firstName,
+      household_import_id:  householdImportId,
+      household_name:       household.household_name,
+      grades:               household.grades,
+      already_gave:         !!(priorGift && priorGift.length > 0),
+    });
+
+  } catch (err) {
+    console.error('[Parents] Lookup error:', err.message);
+    res.status(500).json({ error: 'Lookup failed.' });
+  }
+});
+
 app.get('/api/parents/leaderboard', async (req, res) => {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
 
@@ -1187,7 +1246,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
         .limit(10),
       parentsSupabase
         .from('gifts')
-        .select('id, amount, email, constituent_id, first_name, last_name'),
+        .select('id, amount, email, constituent_id, first_name, last_name, household_import_id'),
     ]);
 
     const credits    = creditsResult.data  || [];
@@ -1198,10 +1257,12 @@ app.get('/api/parents/leaderboard', async (req, res) => {
     const totalRaised = allGifts.reduce((s, g) => s + (parseFloat(g.amount) || 0), 0);
     const counted     = credits.filter(c => c.counts_toward_total);
 
-    // Unique live donor count
+    // Unique live donor count — prefer household dedup, fall back to name/email
     const donorSet = new Set();
     allGifts.forEach(g => {
-      if (g.constituent_id && g.constituent_id !== 'LOCAL_TEST') {
+      if (g.household_import_id) {
+        donorSet.add('hh:' + g.household_import_id);
+      } else if (g.constituent_id && g.constituent_id !== 'LOCAL_TEST') {
         donorSet.add('cid:' + g.constituent_id);
       } else if (g.first_name && g.last_name) {
         donorSet.add('name:' + g.first_name.toLowerCase() + '|' + g.last_name.toLowerCase());
@@ -1265,7 +1326,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
 app.post('/api/parents/gift', async (req, res) => {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
 
-  const { transaction_id, amount, first_name, last_name, email, fund, affiliations, anonymous } = req.body;
+  const { transaction_id, amount, first_name, last_name, email, fund, household_import_id, affiliations, anonymous } = req.body;
   if (!transaction_id || !amount) {
     return res.status(400).json({ error: 'transaction_id and amount are required.' });
   }
@@ -1280,21 +1341,33 @@ app.post('/api/parents/gift', async (req, res) => {
     }, process.env.BBMS_API_KEY);
     console.log(`[Parents] Payment captured: ${transaction_id} — state: ${captureRes.data?.state || captureRes.status}`);
 
-    // 2. Save gift to parentsSupabase
+    // 2. Look up household grades if household_import_id provided
+    let householdGrades = [];
+    if (household_import_id) {
+      const { data: hh } = await parentsSupabase
+        .from('parent_households')
+        .select('grades')
+        .eq('household_import_id', household_import_id)
+        .maybeSingle();
+      householdGrades = hh?.grades || [];
+    }
+
+    // 3. Save gift to parentsSupabase
     const { data: gift, error: giftError } = await parentsSupabase
       .from('gifts')
       .insert({
         transaction_id,
         amount,
-        fund:              fund || 'Annual Fund',
+        fund:                 fund || 'Annual Fund',
         first_name,
         last_name,
         email,
-        constituent_id:    null,
-        match_type:        null,
-        source:            'online',
-        anonymous:         anonymous || false,
-        confirmation_sent: false,
+        constituent_id:       null,
+        match_type:           null,
+        source:               'online',
+        anonymous:            anonymous || false,
+        confirmation_sent:    false,
+        household_import_id:  household_import_id || null,
       })
       .select()
       .single();
@@ -1302,9 +1375,17 @@ app.post('/api/parents/gift', async (req, res) => {
     if (giftError) throw new Error('Parents Supabase gift insert failed: ' + giftError.message);
     console.log(`[Parents] Gift saved: ${gift.id}`);
 
-    // 3. First-gift check (dedup within parents DB by email)
+    // 4. First-gift check — dedup by household first, then email
     let firstGift = true;
-    if (email) {
+    if (household_import_id) {
+      const { data: prior } = await parentsSupabase
+        .from('gifts')
+        .select('id')
+        .eq('household_import_id', household_import_id)
+        .neq('id', gift.id)
+        .limit(1);
+      if (prior && prior.length > 0) firstGift = false;
+    } else if (email) {
       const { data: prior } = await parentsSupabase
         .from('gifts')
         .select('id')
@@ -1314,15 +1395,25 @@ app.post('/api/parents/gift', async (req, res) => {
       if (prior && prior.length > 0) firstGift = false;
     }
 
-    // 4. Save affiliation credits
-    if (affiliations && affiliations.length > 0) {
-      const credits = affiliations.map(aff => ({
-        gift_id:             gift.id,
-        affiliation_type:    aff.type,
-        class_year:          aff.class_year || null,
-        grade:               aff.grade      || null,
-        counts_toward_total: firstGift,
-      }));
+    // 5. Build affiliation credits — from household grades if available, else from passed affiliations
+    const affsToSave = householdGrades.length > 0
+      ? householdGrades.map(grade => ({
+          gift_id:             gift.id,
+          affiliation_type:    'current_parent',
+          class_year:          grade === 'K' ? 2038 : (2038 - parseInt(grade)),
+          grade:               grade,
+          counts_toward_total: firstGift,
+        }))
+      : (affiliations || []).map(aff => ({
+          gift_id:             gift.id,
+          affiliation_type:    aff.type,
+          class_year:          aff.class_year || null,
+          grade:               aff.grade      || null,
+          counts_toward_total: firstGift,
+        }));
+
+    if (affsToSave.length > 0) {
+      const credits = affsToSave;
       const { error: creditsError } = await parentsSupabase
         .from('affiliation_credits')
         .insert(credits);
@@ -1330,13 +1421,13 @@ app.post('/api/parents/gift', async (req, res) => {
       console.log(`[Parents] ${credits.length} affiliation credit(s) saved for gift ${gift.id} (counts_toward_total=${firstGift})`);
     }
 
-    // 5. Confirmation email and staff notification
+    // 6. Confirmation email and staff notification
     const giftWithFund = { ...gift, fund: fund || 'Annual Fund' };
-    const emailSent = await sendConfirmationEmail(giftWithFund, affiliations);
+    const emailSent = await sendConfirmationEmail(giftWithFund, affsToSave);
     if (emailSent) {
       await parentsSupabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
     }
-    await sendStaffNotification(giftWithFund, affiliations);
+    await sendStaffNotification(giftWithFund, affsToSave);
 
     return res.json({ success: true, gift_id: gift.id });
 
