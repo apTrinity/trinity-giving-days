@@ -34,23 +34,51 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 /* ── Stats bar — removed ─────────────────────────────── */
 
-/* ── Progress bar ────────────────────────────────────── */
-.progress-wrap {
-  background: var(--trinity-blue); padding: 20px 24px 22px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
+/* ── Progress bar / dot grid ─────────────────────────── */
+.progress-wrap { background: var(--trinity-blue); padding: 36px 32px 32px; }
 .progress-inner { max-width: 760px; margin: 0 auto; }
-.progress-labels {
-  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;
+.progress-top {
+  display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px;
 }
-.progress-count {
-  font-family: 'Open Sans', sans-serif; font-size: 22px; font-weight: 700; color: #fff;
+.progress-num {
+  font-size: 52px; font-weight: 800; color: var(--trinity-yellow);
+  line-height: 1; letter-spacing: -.03em;
 }
-.progress-count span { color: var(--trinity-yellow); }
-.progress-goal { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: rgba(255,255,255,.5); text-transform: uppercase; }
-.progress-track { height: 8px; background: rgba(255,255,255,.15); overflow: hidden; }
-.progress-fill  { height: 100%; background: var(--trinity-yellow); transition: width .6s ease; width: 0%; }
-.progress-sub   { margin-top: 8px; font-size: 12px; color: rgba(255,255,255,.4); text-align: center; }
+.progress-of  { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 10px; }
+.progress-pct { font-size: 28px; font-weight: 800; color: rgba(255,255,255,.2); }
+/* Dot grid */
+.dot-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,.1); flex-shrink: 0;
+}
+.dot.given {
+  background: var(--trinity-yellow);
+  animation: dot-pop .3s ease-out both;
+}
+@keyframes dot-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  65%  { transform: scale(1.35); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (max-width: 500px) {
+  .dot-grid { gap: 3px; }
+  .dot { width: 6px; height: 6px; }
+}
+.progress-footer {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: rgba(255,255,255,.3);
+}
+.btn-give-top {
+  margin-top: 20px;
+  background: var(--trinity-yellow); color: var(--trinity-blue);
+  font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 14px 32px; border: none; cursor: pointer;
+  transition: background .15s; display: block; width: 100%;
+}
+.btn-give-top:hover { background: color-mix(in srgb, rgb(242,204,7) 88%, white); }
 
 /* ── Main layout ─────────────────────────────────────── */
 .page-wrap {
@@ -113,7 +141,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   background: var(--trinity-blue);
   border-top: 3px solid var(--trinity-yellow);
   padding: 26px 24px; text-align: center;
-  position: sticky; top: 16px;
 }
 .give-panel-title {
   font-family: 'Lora', Georgia, serif;
@@ -166,7 +193,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 }
 .modal-close:hover { color: #fff; }
 .modal-header {
-  background: var(--trinity-blue); padding: 22px 36px 20px;
+  background: #172853; padding: 22px 36px 20px;
   border-bottom: 3px solid var(--trinity-yellow); text-align: center;
 }
 .modal-logo { max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto; }
@@ -257,14 +284,19 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 <!-- ── Progress bar ────────────────────────────────────────────────────────── -->
 <div class="progress-wrap">
   <div class="progress-inner">
-    <div class="progress-labels">
-      <div class="progress-count"><span id="prog-donors">0</span> of 772 parent families</div>
-      <div class="progress-goal">Goal: 100%</div>
+    <div class="progress-top">
+      <div>
+        <span class="progress-num" id="prog-donors">—</span>
+        <span class="progress-of">of 772 parent families</span>
+      </div>
+      <span class="progress-pct" id="prog-pct"></span>
     </div>
-    <div class="progress-track">
-      <div class="progress-fill" id="prog-fill"></div>
+    <div class="dot-grid" id="dot-grid"></div>
+    <div class="progress-footer">
+      <span id="prog-sub"></span>
+      <span>Goal: 100%</span>
     </div>
-    <div class="progress-sub" id="prog-sub"></div>
+    <button class="btn-give-top" onclick="openModal()">Add your dot →</button>
   </div>
 </div>
 
@@ -290,16 +322,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       </table>
     </div>
 
-    <!-- Recent donors -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="panel-title">Recent Donors</div>
-      </div>
-      <div class="recent-list" id="recent-list">
-        <div class="lb-empty">Loading…</div>
-      </div>
-    </div>
-
   </div>
 
   <!-- Sidebar -->
@@ -308,6 +330,16 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       <div class="give-panel-title">Join your grade.</div>
       <div class="give-panel-sub">Every family that gives — any amount — moves your grade up the leaderboard and strengthens our community.</div>
       <button class="btn-give-lg" onclick="openModal()">Make a Gift</button>
+    </div>
+
+    <!-- Recent donors -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Recent Donors</div>
+      </div>
+      <div class="recent-list" id="recent-list">
+        <div class="lb-empty">Loading…</div>
+      </div>
     </div>
   </div>
 
@@ -397,6 +429,37 @@ var PARENT_TOTAL = 772;
 var selAmt = null;
 var checkoutService = null;
 var checkoutReady   = false;
+var dotsBuilt       = false;
+var currentDotCount = 0;
+var dots            = [];
+
+// ── Build dot grid (once) ─────────────────────────────────────────────────────
+function buildDotGrid() {
+  var grid = document.getElementById('dot-grid');
+  for (var i = 0; i < PARENT_TOTAL; i++) {
+    var d = document.createElement('div');
+    d.className = 'dot';
+    grid.appendChild(d);
+    dots.push(d);
+  }
+  dotsBuilt = true;
+}
+
+// ── Animate dots up to target count ──────────────────────────────────────────
+function animateDots(target) {
+  var start = currentDotCount;
+  if (target <= start) return;
+  // First load: stagger all at once; subsequent: just pop the new ones
+  var isFirstLoad = (start === 0);
+  for (var i = start; i < target; i++) {
+    (function(idx, delay) {
+      setTimeout(function() {
+        if (dots[idx]) dots[idx].classList.add('given');
+      }, delay);
+    })(i, isFirstLoad ? (i < 100 ? i * 2 : 200 + (i - 100) * 3.1) : 0);
+  }
+  currentDotCount = target;
+}
 
 // ── Leaderboard polling ───────────────────────────────────────────────────────
 function pollLeaderboard() {
@@ -426,10 +489,14 @@ function renderLeaderboard(data) {
   var needed = Math.max(0, PARENT_TOTAL - donors);
 
   document.getElementById('prog-donors').textContent = donors.toLocaleString();
-  document.getElementById('prog-fill').style.width   = pct + '%';
+  document.getElementById('prog-pct').textContent    = pct + '%';
   document.getElementById('prog-sub').textContent    = donors >= PARENT_TOTAL
     ? 'Goal reached — 100% parent participation!'
     : needed + ' more ' + (needed === 1 ? 'family' : 'families') + ' to reach 100%';
+
+  // Dot grid
+  if (!dotsBuilt) buildDotGrid();
+  animateDots(Math.min(donors, PARENT_TOTAL));
 
   // Parent grades table — sorted by participation %
   var pr = document.getElementById('parent-rows');
