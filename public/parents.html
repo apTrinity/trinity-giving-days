@@ -184,22 +184,14 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .recent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
 .recent-sub  { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
 
-/* ── Step indicator ──────────────────────────────────── */
-.step-indicator {
-  display: flex; align-items: center;
-  padding: 14px 36px 0; background: #fff;
+/* ── Step bar (segmented header border) ──────────────── */
+.step-bar { display: flex; gap: 4px; }
+.step-bar-seg {
+  flex: 1; height: 4px;
+  background: rgba(255,255,255,.13);
+  transition: background .35s ease;
 }
-.step-node {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border); flex-shrink: 0;
-  transition: background .25s;
-}
-.step-node--active  { background: var(--trinity-blue); }
-.step-connector {
-  flex: 1; height: 1.5px; margin: 0 6px;
-  background: var(--border); transition: background .25s;
-}
-.step-connector--active { background: var(--trinity-blue); }
+.step-bar-seg.filled { background: var(--trinity-yellow); }
 
 /* ── Modal ───────────────────────────────────────────── */
 .modal-overlay {
@@ -222,8 +214,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 }
 .modal-close:hover { color: #fff; }
 .modal-header {
-  background: #172853; padding: 22px 36px 20px;
-  border-bottom: 3px solid var(--trinity-yellow); text-align: center;
+  background: #172853; padding: 22px 36px 0;
+  text-align: center;
 }
 .modal-logo { max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto; }
 .modal-body { padding: 28px 32px 32px; }
@@ -379,20 +371,18 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   <div class="modal-card">
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
 
-    <!-- Step indicator — only shown for non-fid (three-step) users -->
-    <div id="step-indicator" class="step-indicator" style="display:none">
-      <div class="step-node step-node--active" id="step-node-1"></div>
-      <div class="step-connector" id="step-connector-1"></div>
-      <div class="step-node" id="step-node-2"></div>
-      <div class="step-connector" id="step-connector-2"></div>
-      <div class="step-node" id="step-node-3"></div>
+    <!-- Shared header with segmented step bar -->
+    <div class="modal-header">
+      <img class="modal-logo" src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
+      <div class="step-bar" id="step-bar" style="margin-top:18px">
+        <div class="step-bar-seg" id="sb-1"></div>
+        <div class="step-bar-seg" id="sb-2"></div>
+        <div class="step-bar-seg" id="sb-3"></div>
+      </div>
     </div>
 
     <!-- Step 1: identity (non-fid users only) -->
     <div id="modal-step1" style="display:none">
-      <div class="modal-header">
-        <img class="modal-logo" src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
-      </div>
       <div class="modal-body">
         <div class="f-row" style="margin-bottom:14px">
           <div><input class="f-input" id="s1-first" type="text" autocomplete="given-name"  placeholder="First name"></div>
@@ -406,9 +396,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
     <!-- Step 2: gift form -->
     <div id="modal-step2" style="display:none">
-      <div class="modal-header">
-        <img class="modal-logo" src="/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
-      </div>
       <div class="modal-body">
 
         <!-- Personalised greeting — only shown for fid arrivals -->
@@ -541,6 +528,9 @@ function buildGradeChips(grades) {
   document.getElementById('grade-section').style.display = 'none';
 }
 
+// ── Step bar: initialise to step 1 on load ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() { setStepBar(1); });
+
 // ── ?fid= personalisation ─────────────────────────────────────────────────────
 (function() {
   var params = new URLSearchParams(window.location.search);
@@ -671,31 +661,27 @@ function openModal() {
   document.body.style.overflow = 'hidden';
 
   if (householdImportId) {
-    // Case 1: fid arrival — go straight to step 2, no step indicator
-    document.getElementById('step-indicator').style.display = 'none';
+    // Case 1: fid arrival — go straight to step 2, bar at 2/3
     showStep2(false);
+    setStepBar(2);
   } else {
-    // Cases 2 & 3: two-step flow, show indicator
-    document.getElementById('step-indicator').style.display = 'flex';
+    // Cases 2 & 3: two-step flow
     showStep(1);
   }
 }
 
-function setStepIndicator(n) {
-  var ind = document.getElementById('step-indicator');
-  if (!ind || ind.style.display === 'none') return;
-  document.getElementById('step-node-1').className      = 'step-node step-node--active';
-  document.getElementById('step-connector-1').className = 'step-connector' + (n >= 2 ? ' step-connector--active' : '');
-  document.getElementById('step-node-2').className      = 'step-node' + (n >= 2 ? ' step-node--active' : '');
-  document.getElementById('step-connector-2').className = 'step-connector' + (n >= 3 ? ' step-connector--active' : '');
-  document.getElementById('step-node-3').className      = 'step-node' + (n >= 3 ? ' step-node--active' : '');
+function setStepBar(n) {
+  for (var i = 1; i <= 3; i++) {
+    var seg = document.getElementById('sb-' + i);
+    if (seg) seg.className = 'step-bar-seg' + (i <= n ? ' filled' : '');
+  }
 }
 
 function showStep(n) {
   document.getElementById('modal-step1').style.display = n === 1 ? '' : 'none';
   document.getElementById('modal-step2').style.display = n === 2 ? '' : 'none';
   document.getElementById('ty-state').style.display    = 'none';
-  setStepIndicator(n);
+  setStepBar(n);
 }
 
 function showStep2(hideIdentity) {
@@ -754,6 +740,7 @@ function closeModal() {
   document.getElementById('step1-error').style.display = 'none';
   document.getElementById('form-error').style.display  = 'none';
   identityFromStep1 = false;
+  setStepBar(householdImportId ? 2 : 1);
 }
 function overlayClick(e) { if (e.target===document.getElementById('modal-overlay')) closeModal(); }
 
@@ -876,7 +863,7 @@ window.addEventListener('load', function() {
     document.getElementById('modal-step1').style.display = 'none';
     document.getElementById('modal-step2').style.display = 'none';
     document.getElementById('ty-state').style.display    = 'block';
-    setStepIndicator(3);
+    setStepBar(3);
 
     fetch('/api/parents/gift', {
       method: 'POST',
