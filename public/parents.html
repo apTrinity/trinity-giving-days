@@ -184,6 +184,23 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .recent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
 .recent-sub  { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
 
+/* ── Step indicator ──────────────────────────────────── */
+.step-indicator {
+  display: flex; align-items: center;
+  padding: 14px 36px 0; background: #fff;
+}
+.step-node {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); flex-shrink: 0;
+  transition: background .25s;
+}
+.step-node--active  { background: var(--trinity-blue); }
+.step-connector {
+  flex: 1; height: 1.5px; margin: 0 6px;
+  background: var(--border); transition: background .25s;
+}
+.step-connector--active { background: var(--trinity-blue); }
+
 /* ── Modal ───────────────────────────────────────────── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
@@ -361,6 +378,15 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 <div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
   <div class="modal-card">
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+
+    <!-- Step indicator — only shown for non-fid (three-step) users -->
+    <div id="step-indicator" class="step-indicator" style="display:none">
+      <div class="step-node step-node--active" id="step-node-1"></div>
+      <div class="step-connector" id="step-connector-1"></div>
+      <div class="step-node" id="step-node-2"></div>
+      <div class="step-connector" id="step-connector-2"></div>
+      <div class="step-node" id="step-node-3"></div>
+    </div>
 
     <!-- Step 1: identity (non-fid users only) -->
     <div id="modal-step1" style="display:none">
@@ -645,18 +671,31 @@ function openModal() {
   document.body.style.overflow = 'hidden';
 
   if (householdImportId) {
-    // Case 1: fid arrival — go straight to step 2, show identity fields
+    // Case 1: fid arrival — go straight to step 2, no step indicator
+    document.getElementById('step-indicator').style.display = 'none';
     showStep2(false);
   } else {
-    // Cases 2 & 3: show step 1 first
+    // Cases 2 & 3: two-step flow, show indicator
+    document.getElementById('step-indicator').style.display = 'flex';
     showStep(1);
   }
+}
+
+function setStepIndicator(n) {
+  var ind = document.getElementById('step-indicator');
+  if (!ind || ind.style.display === 'none') return;
+  document.getElementById('step-node-1').className      = 'step-node step-node--active';
+  document.getElementById('step-connector-1').className = 'step-connector' + (n >= 2 ? ' step-connector--active' : '');
+  document.getElementById('step-node-2').className      = 'step-node' + (n >= 2 ? ' step-node--active' : '');
+  document.getElementById('step-connector-2').className = 'step-connector' + (n >= 3 ? ' step-connector--active' : '');
+  document.getElementById('step-node-3').className      = 'step-node' + (n >= 3 ? ' step-node--active' : '');
 }
 
 function showStep(n) {
   document.getElementById('modal-step1').style.display = n === 1 ? '' : 'none';
   document.getElementById('modal-step2').style.display = n === 2 ? '' : 'none';
   document.getElementById('ty-state').style.display    = 'none';
+  setStepIndicator(n);
 }
 
 function showStep2(hideIdentity) {
@@ -834,8 +873,10 @@ window.addEventListener('load', function() {
 
     document.getElementById('ty-amt').textContent   = '$' + (selAmt || (total/100)).toLocaleString();
     document.getElementById('ty-class').textContent = affilLabel();
-    document.getElementById('modal-form').style.display = 'none';
-    document.getElementById('ty-state').style.display   = 'block';
+    document.getElementById('modal-step1').style.display = 'none';
+    document.getElementById('modal-step2').style.display = 'none';
+    document.getElementById('ty-state').style.display    = 'block';
+    setStepIndicator(3);
 
     fetch('/api/parents/gift', {
       method: 'POST',
