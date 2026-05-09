@@ -214,10 +214,10 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
 
         <!-- Matching gifts -->
-        <div style="padding:20px 32px;font-size:15px;line-height:1.7;">
-          <p style="margin:0 0 8px;"><strong><em>DOUBLE THE IMPACT OF YOUR SUPPORT!</em></strong></p>
-          <p style="margin:0 0 8px;">Many companies match employee donations to Trinity.</p>
-          <p style="margin:0;"><a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="color:#1C2D5E;">Click here to find out if your employer participates.</a></p>
+        <div style="padding:20px 32px;background:#F9F7F2;border-left:4px solid #F2CC07;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853;">Double your impact with a matching gift.</p>
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
+          <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background:#172853;color:#F2CC07;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
         </div>
 
         <!-- Divider -->
