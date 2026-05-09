@@ -304,6 +304,87 @@ async function sendParentsStaffNotification(gift, affiliations) {
   return true;
 }
 
+// ─── Parents emergency notification (Supabase down after payment captured) ───
+async function sendParentsEmergencyNotification(gift, rawAffiliations) {
+  if (!resend) return false;
+
+  const amountFormatted = '$' + parseFloat(gift.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const gradeStr = (rawAffiliations || [])
+    .filter(a => (a.type || a.affiliation_type) === 'current_parent' && a.grade)
+    .map(a => gradeLabel(a.grade))
+    .join(', ') || 'Unknown — check transaction in BBMS';
+
+  const payload = JSON.stringify({
+    transaction_id:     gift.transaction_id,
+    amount:             gift.amount,
+    first_name:         gift.first_name,
+    last_name:          gift.last_name,
+    email:              gift.email,
+    fund:               gift.fund,
+    household_import_id: gift.household_import_id || null,
+    affiliations:       rawAffiliations,
+  }, null, 2);
+
+  const { error } = await resend.emails.send({
+    from:    'Trinity Fund <trinityfund@trinityschoolnyc.org>',
+    to:      PARENTS_STAFF_EMAILS,
+    subject: `⚠️ ACTION REQUIRED — Parents gift not recorded — ${amountFormatted} — ${gift.first_name} ${gift.last_name}`,
+    html: `
+      <div style="max-width:580px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222;">
+        <div style="background:#B91C1C;color:#fff;padding:16px 24px;">
+          <strong style="font-size:17px;">⚠️ Supabase write failed — manual entry required</strong>
+        </div>
+        <div style="background:#FEF2F2;border-left:4px solid #B91C1C;padding:14px 20px;font-size:13px;line-height:1.6;">
+          A payment was successfully captured by BBMS but <strong>could not be saved to the database</strong>
+          (Supabase was unreachable). The donor's card was charged. This gift will not appear on the leaderboard
+          until it is entered manually.
+        </div>
+        <div style="padding:20px 24px;">
+          <table cellpadding="7" style="border-collapse:collapse;width:100%;">
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;width:150px;">Donor</td>
+              <td><strong>${gift.first_name} ${gift.last_name}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Email</td>
+              <td>${gift.email || '—'}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Amount</td>
+              <td><strong>${amountFormatted}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Grade(s)</td>
+              <td>${gradeStr}</td>
+            </tr>
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666;">Household ID</td><td style="font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Fund</td>
+              <td>${gift.fund || 'Annual Fund'}</td>
+            </tr>
+            <tr>
+              <td style="color:#666;">Transaction ID</td>
+              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+            </tr>
+          </table>
+        </div>
+        <div style="padding:0 24px 20px;">
+          <p style="margin:0 0 6px;font-size:12px;font-weight:bold;color:#666;text-transform:uppercase;letter-spacing:.05em;">Full payload (for manual Supabase insert)</p>
+          <pre style="background:#f5f5f5;padding:12px;font-size:11px;overflow-x:auto;white-space:pre-wrap;">${payload}</pre>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('[Parents] Emergency notification send failed:', error);
+    return false;
+  }
+  console.warn('[Parents] Emergency notification sent — gift requires manual Supabase entry');
+  return true;
+}
+
 // ─── Timestamped console logging ─────────────────────────────────────────────
 const _log  = console.log.bind(console);
 const _warn = console.warn.bind(console);
@@ -324,6 +405,9 @@ const parentsSupabase = (process.env.SUPABASE_URL_PARENTS && process.env.SUPABAS
   ? createClient(process.env.SUPABASE_URL_PARENTS, process.env.SUPABASE_KEY_PARENTS)
   : null;
 if (!parentsSupabase) console.warn('SUPABASE_URL_PARENTS / SUPABASE_KEY_PARENTS not set — /api/parents/* routes will return 503.');
+
+// In-memory cache for the parents leaderboard — served on Supabase outage
+let parentsLeaderboardCache = null;
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -1477,10 +1561,24 @@ app.get('/api/parents/leaderboard', async (req, res) => {
       };
     });
 
-    res.json({ parents, total_donors: totalDonors, total_raised: totalRaised, recent_gifts });
+    const payload = { parents, total_donors: totalDonors, total_raised: totalRaised, recent_gifts };
+    parentsLeaderboardCache = payload;
+    res.json(payload);
   } catch (err) {
     console.error('Parents leaderboard error:', err.message);
-    res.status(500).json({ error: 'Parents leaderboard query failed.' });
+    if (parentsLeaderboardCache) {
+      console.warn('[Parents] Leaderboard Supabase error — serving cached data');
+      return res.json({ ...parentsLeaderboardCache, cached: true });
+    }
+    // No cache yet — return baseline-only data so the page isn't broken
+    const fallbackParents = Object.entries(PARENT_GRADE_BASELINE).map(([key, donors]) => ({
+      grade:      key === 'K' ? 'K' : key.startsWith('cy:') ? null : key,
+      class_year: null,
+      donors,
+      total:      PARENT_GRADE_TOTALS[key] || null,
+      pct:        PARENT_GRADE_TOTALS[key] ? Math.round(donors / PARENT_GRADE_TOTALS[key] * 100) : null,
+    })).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+    res.json({ parents: fallbackParents, total_donors: PARENT_BASELINE_TOTAL, total_raised: 0, recent_gifts: [], cached: true });
   }
 });
 
@@ -1492,8 +1590,9 @@ app.post('/api/parents/gift', async (req, res) => {
     return res.status(400).json({ error: 'transaction_id and amount are required.' });
   }
 
+  // ── Step 1: BBMS capture ──────────────────────────────────────────────────
+  // If this fails, no money was taken — safe to return an error.
   try {
-    // 1. Capture payment via BBMS (shared credentials with main campaign)
     const captureRes = await skyRequest({
       method: 'post',
       url: `https://api.sky.blackbaud.com/payments/v1/transactions/${transaction_id}/capture`,
@@ -1501,8 +1600,21 @@ app.post('/api/parents/gift', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
     }, process.env.BBMS_API_KEY);
     console.log(`[Parents] Payment captured: ${transaction_id} — state: ${captureRes.data?.state || captureRes.status}`);
+  } catch (captureErr) {
+    console.error('[Parents] BBMS capture failed:', captureErr.response?.status, JSON.stringify(captureErr.response?.data || captureErr.message));
+    return res.status(500).json({ error: 'Payment capture failed.', detail: captureErr.response?.data || captureErr.message });
+  }
 
-    // 2. Look up household grades if household_import_id provided
+  // ── Step 2: Supabase writes ───────────────────────────────────────────────
+  // Payment is captured. A Supabase failure must NOT block the donor's thank-you
+  // or leave the gift unrecorded silently. We catch errors here, send an emergency
+  // staff email with the full payload, and still return success to the client.
+  let gift = null;
+  let affsToSave = [];
+  let supabaseOk = false;
+
+  try {
+    // 2a. Look up household grades if household_import_id provided
     let householdGrades = [];
     if (household_import_id) {
       const { data: hh } = await parentsSupabase
@@ -1513,8 +1625,8 @@ app.post('/api/parents/gift', async (req, res) => {
       householdGrades = hh?.grades || [];
     }
 
-    // 3. Save gift to parentsSupabase
-    const { data: gift, error: giftError } = await parentsSupabase
+    // 2b. Save gift
+    const { data: giftData, error: giftError } = await parentsSupabase
       .from('gifts')
       .insert({
         transaction_id,
@@ -1533,10 +1645,11 @@ app.post('/api/parents/gift', async (req, res) => {
       .select()
       .single();
 
-    if (giftError) throw new Error('Parents Supabase gift insert failed: ' + giftError.message);
+    if (giftError) throw new Error('Gift insert failed: ' + giftError.message);
+    gift = giftData;
     console.log(`[Parents] Gift saved: ${gift.id}`);
 
-    // 4. First-gift check — dedup by household first, then email
+    // 2c. First-gift check — dedup by household, then email
     let firstGift = true;
     if (household_import_id) {
       const { data: prior } = await parentsSupabase
@@ -1556,8 +1669,8 @@ app.post('/api/parents/gift', async (req, res) => {
       if (prior && prior.length > 0) firstGift = false;
     }
 
-    // 5. Build affiliation credits — from household grades if available, else from passed affiliations
-    const affsToSave = householdGrades.length > 0
+    // 2d. Build and save affiliation credits
+    affsToSave = householdGrades.length > 0
       ? householdGrades.map(grade => ({
           gift_id:             gift.id,
           affiliation_type:    'current_parent',
@@ -1574,28 +1687,45 @@ app.post('/api/parents/gift', async (req, res) => {
         }));
 
     if (affsToSave.length > 0) {
-      const credits = affsToSave;
       const { error: creditsError } = await parentsSupabase
         .from('affiliation_credits')
-        .insert(credits);
-      if (creditsError) throw new Error('Parents affiliation insert failed: ' + creditsError.message);
-      console.log(`[Parents] ${credits.length} affiliation credit(s) saved for gift ${gift.id} (counts_toward_total=${firstGift})`);
+        .insert(affsToSave);
+      if (creditsError) throw new Error('Affiliation insert failed: ' + creditsError.message);
+      console.log(`[Parents] ${affsToSave.length} affiliation credit(s) saved for gift ${gift.id} (counts_toward_total=${firstGift})`);
     }
 
-    // 6. Confirmation email and staff notification
+    supabaseOk = true;
+
+  } catch (dbErr) {
+    // Log the full payload so Render captures it — last resort if email also fails
+    console.error('[Parents] ⚠️  Supabase write failed AFTER payment capture. Manual entry required.');
+    console.error('[Parents] UNRECORDED GIFT:', JSON.stringify({
+      transaction_id, amount, first_name, last_name, email,
+      fund: fund || 'Annual Fund', household_import_id, affiliations,
+    }));
+    console.error('[Parents] DB error:', dbErr.message);
+  }
+
+  // ── Step 3: Emails ────────────────────────────────────────────────────────
+  if (supabaseOk && gift) {
+    // Normal path — gift recorded, send standard emails
     const giftWithFund = { ...gift, fund: fund || 'Annual Fund' };
     const emailSent = await sendParentsConfirmationEmail(giftWithFund, affsToSave);
     if (emailSent) {
       await parentsSupabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
     }
     await sendParentsStaffNotification(giftWithFund, affsToSave);
-
-    return res.json({ success: true, gift_id: gift.id });
-
-  } catch (err) {
-    console.error('[Parents] Gift error:', err.response?.status, JSON.stringify(err.response?.data || err.message));
-    res.status(500).json({ error: 'Gift failed.', detail: err.response?.data || err.message });
+  } else {
+    // Supabase failed — send emergency alert to staff and confirmation to donor
+    const syntheticGift = { transaction_id, amount, first_name, last_name, email, fund: fund || 'Annual Fund', household_import_id };
+    await sendParentsEmergencyNotification(syntheticGift, affiliations || []);
+    await sendParentsConfirmationEmail(syntheticGift, (affiliations || []).map(aff => ({
+      affiliation_type: aff.type, grade: aff.grade || null, class_year: aff.class_year || null,
+    })));
   }
+
+  // Always return success — the payment went through regardless of Supabase state
+  return res.json({ success: true, gift_id: gift?.id || null });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
