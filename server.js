@@ -175,6 +175,135 @@ async function sendStaffNotification(gift, affiliations) {
   return true;
 }
 
+// ─── Parents: confirmation email ─────────────────────────────────────────────
+async function sendParentsConfirmationEmail(gift, affiliations) {
+  if (!resend || !gift.email) return false;
+
+  const amountFormatted = '$' + parseFloat(gift.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const gradeLabels = (affiliations || [])
+    .filter(a => a.affiliation_type === 'current_parent' && a.grade)
+    .map(a => gradeLabel(a.grade))
+    .filter(Boolean);
+  const gradeStr = gradeLabels.length > 0 ? gradeLabels.join(' and ') + ' family' : 'Trinity parent family';
+
+  const { error } = await resend.emails.send({
+    from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>',
+    to:   gift.email,
+    subject: 'Thank you for your gift to the Trinity Fund',
+    html: `
+      <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;">
+
+        <!-- Header -->
+        <div style="background:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
+          <img src="https://givecampus.s3-accelerate.amazonaws.com/uploads/project/share_image/72106/facebook_small_trinity_giving_days_2025_logo.png"
+               alt="Trinity Fund 2025–2026" width="180" style="display:block;" />
+        </div>
+
+        <!-- Body -->
+        <div style="padding:28px 32px 8px;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 16px;">Dear ${gift.first_name},</p>
+          <p style="margin:0 0 16px;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025–2026 Trinity Fund. Your participation as a ${gradeStr} helps strengthen our entire school community — and moves your grade up the leaderboard.</p>
+          <p style="margin:0 0 16px;">Every family that gives, at any level, counts toward our goal of 100% parent participation. We are grateful to have you with us.</p>
+          <p style="margin:0 0 16px;">If you have any questions about your gift, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#1C2D5E;">trinityfund@trinityschoolnyc.org</a>.</p>
+          <p style="margin:0 0 4px;">With gratitude,</p>
+          <p style="margin:0 0 28px;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+
+        <!-- Matching gifts -->
+        <div style="padding:20px 32px;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 8px;"><strong><em>DOUBLE THE IMPACT OF YOUR SUPPORT!</em></strong></p>
+          <p style="margin:0 0 8px;">Many companies match employee donations to Trinity.</p>
+          <p style="margin:0;"><a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="color:#1C2D5E;">Click here to find out if your employer participates.</a></p>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+
+        <!-- Transaction details -->
+        <div style="padding:20px 32px 32px;font-size:13px;color:#555;">
+          <table cellpadding="5" style="border-collapse:collapse;">
+            <tr><td style="padding-right:20px;">Amount</td><td><strong style="color:#222;">${amountFormatted}</strong></td></tr>
+            <tr><td style="padding-right:20px;">Fund</td><td style="color:#222;">${gift.fund}</td></tr>
+            ${gradeLabels.length > 0 ? `<tr><td style="padding-right:20px;">Credited to</td><td style="color:#222;">${gradeLabels.join(', ')} Parent</td></tr>` : ''}
+            <tr><td style="padding-right:20px;">Transaction ID</td><td style="font-family:monospace;font-size:11px;color:#222;">${gift.transaction_id}</td></tr>
+          </table>
+        </div>
+
+      </div>
+    `,
+  });
+
+  if (error) { console.error('[Parents] Resend error:', error); return false; }
+  console.log(`[Parents] Confirmation email sent to ${gift.email}`);
+  return true;
+}
+
+// ─── Parents: staff notification email ───────────────────────────────────────
+const PARENTS_STAFF_EMAILS = [
+  'andrew.peterson@trinityschoolnyc.org',
+];
+
+async function sendParentsStaffNotification(gift, affiliations) {
+  if (!resend) return false;
+
+  const amountFormatted = '$' + parseFloat(gift.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const gradeRows = (affiliations || [])
+    .filter(a => a.affiliation_type === 'current_parent' && a.grade)
+    .map(a => gradeLabel(a.grade) + ' Parent');
+  const gradeStr = gradeRows.length > 0 ? gradeRows.join(', ') : 'Current Parent';
+
+  const { error } = await resend.emails.send({
+    from:    'Trinity Fund <trinityfund@trinityschoolnyc.org>',
+    to:      PARENTS_STAFF_EMAILS,
+    subject: `[Parents] ${amountFormatted} — ${gift.first_name} ${gift.last_name}`,
+    html: `
+      <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222;">
+        <div style="background:#172853;color:#fff;padding:16px 24px;border-bottom:3px solid #F2CC07;">
+          <strong style="font-size:16px;">New Gift — Parents Campaign 2025–2026</strong>
+        </div>
+        <div style="padding:20px 24px;">
+          <table cellpadding="7" style="border-collapse:collapse;width:100%;">
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;width:130px;">Donor</td>
+              <td><strong>${gift.first_name} ${gift.last_name}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Email</td>
+              <td>${gift.email || '—'}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Amount</td>
+              <td><strong>${amountFormatted}</strong></td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Grade(s)</td>
+              <td>${gradeStr}</td>
+            </tr>
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666;">Household ID</td><td style="font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="color:#666;">Date</td>
+              <td>${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
+            </tr>
+            <tr>
+              <td style="color:#666;">Transaction ID</td>
+              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) { console.error('[Parents] Staff notification error:', error); return false; }
+  console.log(`[Parents] Staff notification sent for gift ${gift.id}`);
+  return true;
+}
+
 // ─── Timestamped console logging ─────────────────────────────────────────────
 const _log  = console.log.bind(console);
 const _warn = console.warn.bind(console);
@@ -1455,11 +1584,11 @@ app.post('/api/parents/gift', async (req, res) => {
 
     // 6. Confirmation email and staff notification
     const giftWithFund = { ...gift, fund: fund || 'Annual Fund' };
-    const emailSent = await sendConfirmationEmail(giftWithFund, affsToSave);
+    const emailSent = await sendParentsConfirmationEmail(giftWithFund, affsToSave);
     if (emailSent) {
       await parentsSupabase.from('gifts').update({ confirmation_sent: true }).eq('id', gift.id);
     }
-    await sendStaffNotification(giftWithFund, affsToSave);
+    await sendParentsStaffNotification(giftWithFund, affsToSave);
 
     return res.json({ success: true, gift_id: gift.id });
 
