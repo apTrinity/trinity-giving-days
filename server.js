@@ -1245,6 +1245,8 @@ setTimeout(() => {
 // into parentsSupabase so the leaderboard stays accurate without RE integration.
 // Requires OFFLINE_SYNC_PARENTS_LIST_ID env var (RE query ID).
 // ─────────────────────────────────────────────────────────────────────────────
+let parentsOfflineSyncRunning = false;
+
 async function syncParentsOfflineGifts() {
   if (process.env.SKIP_RE_RESOLUTION === 'true') {
     console.log('syncParentsOfflineGifts: SKIP_RE_RESOLUTION=true, skipping.');
@@ -1254,6 +1256,11 @@ async function syncParentsOfflineGifts() {
     console.log('syncParentsOfflineGifts: parentsSupabase not configured, skipping.');
     return;
   }
+  if (parentsOfflineSyncRunning) {
+    console.log('syncParentsOfflineGifts: already running, skipping.');
+    return;
+  }
+  parentsOfflineSyncRunning = true;
 
   try {
     console.log('syncParentsOfflineGifts: checking RE for offline parent gifts...');
@@ -1426,6 +1433,8 @@ async function syncParentsOfflineGifts() {
 
   } catch (err) {
     console.error('syncParentsOfflineGifts error:', err.response?.data || err.message);
+  } finally {
+    parentsOfflineSyncRunning = false;
   }
 }
 
