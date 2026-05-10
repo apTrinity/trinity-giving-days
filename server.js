@@ -1240,6 +1240,202 @@ setTimeout(() => {
 }, 5000); // 5s delay so tokens are loaded before first run
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Parents offline gift sync
+// Pulls parent Annual Fund gifts from RE (via a saved query) and upserts them
+// into parentsSupabase so the leaderboard stays accurate without RE integration.
+// Requires OFFLINE_SYNC_PARENTS_LIST_ID env var (RE query ID).
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncParentsOfflineGifts() {
+  if (process.env.SKIP_RE_RESOLUTION === 'true') {
+    console.log('syncParentsOfflineGifts: SKIP_RE_RESOLUTION=true, skipping.');
+    return;
+  }
+  if (!parentsSupabase) {
+    console.log('syncParentsOfflineGifts: parentsSupabase not configured, skipping.');
+    return;
+  }
+
+  try {
+    console.log('syncParentsOfflineGifts: checking RE for offline parent gifts...');
+
+    const listId = process.env.OFFLINE_SYNC_PARENTS_LIST_ID;
+    if (!listId) {
+      console.log('syncParentsOfflineGifts: no OFFLINE_SYNC_PARENTS_LIST_ID set, skipping.');
+      return;
+    }
+
+    // Step 1: Submit the query execution job
+    const execRes = await skyRequest({
+      method: 'post',
+      url: 'https://api.sky.blackbaud.com/query/queries/executebyid',
+      params: { product: 'RE', module: 'None' },
+      data: { id: parseInt(listId) },
+    });
+    const jobId = execRes.data?.id;
+    if (!jobId) throw new Error('No job ID returned from query execution');
+    console.log(`syncParentsOfflineGifts: query job started — ${jobId}`);
+
+    // Step 2: Poll until completed
+    let sasUri = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const jobRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/query/jobs/${jobId}`,
+        params: { product: 'RE', module: 'None', include_read_url: 1 },
+      });
+      const status = jobRes.data?.status;
+      if (status === 'Completed') { sasUri = jobRes.data.sas_uri; break; }
+      if (['Failed', 'Cancelled'].includes(status)) throw new Error(`Query job ${status}`);
+    }
+    if (!sasUri) throw new Error('Query job did not complete in time');
+
+    // Step 3: Download CSV results
+    const csvRes = await axios.get(sasUri);
+    const csvLines = csvRes.data.trim().split('\n');
+    const headers = csvLines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    // Step 4: Find gift ID column and fetch full gift detail from RE
+    const idCol = headers.findIndex(h =>
+      ['Gift ID', 'Gift System ID', 'System Record ID', 'ID'].includes(h)
+    );
+    if (idCol === -1) throw new Error(`Gift ID column not found. Headers: ${headers.join(', ')}`);
+
+    const offlineGifts = [];
+    for (let i = 1; i < csvLines.length; i++) {
+      const cols = csvLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const giftId = cols[idCol];
+      if (!giftId) continue;
+      const giftRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/gift/v1/gifts/${giftId}`,
+      });
+      if (giftRes.data) offlineGifts.push(giftRes.data);
+    }
+    console.log(`syncParentsOfflineGifts: query returned ${offlineGifts.length} gift(s)`);
+
+    if (offlineGifts.length === 0) {
+      console.log('syncParentsOfflineGifts: no gifts to process.');
+      return;
+    }
+
+    for (const reGift of offlineGifts) {
+      const reGiftId      = String(reGift.id);
+      const constituentId = String(reGift.constituent_id);
+
+      // Skip if already synced
+      const { data: existing } = await parentsSupabase
+        .from('gifts')
+        .select('id')
+        .eq('transaction_id', reGiftId)
+        .eq('source', 'offline')
+        .limit(1);
+      if (existing && existing.length > 0) continue;
+
+      // Match to a household via parent_constituents
+      // A gift could be from the primary OR the spouse (fid = constituentId + 'S'),
+      // but both share the same household_import_id.
+      const { data: pc } = await parentsSupabase
+        .from('parent_constituents')
+        .select('fid, first_name, last_name, email, household_import_id')
+        .or(`fid.eq.${constituentId},fid.eq.${constituentId}S`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!pc) {
+        console.warn(`syncParentsOfflineGifts: constituent ${constituentId} not in parent_constituents — skipping gift ${reGiftId}`);
+        continue;
+      }
+
+      const { household_import_id } = pc;
+
+      // Use cached name/email from parent_constituents; try RE for fresher data
+      let firstName = pc.first_name;
+      let lastName  = pc.last_name;
+      let email     = pc.email;
+      try {
+        const cRes = await skyRequest({
+          method: 'get',
+          url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}`,
+        });
+        firstName = cRes.data.first || firstName;
+        lastName  = cRes.data.last  || lastName;
+        email     = cRes.data.email?.address || email;
+      } catch (err) {
+        console.warn(`syncParentsOfflineGifts: couldn't fetch RE constituent ${constituentId} — using cached data`);
+      }
+
+      const amount = parseFloat(reGift.amount?.value || 0);
+      const fund   = reGift.fund?.description || 'Annual Fund';
+
+      // Look up household grades
+      const { data: household } = await parentsSupabase
+        .from('parent_households')
+        .select('grades')
+        .eq('household_import_id', household_import_id)
+        .maybeSingle();
+      const grades = household?.grades || [];
+
+      // First-gift check — dedup by household
+      const { data: priorGifts } = await parentsSupabase
+        .from('gifts')
+        .select('id')
+        .eq('household_import_id', household_import_id)
+        .limit(1);
+      const isFirstGift = !priorGifts || priorGifts.length === 0;
+
+      // Insert gift
+      const { data: gift, error: giftError } = await parentsSupabase
+        .from('gifts')
+        .insert({
+          transaction_id:     reGiftId,
+          amount,
+          fund,
+          first_name:         firstName,
+          last_name:          lastName,
+          email,
+          constituent_id:     constituentId,
+          match_type:         'offline',
+          source:             'offline',
+          anonymous:          false,
+          confirmation_sent:  false,
+          household_import_id,
+        })
+        .select()
+        .single();
+
+      if (giftError) {
+        console.error(`syncParentsOfflineGifts: insert failed for gift ${reGiftId}:`, giftError.message);
+        continue;
+      }
+
+      // Build affiliation credits from household grades
+      if (grades.length > 0) {
+        const credits = grades.map(grade => ({
+          gift_id:             gift.id,
+          affiliation_type:    'current_parent',
+          class_year:          grade === 'K' ? 2038 : (2038 - parseInt(grade)),
+          grade,
+          counts_toward_total: isFirstGift,
+        }));
+        await parentsSupabase.from('affiliation_credits').insert(credits);
+      }
+
+      console.log(`syncParentsOfflineGifts: synced ${firstName} ${lastName} $${amount} — household ${household_import_id} — grades: ${grades.join(', ') || 'none'}`);
+    }
+
+  } catch (err) {
+    console.error('syncParentsOfflineGifts error:', err.response?.data || err.message);
+  }
+}
+
+// Sync parents offline gifts on startup and every 30 minutes
+setTimeout(() => {
+  syncParentsOfflineGifts();
+  setInterval(syncParentsOfflineGifts, 30 * 60 * 1000);
+}, 8000); // slight offset from main sync to avoid simultaneous SKY API calls
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Leaderboard — reads from Supabase, returns ranked alumni + parent boards,
 // overall stats, recent gifts, and challenge progress
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1743,6 +1939,15 @@ app.get('/api/sync-offline', async (req, res) => {
   try {
     await syncOfflineGifts();
     res.json({ ok: true, message: 'Offline sync complete' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/parents/sync-offline', async (req, res) => {
+  try {
+    await syncParentsOfflineGifts();
+    res.json({ ok: true, message: 'Parents offline sync complete' });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
