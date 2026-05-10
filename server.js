@@ -213,8 +213,36 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         <!-- Divider -->
         <div style="border-top:1px solid #ddd;margin:0;"></div>
 
+        <!-- Transaction details -->
+        <div style="padding:24px 32px;">
+          <div style="background:#F8F7F4;border:1px solid #E8E6DF;padding:16px 20px;">
+            <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
+              <tr>
+                <td style="padding:5px 20px 5px 0;color:#888;">Amount</td>
+                <td style="padding:5px 0;color:#222;font-weight:bold;">${amountFormatted}</td>
+              </tr>
+              <tr style="border-top:1px solid #E2E0DA;">
+                <td style="padding:5px 20px 5px 0;color:#888;">Fund</td>
+                <td style="padding:5px 0;color:#222;">${gift.fund}</td>
+              </tr>
+              ${gradeLabels.length > 0 ? `
+              <tr style="border-top:1px solid #E2E0DA;">
+                <td style="padding:5px 20px 5px 0;color:#888;">Credited to</td>
+                <td style="padding:5px 0;color:#222;">${gradeLabels.join(', ')} Parent</td>
+              </tr>` : ''}
+              <tr style="border-top:1px solid #E2E0DA;">
+                <td style="padding:5px 20px 5px 0;color:#888;">Transaction ID</td>
+                <td style="padding:5px 0;font-family:monospace;font-size:11px;color:#555;">${gift.transaction_id}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #ddd;margin:0;"></div>
+
         <!-- Matching gifts -->
-        <div style="padding:20px 32px;background:#F9F7F2;border-left:4px solid #F2CC07;">
+        <div style="padding:20px 32px 28px;background:#F9F7F2;border-left:4px solid #F2CC07;">
           <p style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853;">Double your impact with a matching gift.</p>
           <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
           <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background:#172853;color:#F2CC07;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
@@ -223,14 +251,14 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         <!-- Divider -->
         <div style="border-top:1px solid #ddd;margin:0;"></div>
 
-        <!-- Transaction details -->
-        <div style="padding:20px 32px 32px;font-size:13px;color:#555;">
-          <table cellpadding="5" style="border-collapse:collapse;">
-            <tr><td style="padding-right:20px;">Amount</td><td><strong style="color:#222;">${amountFormatted}</strong></td></tr>
-            <tr><td style="padding-right:20px;">Fund</td><td style="color:#222;">${gift.fund}</td></tr>
-            ${gradeLabels.length > 0 ? `<tr><td style="padding-right:20px;">Credited to</td><td style="color:#222;">${gradeLabels.join(', ')} Parent</td></tr>` : ''}
-            <tr><td style="padding-right:20px;">Transaction ID</td><td style="font-family:monospace;font-size:11px;color:#222;">${gift.transaction_id}</td></tr>
-          </table>
+        <!-- Spacer -->
+        <div style="height:40px;background:#fff;"></div>
+
+        <!-- Footer -->
+        <div style="background:#172853;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
+          <p style="margin:0 0 6px;font-size:11px;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
+          <p style="margin:0 0 12px;font-size:11px;color:#fff;">139 West 91st Street, New York, NY 10024</p>
+          <p style="margin:0;font-size:11px;color:#fff;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#fff;">trinityfund@trinityschoolnyc.org</a></p>
         </div>
 
       </div>
