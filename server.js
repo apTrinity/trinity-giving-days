@@ -192,10 +192,19 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
     to:   gift.email,
     subject: 'Thank you for your gift to the Trinity Fund',
     html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="color-scheme" content="light">
+        <meta name="supported-color-schemes" content="light">
+        <style>:root { color-scheme: light; }</style>
+      </head>
+      <body style="margin:0;padding:0;background:#f0ede8;">
       <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;">
 
         <!-- Header -->
-        <div style="background:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
+        <div bgcolor="#172853" style="background:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
           <img src="https://trinity-giving-days.onrender.com/trinity-fund-logo.png"
                alt="Trinity Fund 2025–2026" width="220" style="display:block;" />
         </div>
@@ -255,13 +264,15 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         <div style="height:40px;background:#fff;"></div>
 
         <!-- Footer -->
-        <div style="background:#172853;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
+        <div bgcolor="#172853" style="background:#172853;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
           <p style="margin:0 0 6px;font-size:11px;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
           <p style="margin:0 0 12px;font-size:11px;color:#fff;">139 West 91st Street, New York, NY 10024</p>
           <p style="margin:0;font-size:11px;color:#fff;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#fff;">trinityfund@trinityschoolnyc.org</a></p>
         </div>
 
       </div>
+      </body>
+      </html>
     `,
   });
 
