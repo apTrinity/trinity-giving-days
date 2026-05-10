@@ -50,14 +50,22 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .progress-wrap { background: var(--trinity-blue); padding: 36px 32px 32px; }
 .progress-inner { max-width: 760px; margin: 0 auto; }
 .progress-top {
-  display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px;
+  display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px;
+}
+.progress-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: 6px;
 }
 .progress-num {
-  font-size: 52px; font-weight: 800; color: var(--trinity-yellow);
+  font-size: 64px; font-weight: 800; color: var(--trinity-yellow);
   line-height: 1; letter-spacing: -.03em;
 }
-.progress-of  { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 10px; }
-.progress-pct { font-size: 28px; font-weight: 800; color: rgba(255,255,255,.2); }
+.progress-of  { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.55); margin-left: 10px; }
+.progress-pct-pill {
+  font-size: 48px; font-weight: 800; letter-spacing: -.02em;
+  color: rgba(255,255,255,.22);
+  align-self: flex-end; line-height: 1;
+}
 /* Dot grid */
 .dot-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
 .dot {
@@ -141,8 +149,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .rank-cell { display: flex; align-items: center; gap: 12px; }
 /* inline % bar */
 .pct-bar-wrap { display: flex; align-items: center; gap: 10px; }
-.pct-bar-track { flex: 1; height: 6px; background: #E8E6E0; overflow: hidden; }
-.pct-bar-fill  { height: 100%; background: var(--trinity-blue); transition: width .5s ease; }
+.pct-bar-track { flex: 1; height: 10px; background: #E8E6E0; overflow: hidden; }
+.pct-bar-fill  { height: 100%; background: var(--trinity-blue); transition: width .6s cubic-bezier(.22,.68,0,1.2); }
+.pct-bar-fill.top-bar { background: var(--trinity-yellow); }
 .pct-label { font-size: 13px; font-weight: 700; color: var(--ink); min-width: 38px; text-align: right; }
 .lb-empty { padding: 40px; text-align: center; color: var(--ink-muted); font-size: 14px; }
 
@@ -176,6 +185,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .recent-item:first-child { border-top: none; }
 .recent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
 .recent-sub  { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.recent-item.entering { animation: slide-down .32s ease-out both; }
 
 /* ── Step bar (segmented header border) ──────────────── */
 .step-bar { display: flex; gap: 10px; background: #172853; }
@@ -299,15 +313,16 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 <!-- ── Progress bar ────────────────────────────────────────────────────────── -->
 <div class="progress-wrap">
   <div class="progress-inner">
+    <div class="progress-eyebrow">Parent families who have given</div>
     <div class="progress-top">
       <div>
         <span class="progress-num" id="prog-donors">—</span>
         <span class="progress-of">of 772 parent families</span>
       </div>
-      <span class="progress-pct" id="prog-pct"></span>
+      <span class="progress-pct-pill" id="prog-pct-pill" style="display:none"></span>
     </div>
-    <div class="dot-grid" id="dot-grid"></div>
-    <div class="progress-footer">
+    <div class="dot-grid" id="dot-grid" style="margin-top:20px"></div>
+    <div class="progress-footer" style="margin-top:10px">
       <span id="prog-sub"></span>
       <span>Goal: 100%</span>
     </div>
@@ -487,6 +502,10 @@ var dots              = [];
 var householdImportId = null;  // set from ?fid= lookup or step-1 email lookup
 var gradeSelectNeeded = false; // true only when no household match found
 var identityFromStep1 = false; // true when step-1 collected name/email
+var isFirstPoll       = true;  // for count-up and bar stagger on initial load
+var prevRecentKeys    = [];    // for slide-in diffing
+var prevParentsJSON   = null;  // for leaderboard change detection
+var prevParentsOrder  = null;  // grade order string — rebuild only on rerank
 
 // ── Shared: apply lookup data to modal ───────────────────────────────────────
 function applyLookupData(data, firstName) {
@@ -585,6 +604,33 @@ function gradeLabel(g) {
   return n + s + ' Grade';
 }
 
+// ── Count-up animation ────────────────────────────────────────────────────────
+function countUp(el, target, duration) {
+  var start = parseInt(el.textContent.replace(/,/g, ''), 10) || 0;
+  if (start === target) return;
+  var t0 = null;
+  function step(ts) {
+    if (!t0) t0 = ts;
+    var p = Math.min((ts - t0) / duration, 1);
+    var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = Math.round(start + eased * (target - start)).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── Recent donors: build HTML ─────────────────────────────────────────────────
+function buildRecentHTML(gifts, newKeys) {
+  return gifts.map(function(g) {
+    var key = (g.name || '') + '|' + (g.affiliation || '');
+    var isNew = newKeys.indexOf(key) !== -1;
+    return '<div class="recent-item' + (isNew ? ' entering' : '') + '">' +
+      '<div class="recent-name">' + (g.name || '') + '</div>' +
+      '<div class="recent-sub">'  + (g.affiliation || 'Trinity Parent') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
 function renderLeaderboard(data) {
   if (data.error) {
     document.getElementById('parent-rows').innerHTML = '<tr><td colspan="3" class="lb-empty">Leaderboard coming soon.</td></tr>';
@@ -596,9 +642,22 @@ function renderLeaderboard(data) {
   var pct    = Math.min(100, Math.round(donors / PARENT_TOTAL * 100));
   var needed = Math.max(0, PARENT_TOTAL - donors);
 
-  document.getElementById('prog-donors').textContent = donors.toLocaleString();
-  document.getElementById('prog-pct').textContent    = pct + '%';
-  document.getElementById('prog-sub').textContent    = donors >= PARENT_TOTAL
+  // Hero number — count-up on first load, instant update thereafter
+  var progEl = document.getElementById('prog-donors');
+  if (isFirstPoll) {
+    countUp(progEl, donors, 900);
+  } else {
+    progEl.textContent = donors.toLocaleString();
+  }
+
+  // Percentage pill
+  var pillEl = document.getElementById('prog-pct-pill');
+  if (pillEl) {
+    pillEl.textContent = pct + '%';
+    pillEl.style.display = '';
+  }
+
+  document.getElementById('prog-sub').textContent = donors >= PARENT_TOTAL
     ? 'Goal reached — 100% parent participation!'
     : needed + ' more ' + (needed === 1 ? 'family' : 'families') + ' to reach 100%';
 
@@ -610,37 +669,83 @@ function renderLeaderboard(data) {
   var pr = document.getElementById('parent-rows');
   if (!data.parents || data.parents.length === 0) {
     pr.innerHTML = '<tr><td colspan="3" class="lb-empty">No gifts yet — be the first!</td></tr>';
+    prevParentsJSON = null; prevParentsOrder = null;
   } else {
-    pr.innerHTML = data.parents.map(function(row, i) {
-      var rankClass = i===0?'lb-rank-1':i===1?'lb-rank-2':i===2?'lb-rank-3':'lb-rank-n';
-      var label = row.grade
-        ? gradeLabel(row.grade)
-        : (row.class_year ? "Class of '" + String(row.class_year).slice(-2) + ' Parents' : '—');
-      var rowPct   = row.pct != null ? row.pct : 0;
-      var subtext  = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
-      return '<tr>' +
-        '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
-        '<div><div style="font-size:14px;font-weight:600">' + label + '</div>' +
-        '<div style="font-size:11px;color:var(--ink-muted);margin-top:1px">' + subtext + '</div></div>' +
-        '</div></td>' +
-        '<td><div class="pct-bar-wrap"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:' + rowPct + '%"></div></div></div></td>' +
-        '<td class="th-pct"><span class="pct-label">' + rowPct + '%</span></td>' +
-        '</tr>';
-    }).join('');
+    var parentsJSON  = JSON.stringify(data.parents);
+    var newOrder     = data.parents.map(function(r) { return r.grade || r.class_year; }).join(',');
+    var dataChanged  = (parentsJSON  !== prevParentsJSON);
+    var orderChanged = (newOrder     !== prevParentsOrder);
+    prevParentsJSON  = parentsJSON;
+    prevParentsOrder = newOrder;
+
+    if (isFirstPoll || orderChanged) {
+      // Full rebuild — stagger-animate on first load, instant snap on re-rank
+      pr.innerHTML = data.parents.map(function(row, i) {
+        var rankClass = i===0?'lb-rank-1':i===1?'lb-rank-2':i===2?'lb-rank-3':'lb-rank-n';
+        var barClass  = i===0 ? 'pct-bar-fill top-bar' : 'pct-bar-fill';
+        var label     = row.grade
+          ? gradeLabel(row.grade)
+          : (row.class_year ? "Class of '" + String(row.class_year).slice(-2) + ' Parents' : '—');
+        var rowPct  = row.pct != null ? row.pct : 0;
+        var subtext = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
+        var initW   = isFirstPoll ? '0' : rowPct + '%';
+        return '<tr>' +
+          '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
+          '<div><div style="font-size:14px;font-weight:600">' + label + '</div>' +
+          '<div class="lb-subtext" style="font-size:11px;color:var(--ink-muted);margin-top:1px">' + subtext + '</div></div>' +
+          '</div></td>' +
+          '<td><div class="pct-bar-wrap"><div class="pct-bar-track">' +
+          '<div class="' + barClass + '" style="width:' + initW + '" data-pct="' + rowPct + '"></div>' +
+          '</div></div></td>' +
+          '<td class="th-pct"><span class="pct-label">' + rowPct + '%</span></td>' +
+          '</tr>';
+      }).join('');
+
+      if (isFirstPoll) {
+        var fills = pr.querySelectorAll('.pct-bar-fill');
+        fills.forEach(function(fill, i) {
+          var target = fill.getAttribute('data-pct') + '%';
+          setTimeout(function() { fill.style.width = target; }, 120 + i * 70);
+        });
+      }
+
+    } else if (dataChanged) {
+      // Same rank order, values updated — update in-place so CSS transition animates bars
+      var rows = pr.querySelectorAll('tr');
+      data.parents.forEach(function(row, i) {
+        var tr = rows[i]; if (!tr) return;
+        var rowPct  = row.pct != null ? row.pct : 0;
+        var subtext = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
+        var fill     = tr.querySelector('.pct-bar-fill');
+        var pctLabel = tr.querySelector('.pct-label');
+        var subtextEl = tr.querySelector('.lb-subtext');
+        if (fill)      fill.style.width      = rowPct + '%';
+        if (pctLabel)  pctLabel.textContent  = rowPct + '%';
+        if (subtextEl) subtextEl.textContent = subtext;
+      });
+    }
+    // Data unchanged: leave DOM alone
   }
 
-  // Recent donors
+  // Recent donors — diff against previous list for slide-in
   var rl = document.getElementById('recent-list');
   if (!data.recent_gifts || data.recent_gifts.length === 0) {
+    prevRecentKeys = [];
     rl.innerHTML = '<div class="lb-empty">No gifts yet.</div>';
   } else {
-    rl.innerHTML = data.recent_gifts.map(function(g) {
-      return '<div class="recent-item">' +
-        '<div class="recent-name">' + (g.name||'') + '</div>' +
-        '<div class="recent-sub">' + (g.affiliation||'Trinity Parent') + '</div>' +
-        '</div>';
-    }).join('');
+    var newKeys = data.recent_gifts.map(function(g) {
+      return (g.name || '') + '|' + (g.affiliation || '');
+    });
+    var addedKeys = newKeys.filter(function(k) { return prevRecentKeys.indexOf(k) === -1; });
+    prevRecentKeys = newKeys;
+
+    // Only rebuild if something changed (avoids DOM churn on quiet polls)
+    if (addedKeys.length > 0 || !rl.querySelector('.recent-item')) {
+      rl.innerHTML = buildRecentHTML(data.recent_gifts, isFirstPoll ? [] : addedKeys);
+    }
   }
+
+  isFirstPoll = false;
 }
 
 pollLeaderboard();
