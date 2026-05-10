@@ -201,78 +201,96 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta name="color-scheme" content="light">
-        <meta name="supported-color-schemes" content="light">
-        <style>:root { color-scheme: light; }</style>
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light only">
       </head>
-      <body style="margin:0;padding:0;background-color:#f0ede8 !important;">
-      <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222 !important;background-color:#ffffff !important;">
+      <body style="margin:0;padding:0;background-color:#f0ede8;">
+      <style>
+        @media (prefers-color-scheme: dark) {
+          .em-wrap   { background-color:#ffffff !important; color:#222222 !important; }
+          .em-hdr    { background-color:#172853 !important; }
+          .em-white  { background-color:#ffffff !important; }
+          .em-box    { background-color:#F8F7F4 !important; }
+          .em-match  { background-color:#F9F7F2 !important; }
+          .em-txt    { color:#222222 !important; }
+          .em-lnk    { color:#1C2D5E !important; }
+          .em-grey   { color:#888888 !important; }
+          .em-med    { color:#555555 !important; }
+          .em-navy   { color:#172853 !important; }
+          .em-dark   { color:#444444 !important; }
+          .em-ftr    { background-color:#172853 !important; }
+          .em-ftr-txt { color:#ffffff !important; }
+          .em-btn    { background-color:#172853 !important; color:#F2CC07 !important; }
+          .em-div    { background-color:#ffffff !important; }
+        }
+      </style>
+      <div class="em-wrap" style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222;background-color:#ffffff;">
 
         <!-- Header -->
-        <div bgcolor="#172853" style="background-color:#172853 !important;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
+        <div class="em-hdr" bgcolor="#172853" style="background-color:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
           <img src="https://trinity-giving-days.onrender.com/trinity-fund-logo.png"
                alt="Trinity Fund 2025–2026" width="220" style="display:block;" />
         </div>
 
         <!-- Body -->
-        <div style="padding:28px 32px 8px;font-size:15px;line-height:1.7;background-color:#ffffff !important;">
-          <p style="margin:0 0 16px;color:#222 !important;">Dear ${gift.first_name},</p>
-          <p style="margin:0 0 16px;color:#222 !important;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025–2026 Trinity Fund. Your participation as a ${gradeStr} helps strengthen our entire school community — and moves your grade up the leaderboard.</p>
-          <p style="margin:0 0 16px;color:#222 !important;">Every family that gives, at any level, counts toward our goal of 100% parent participation. We are grateful to have you with us.</p>
-          <p style="margin:0 0 16px;color:#222 !important;">If you have any questions about your gift, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#1C2D5E !important;">trinityfund@trinityschoolnyc.org</a>.</p>
-          <p style="margin:0 0 4px;color:#222 !important;">With gratitude,</p>
-          <p style="margin:0 0 28px;color:#222 !important;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
+        <div class="em-white" style="padding:28px 32px 8px;font-size:15px;line-height:1.7;background-color:#ffffff;">
+          <p class="em-txt" style="margin:0 0 16px;color:#222;">Dear ${gift.first_name},</p>
+          <p class="em-txt" style="margin:0 0 16px;color:#222;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025–2026 Trinity Fund. Your participation as a ${gradeStr} helps strengthen our entire school community — and moves your grade up the leaderboard.</p>
+          <p class="em-txt" style="margin:0 0 16px;color:#222;">Every family that gives, at any level, counts toward our goal of 100% parent participation. We are grateful to have you with us.</p>
+          <p class="em-txt" style="margin:0 0 16px;color:#222;">If you have any questions about your gift, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" class="em-lnk" style="color:#1C2D5E;">trinityfund@trinityschoolnyc.org</a>.</p>
+          <p class="em-txt" style="margin:0 0 4px;color:#222;">With gratitude,</p>
+          <p class="em-txt" style="margin:0 0 28px;color:#222;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
         </div>
 
         <!-- Transaction details -->
-        <div style="padding:24px 32px;background-color:#ffffff !important;">
-          <div style="background-color:#F8F7F4 !important;border:1px solid #E8E6DF;padding:16px 20px;">
+        <div class="em-white" style="padding:24px 32px;background-color:#ffffff;">
+          <div class="em-box" style="background-color:#F8F7F4;border:1px solid #E8E6DF;padding:16px 20px;">
             <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
               <tr>
-                <td colspan="2" style="padding:0 0 10px 0;font-size:11px;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:#888 !important;">Donation Details</td>
+                <td colspan="2" class="em-grey" style="padding:0 0 10px 0;font-size:11px;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:#888;">Donation Details</td>
               </tr>
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888 !important;">Amount</td>
-                <td style="padding:5px 0;color:#222 !important;font-weight:bold;">${amountFormatted}</td>
+                <td class="em-grey" style="padding:5px 20px 5px 0;color:#888;">Amount</td>
+                <td class="em-txt" style="padding:5px 0;color:#222;font-weight:bold;">${amountFormatted}</td>
               </tr>
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888 !important;">Fund</td>
-                <td style="padding:5px 0;color:#222 !important;">${gift.fund}</td>
+                <td class="em-grey" style="padding:5px 20px 5px 0;color:#888;">Fund</td>
+                <td class="em-txt" style="padding:5px 0;color:#222;">${gift.fund}</td>
               </tr>
               ${gradeLabels.length > 0 ? `
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888 !important;">Credited to</td>
-                <td style="padding:5px 0;color:#222 !important;">${gradeLabels.join(', ')} Parent</td>
+                <td class="em-grey" style="padding:5px 20px 5px 0;color:#888;">Credited to</td>
+                <td class="em-txt" style="padding:5px 0;color:#222;">${gradeLabels.join(', ')} Parent</td>
               </tr>` : ''}
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888 !important;">Transaction ID</td>
-                <td style="padding:5px 0;font-family:monospace;font-size:11px;color:#555 !important;">${gift.transaction_id}</td>
+                <td class="em-grey" style="padding:5px 20px 5px 0;color:#888;">Transaction ID</td>
+                <td class="em-med" style="padding:5px 0;font-family:monospace;font-size:11px;color:#555;">${gift.transaction_id}</td>
               </tr>
             </table>
           </div>
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff !important;"></div>
+        <div class="em-div em-white" style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff;"></div>
 
         <!-- Matching gifts -->
-        <div style="padding:20px 32px 28px;background-color:#F9F7F2 !important;border-left:4px solid #F2CC07;margin:0 32px;">
-          <p style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853 !important;">Double your impact with a matching gift.</p>
-          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444 !important;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
-          <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background-color:#172853 !important;color:#F2CC07 !important;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
+        <div class="em-match" style="padding:20px 32px 28px;background-color:#F9F7F2;border-left:4px solid #F2CC07;margin:0 32px;">
+          <p class="em-navy" style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853;">Double your impact with a matching gift.</p>
+          <p class="em-dark" style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
+          <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" class="em-btn" style="display:inline-block;background-color:#172853;color:#F2CC07;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff !important;"></div>
+        <div class="em-div em-white" style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff;"></div>
 
         <!-- Spacer -->
-        <div style="height:40px;background-color:#ffffff !important;"></div>
+        <div class="em-white" style="height:40px;background-color:#ffffff;"></div>
 
         <!-- Footer -->
-        <div bgcolor="#172853" style="background-color:#172853 !important;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
-          <p style="margin:0 0 6px;font-size:11px;color:#ffffff !important;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
-          <p style="margin:0 0 12px;font-size:11px;color:#ffffff !important;">139 West 91st Street, New York, NY 10024</p>
-          <p style="margin:0;font-size:11px;color:#ffffff !important;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#ffffff !important;">trinityfund@trinityschoolnyc.org</a></p>
+        <div class="em-ftr" bgcolor="#172853" style="background-color:#172853;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
+          <p class="em-ftr-txt" style="margin:0 0 6px;font-size:11px;color:#ffffff;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
+          <p class="em-ftr-txt" style="margin:0 0 12px;font-size:11px;color:#ffffff;">139 West 91st Street, New York, NY 10024</p>
+          <p class="em-ftr-txt" style="margin:0;font-size:11px;color:#ffffff;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" class="em-ftr-txt" style="color:#ffffff;">trinityfund@trinityschoolnyc.org</a></p>
         </div>
 
       </div>
