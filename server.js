@@ -196,8 +196,8 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
 
         <!-- Header -->
         <div style="background:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
-          <img src="https://givecampus.s3-accelerate.amazonaws.com/uploads/project/share_image/72106/facebook_small_trinity_giving_days_2025_logo.png"
-               alt="Trinity Fund 2025–2026" width="180" style="display:block;" />
+          <img src="https://trinity-giving-days.onrender.com/trinity-fund-logo.png"
+               alt="Trinity Fund 2025–2026" width="220" style="display:block;" />
         </div>
 
         <!-- Body -->
@@ -211,7 +211,7 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+        <div style="border-top:1px solid #ddd;margin:0;"></div>
 
         <!-- Matching gifts -->
         <div style="padding:20px 32px;background:#F9F7F2;border-left:4px solid #F2CC07;">
@@ -221,7 +221,7 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0 32px;"></div>
+        <div style="border-top:1px solid #ddd;margin:0;"></div>
 
         <!-- Transaction details -->
         <div style="padding:20px 32px 32px;font-size:13px;color:#555;">
