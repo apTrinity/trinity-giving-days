@@ -196,14 +196,16 @@ The `PAYMENT_CONFIG_ID` in `public/parents.html` must be swapped to the live val
 
 ## Go-Live Checklist
 
-- [ ] Seed `parent_constituents` with full RE export (one row per constituent + one `S` row per spouse)
-- [ ] Build `syncParentsOfflineGifts()` in server.js (same pattern as `syncOfflineGifts()`; needs `OFFLINE_SYNC_PARENTS_LIST_ID` env var)
+- [x] Seed `parent_constituents` — 655 records via `seed_parent_constituents.js`
+- [x] Build `syncParentsOfflineGifts()` — RE query ID 15661, tested and working
+- [x] Supabase RLS enabled on all tables
+- [x] Delete prototype files: `public/progress-options.html` and `public/progress-option2.html`
+- [x] Remove `/api/parents/test-emergency-email` route from server.js
+- [ ] Clean up test gifts from Supabase before launch (delete `affiliation_credits` first, then `gifts`)
 - [ ] Swap `PAYMENT_CONFIG_ID` in `parents.html` to `8d2a50a3-deb8-41d0-8f0a-01b5955d69d6`
 - [ ] Confirm `giving.trinityschoolnyc.org` DNS points to Render
 - [ ] Upgrade Render plan if needed
 - [ ] Verify BBMS merchant account is in live mode
-- [ ] Delete prototype files: `public/progress-options.html` and `public/progress-option2.html`
-- [ ] Remove `/api/parents/test-emergency-email` route from server.js ✅ (already done)
 - [ ] Send personalized `?fid=` links to non-donor parents
 
 ---
