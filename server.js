@@ -24,6 +24,11 @@ const { createClient } = require('@supabase/supabase-js');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+function toTitleCase(str) {
+  if (!str) return str;
+  return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 function gradeLabel(grade) {
   if (!grade) return '—';
   if (grade === 'K') return 'Kindergarten';
@@ -1845,7 +1850,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
         const lastNameSet = g.household_import_id
           ? (householdLastNames[g.household_import_id] || new Set([g.last_name]))
           : new Set([g.last_name]);
-        const lastNames = [...lastNameSet].filter(Boolean);
+        const lastNames = [...lastNameSet].filter(Boolean).map(toTitleCase);
         if (lastNames.length === 0) {
           name = 'A Trinity Family';
         } else if (lastNames.length === 1) {
