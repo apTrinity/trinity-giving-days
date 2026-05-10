@@ -200,74 +200,74 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
         <meta name="supported-color-schemes" content="light">
         <style>:root { color-scheme: light; }</style>
       </head>
-      <body style="margin:0;padding:0;background:#f0ede8;">
-      <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222;background:#fff;">
+      <body style="margin:0;padding:0;background-color:#f0ede8 !important;">
+      <div style="max-width:600px;margin:0 auto;font-family:Georgia,'Times New Roman',serif;color:#222 !important;background-color:#ffffff !important;">
 
         <!-- Header -->
-        <div bgcolor="#172853" style="background:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
+        <div bgcolor="#172853" style="background-color:#172853 !important;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
           <img src="https://trinity-giving-days.onrender.com/trinity-fund-logo.png"
                alt="Trinity Fund 2025–2026" width="220" style="display:block;" />
         </div>
 
         <!-- Body -->
-        <div style="padding:28px 32px 8px;font-size:15px;line-height:1.7;">
-          <p style="margin:0 0 16px;">Dear ${gift.first_name},</p>
-          <p style="margin:0 0 16px;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025–2026 Trinity Fund. Your participation as a ${gradeStr} helps strengthen our entire school community — and moves your grade up the leaderboard.</p>
-          <p style="margin:0 0 16px;">Every family that gives, at any level, counts toward our goal of 100% parent participation. We are grateful to have you with us.</p>
-          <p style="margin:0 0 16px;">If you have any questions about your gift, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#1C2D5E;">trinityfund@trinityschoolnyc.org</a>.</p>
-          <p style="margin:0 0 4px;">With gratitude,</p>
-          <p style="margin:0 0 28px;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
+        <div style="padding:28px 32px 8px;font-size:15px;line-height:1.7;background-color:#ffffff !important;">
+          <p style="margin:0 0 16px;color:#222 !important;">Dear ${gift.first_name},</p>
+          <p style="margin:0 0 16px;color:#222 !important;">Thank you for your gift of <strong>${amountFormatted}</strong> to the 2025–2026 Trinity Fund. Your participation as a ${gradeStr} helps strengthen our entire school community — and moves your grade up the leaderboard.</p>
+          <p style="margin:0 0 16px;color:#222 !important;">Every family that gives, at any level, counts toward our goal of 100% parent participation. We are grateful to have you with us.</p>
+          <p style="margin:0 0 16px;color:#222 !important;">If you have any questions about your gift, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#1C2D5E !important;">trinityfund@trinityschoolnyc.org</a>.</p>
+          <p style="margin:0 0 4px;color:#222 !important;">With gratitude,</p>
+          <p style="margin:0 0 28px;color:#222 !important;">Myles, Ed, Francie, Abigail, Li-An, Migdalia, Philip, Sarah and Andrew<br>Trinity School Advancement Office</p>
         </div>
 
-        <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0;"></div>
-
         <!-- Transaction details -->
-        <div style="padding:24px 32px;">
-          <div style="background:#F8F7F4;border:1px solid #E8E6DF;padding:16px 20px;">
+        <div style="padding:24px 32px;background-color:#ffffff !important;">
+          <div style="background-color:#F8F7F4 !important;border:1px solid #E8E6DF;padding:16px 20px;">
             <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
               <tr>
-                <td style="padding:5px 20px 5px 0;color:#888;">Amount</td>
-                <td style="padding:5px 0;color:#222;font-weight:bold;">${amountFormatted}</td>
+                <td colspan="2" style="padding:0 0 10px 0;font-size:11px;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:#888 !important;">Donation Details</td>
               </tr>
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888;">Fund</td>
-                <td style="padding:5px 0;color:#222;">${gift.fund}</td>
+                <td style="padding:5px 20px 5px 0;color:#888 !important;">Amount</td>
+                <td style="padding:5px 0;color:#222 !important;font-weight:bold;">${amountFormatted}</td>
+              </tr>
+              <tr style="border-top:1px solid #E2E0DA;">
+                <td style="padding:5px 20px 5px 0;color:#888 !important;">Fund</td>
+                <td style="padding:5px 0;color:#222 !important;">${gift.fund}</td>
               </tr>
               ${gradeLabels.length > 0 ? `
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888;">Credited to</td>
-                <td style="padding:5px 0;color:#222;">${gradeLabels.join(', ')} Parent</td>
+                <td style="padding:5px 20px 5px 0;color:#888 !important;">Credited to</td>
+                <td style="padding:5px 0;color:#222 !important;">${gradeLabels.join(', ')} Parent</td>
               </tr>` : ''}
               <tr style="border-top:1px solid #E2E0DA;">
-                <td style="padding:5px 20px 5px 0;color:#888;">Transaction ID</td>
-                <td style="padding:5px 0;font-family:monospace;font-size:11px;color:#555;">${gift.transaction_id}</td>
+                <td style="padding:5px 20px 5px 0;color:#888 !important;">Transaction ID</td>
+                <td style="padding:5px 0;font-family:monospace;font-size:11px;color:#555 !important;">${gift.transaction_id}</td>
               </tr>
             </table>
           </div>
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0;"></div>
+        <div style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff !important;"></div>
 
         <!-- Matching gifts -->
-        <div style="padding:20px 32px 28px;background:#F9F7F2;border-left:4px solid #F2CC07;">
-          <p style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853;">Double your impact with a matching gift.</p>
-          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
-          <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background:#172853;color:#F2CC07;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
+        <div style="padding:20px 32px 28px;background-color:#F9F7F2 !important;border-left:4px solid #F2CC07;margin:0 32px;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#172853 !important;">Double your impact with a matching gift.</p>
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#444 !important;">Many companies match employee donations to schools like Trinity — meaning your gift could be worth twice as much at no extra cost to you.</p>
+          <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background-color:#172853 !important;color:#F2CC07 !important;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase;padding:10px 20px;text-decoration:none;">Check if your employer matches →</a>
         </div>
 
         <!-- Divider -->
-        <div style="border-top:1px solid #ddd;margin:0;"></div>
+        <div style="border-top:1px solid #ddd;margin:0 32px;background-color:#ffffff !important;"></div>
 
         <!-- Spacer -->
-        <div style="height:40px;background:#fff;"></div>
+        <div style="height:40px;background-color:#ffffff !important;"></div>
 
         <!-- Footer -->
-        <div bgcolor="#172853" style="background:#172853;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
-          <p style="margin:0 0 6px;font-size:11px;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
-          <p style="margin:0 0 12px;font-size:11px;color:#fff;">139 West 91st Street, New York, NY 10024</p>
-          <p style="margin:0;font-size:11px;color:#fff;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#fff;">trinityfund@trinityschoolnyc.org</a></p>
+        <div bgcolor="#172853" style="background-color:#172853 !important;border-top:3px solid #F2CC07;padding:24px 32px 28px;text-align:center;font-family:Arial,sans-serif;">
+          <p style="margin:0 0 6px;font-size:11px;color:#ffffff !important;letter-spacing:.08em;text-transform:uppercase;">Trinity School</p>
+          <p style="margin:0 0 12px;font-size:11px;color:#ffffff !important;">139 West 91st Street, New York, NY 10024</p>
+          <p style="margin:0;font-size:11px;color:#ffffff !important;line-height:1.7;">You received this email because you made a gift to the Trinity Fund.<br>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:#ffffff !important;">trinityfund@trinityschoolnyc.org</a></p>
         </div>
 
       </div>
@@ -301,36 +301,36 @@ async function sendParentsStaffNotification(gift, affiliations) {
     to:      PARENTS_STAFF_EMAILS,
     subject: `[Parents] ${amountFormatted} — ${gift.first_name} ${gift.last_name}`,
     html: `
-      <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222;">
-        <div style="background:#172853;color:#fff;padding:16px 24px;border-bottom:3px solid #F2CC07;">
-          <strong style="font-size:16px;">New Gift — Parents Campaign 2025–2026</strong>
+      <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222 !important;background-color:#ffffff !important;">
+        <div bgcolor="#172853" style="background-color:#172853 !important;color:#ffffff !important;padding:16px 24px;border-bottom:3px solid #F2CC07;">
+          <strong style="font-size:16px;color:#ffffff !important;">New Gift — Parents Campaign 2025–2026</strong>
         </div>
-        <div style="padding:20px 24px;">
+        <div style="padding:20px 24px;background-color:#ffffff !important;">
           <table cellpadding="7" style="border-collapse:collapse;width:100%;">
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666;width:130px;">Donor</td>
-              <td><strong>${gift.first_name} ${gift.last_name}</strong></td>
+              <td style="color:#666 !important;width:130px;">Donor</td>
+              <td style="color:#222 !important;"><strong>${gift.first_name} ${gift.last_name}</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666;">Email</td>
-              <td>${gift.email || '—'}</td>
+              <td style="color:#666 !important;">Email</td>
+              <td style="color:#222 !important;">${gift.email || '—'}</td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666;">Amount</td>
-              <td><strong>${amountFormatted}</strong></td>
+              <td style="color:#666 !important;">Amount</td>
+              <td style="color:#222 !important;"><strong>${amountFormatted}</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666;">Grade(s)</td>
-              <td>${gradeStr}</td>
+              <td style="color:#666 !important;">Grade(s)</td>
+              <td style="color:#222 !important;">${gradeStr}</td>
             </tr>
-            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666;">Household ID</td><td style="font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666 !important;">Household ID</td><td style="color:#222 !important;font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666;">Date</td>
-              <td>${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
+              <td style="color:#666 !important;">Date</td>
+              <td style="color:#222 !important;">${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
             </tr>
             <tr>
-              <td style="color:#666;">Transaction ID</td>
-              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+              <td style="color:#666 !important;">Transaction ID</td>
+              <td style="color:#555 !important;font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
             </tr>
           </table>
         </div>
