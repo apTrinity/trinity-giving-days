@@ -324,36 +324,47 @@ async function sendParentsStaffNotification(gift, affiliations) {
     to:      PARENTS_STAFF_EMAILS,
     subject: `[Parents] ${amountFormatted} — ${gift.first_name} ${gift.last_name}`,
     html: `
-      <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222 !important;background-color:#ffffff !important;">
-        <div bgcolor="#172853" style="background-color:#172853 !important;color:#ffffff !important;padding:16px 24px;border-bottom:3px solid #F2CC07;">
-          <strong style="font-size:16px;color:#ffffff !important;">New Gift — Parents Campaign 2025–2026</strong>
+      <style>
+        @media (prefers-color-scheme: dark) {
+          .sn-wrap  { background-color:#ffffff !important; color:#222222 !important; }
+          .sn-hdr   { background-color:#172853 !important; }
+          .sn-hdr * { color:#ffffff !important; }
+          .sn-body  { background-color:#ffffff !important; }
+          .sn-label { color:#666666 !important; }
+          .sn-val   { color:#222222 !important; }
+          .sn-mono  { color:#555555 !important; }
+        }
+      </style>
+      <div class="sn-wrap" style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;color:#222;background-color:#ffffff;">
+        <div class="sn-hdr" bgcolor="#172853" style="background-color:#172853;color:#ffffff;padding:16px 24px;border-bottom:3px solid #F2CC07;">
+          <strong style="font-size:16px;color:#ffffff;">New Gift — Parents Campaign 2025–2026</strong>
         </div>
-        <div style="padding:20px 24px;background-color:#ffffff !important;">
+        <div class="sn-body" style="padding:20px 24px;background-color:#ffffff;">
           <table cellpadding="7" style="border-collapse:collapse;width:100%;">
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666 !important;width:130px;">Donor</td>
-              <td style="color:#222 !important;"><strong>${gift.first_name} ${gift.last_name}</strong></td>
+              <td class="sn-label" style="color:#666;width:130px;">Donor</td>
+              <td class="sn-val" style="color:#222;"><strong>${gift.first_name} ${gift.last_name}</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666 !important;">Email</td>
-              <td style="color:#222 !important;">${gift.email || '—'}</td>
+              <td class="sn-label" style="color:#666;">Email</td>
+              <td class="sn-val" style="color:#222;">${gift.email || '—'}</td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666 !important;">Amount</td>
-              <td style="color:#222 !important;"><strong>${amountFormatted}</strong></td>
+              <td class="sn-label" style="color:#666;">Amount</td>
+              <td class="sn-val" style="color:#222;"><strong>${amountFormatted}</strong></td>
             </tr>
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666 !important;">Grade(s)</td>
-              <td style="color:#222 !important;">${gradeStr}</td>
+              <td class="sn-label" style="color:#666;">Grade(s)</td>
+              <td class="sn-val" style="color:#222;">${gradeStr}</td>
             </tr>
-            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666 !important;">Household ID</td><td style="color:#222 !important;font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td class="sn-label" style="color:#666;">Household ID</td><td class="sn-val" style="color:#222;font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
             <tr style="border-bottom:1px solid #eee;">
-              <td style="color:#666 !important;">Date</td>
-              <td style="color:#222 !important;">${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
+              <td class="sn-label" style="color:#666;">Date</td>
+              <td class="sn-val" style="color:#222;">${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
             </tr>
             <tr>
-              <td style="color:#666 !important;">Transaction ID</td>
-              <td style="color:#555 !important;font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+              <td class="sn-label" style="color:#666;">Transaction ID</td>
+              <td class="sn-mono" style="color:#555;font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
             </tr>
           </table>
         </div>
