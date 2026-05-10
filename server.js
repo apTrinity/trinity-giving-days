@@ -1203,6 +1203,7 @@ async function syncOfflineGifts() {
           constituent_id:    constituentId,
           match_type:        'offline',
           source:            'offline',
+          anonymous:         reGift.is_anonymous || false,
           confirmation_sent: false,
         })
         .select()
@@ -1404,7 +1405,7 @@ async function syncParentsOfflineGifts() {
           constituent_id:     constituentId,
           match_type:         'offline',
           source:             'offline',
-          anonymous:          false,
+          anonymous:          reGift.is_anonymous || false,
           confirmation_sent:  false,
           household_import_id,
         })
@@ -1690,8 +1691,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
         .select('gift_id, affiliation_type, class_year, grade, counts_toward_total'),
       parentsSupabase
         .from('gifts')
-        .select('id, first_name, last_name, amount, created_at, affiliation_credits(affiliation_type, class_year, grade)')
-        .neq('anonymous', true)
+        .select('id, first_name, last_name, household_import_id, anonymous, amount, created_at, affiliation_credits(affiliation_type, class_year, grade)')
         .order('created_at', { ascending: false })
         .limit(10),
       parentsSupabase
@@ -1752,15 +1752,81 @@ app.get('/api/parents/leaderboard', async (req, res) => {
     }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
 
     // Recent gifts — live only, non-anonymous
+    // Batch-fetch household members for all recent gifts that have a household_import_id
+    const recentHHIds = [...new Set(recentRows.map(g => g.household_import_id).filter(Boolean))];
+    const householdLastNames = {};
+    if (recentHHIds.length > 0) {
+      const { data: hhMembers } = await parentsSupabase
+        .from('parent_constituents')
+        .select('household_import_id, last_name')
+        .in('household_import_id', recentHHIds);
+      (hhMembers || []).forEach(m => {
+        if (!m.last_name) return;
+        if (!householdLastNames[m.household_import_id]) householdLastNames[m.household_import_id] = new Set();
+        householdLastNames[m.household_import_id].add(m.last_name);
+      });
+    }
+
     const recent_gifts = recentRows.map(g => {
       const affs = g.affiliation_credits || [];
-      const pick = affs.find(a => a.affiliation_type === 'current_parent' && (a.grade || a.class_year)) || affs[0];
+
+      // Collect all distinct grades for this household gift
+      const gradeSet = new Set(
+        affs
+          .filter(a => a.affiliation_type === 'current_parent' && a.grade)
+          .map(a => a.grade)
+      );
+      const sortedGrades = [...gradeSet].sort((a, b) => {
+        const na = a === 'K' ? 0 : parseInt(a);
+        const nb = b === 'K' ? 0 : parseInt(b);
+        return na - nb;
+      });
+      // Short labels for combining: "8th", "3rd", "K" — "Grade" appended once at the end
+      const gradeShorts = sortedGrades.map(gr => {
+        if (gr === 'K') return 'Kindergarten';
+        const n = parseInt(gr);
+        const sfx = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+        return `${n}${sfx}`;
+      });
       let affiliation = 'Trinity Parent';
-      if (pick && pick.grade) affiliation = gradeLabel(pick.grade) + ' Parent';
-      else if (pick && pick.class_year) affiliation = `Class of '${String(pick.class_year).slice(-2)} Parent`;
+      if (gradeShorts.length === 1) {
+        affiliation = gradeShorts[0] === 'Kindergarten' ? 'Kindergarten Parent' : `${gradeShorts[0]} Grade Parent`;
+      } else {
+        const allButLast = gradeShorts.slice(0, -1).join(', ');
+        const last = gradeShorts[gradeShorts.length - 1];
+        const suffix = last === 'Kindergarten' ? ' Parent' : ' Grade Parent';
+        affiliation = `${allButLast} & ${last}${suffix}`;
+      }
+
+      // Build family name
+      let name;
+      if (g.anonymous) {
+        name = 'Anonymous Trinity Family';
+      } else {
+        const lastNameSet = g.household_import_id
+          ? (householdLastNames[g.household_import_id] || new Set([g.last_name]))
+          : new Set([g.last_name]);
+        const lastNames = [...lastNameSet].filter(Boolean);
+        if (lastNames.length === 0) {
+          name = 'A Trinity Family';
+        } else if (lastNames.length === 1) {
+          name = `The ${lastNames[0]} Family`;
+        } else {
+          const words0 = lastNames[0].toLowerCase().split(/[\s\-]+/);
+          const words1 = lastNames[1].toLowerCase().split(/[\s\-]+/);
+          const hasOverlap = words0.some(w => w.length > 1 && words1.includes(w));
+          if (hasOverlap) {
+            const compound = lastNames[0].length >= lastNames[1].length ? lastNames[0] : lastNames[1];
+            name = `The ${compound} Family`;
+          } else {
+            name = `${lastNames[0]} & ${lastNames[1]} Family`;
+          }
+        }
+      }
+
       return {
-        name:       g.first_name ? `${g.first_name[0]}. ${g.last_name}` : 'Anonymous',
-        affiliation,
+        name: g.anonymous ? 'Trinity Family' : name,
+        affiliation: g.anonymous ? 'Anonymous' : affiliation,
         amount:     parseFloat(g.amount) || 0,
         created_at: g.created_at,
       };
