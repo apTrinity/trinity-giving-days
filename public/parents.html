@@ -453,6 +453,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <!-- Personalised greeting — only shown for fid arrivals -->
         <div id="modal-greeting" style="display:none;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)">
           <span id="modal-greeting-text" style="font-size:17px;font-weight:700;color:var(--ink)"></span>
+          <p id="modal-greeting-email" style="display:none;margin-top:8px;font-size:13px;color:var(--ink-muted);line-height:1.5;">We'll send your receipt to <span id="masked-email-display"></span>. <a href="#" onclick="revealEmailField();return false;" style="color:var(--trinity-blue);text-decoration:underline;">Update here</a></p>
         </div>
 
         <label class="f-label">Gift Amount</label>
@@ -531,6 +532,25 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 <script src="https://pay.blackbaud.com/scripts/checkout"></script>
 
 <script>
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return email;
+  var parts  = email.split('@');
+  var local  = parts[0];
+  var domain = parts[1].split('.');
+  var name   = domain.shift();
+  var tld    = domain.join('.');
+  var maskedLocal  = local.slice(0, 2)  + '*'.repeat(Math.max(3, local.length  - 2));
+  var maskedDomain = name.slice(0, 2) + '*'.repeat(Math.max(3, name.length - 3)) + name.slice(-1);
+  return maskedLocal + '@' + maskedDomain + '.' + tld;
+}
+
+function revealEmailField() {
+  var emailEl   = document.getElementById('m-email');
+  var greetLine = document.getElementById('modal-greeting-email');
+  if (emailEl)   { emailEl.value = ''; emailEl.style.display = ''; emailEl.focus(); }
+  if (greetLine) { greetLine.style.display = 'none'; }
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 var PAYMENT_CONFIG_ID = 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969'; // TEST — swap to 8d2a50a3-deb8-41d0-8f0a-01b5955d69d6 for live
 var PARENT_TOTAL = 772;
@@ -561,10 +581,16 @@ function applyLookupData(data, firstName) {
 
   // Greeting
   var name = data.first_name || firstName;
-  var greetingText = document.getElementById('modal-greeting-text');
-  var greeting     = document.getElementById('modal-greeting');
+  var greetingText  = document.getElementById('modal-greeting-text');
+  var greetingEmail = document.getElementById('modal-greeting-email');
+  var greeting      = document.getElementById('modal-greeting');
   if (name && greeting && greetingText) {
     greetingText.textContent = 'Hi, ' + name + ' — thanks for being here.';
+    if (data.email && greetingEmail) {
+      document.getElementById('masked-email-display').textContent = maskEmail(data.email);
+      greetingEmail.style.display = 'block';
+      document.getElementById('m-email').style.display = 'none';
+    }
     greeting.style.display = 'block';
   }
 
