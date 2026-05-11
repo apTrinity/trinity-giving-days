@@ -53,10 +53,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .hero-text-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--trinity-yellow); margin-bottom: 14px; opacity: .8; }
 .hero-text-headline { font-family: 'Lora', Georgia, serif; font-size: 22px; font-weight: 600; font-style: italic; color: #fff; margin-bottom: 16px; line-height: 1.4; }
 .hero-text-body { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,.55); }
-@media (max-width: 800px) {
-  .progress-inner { grid-template-columns: 1fr; }
-  .hero-text-col { border-left: none; border-top: 1px solid rgba(255,255,255,.15); padding-left: 0; padding-top: 28px; }
-}
 .progress-top {
   display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px;
 }
@@ -113,11 +109,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px;
   display: grid; grid-template-columns: 1fr 340px; gap: 28px;
 }
-@media (max-width: 800px) {
-  .page-wrap { grid-template-columns: 1fr; }
-  .main-col  { order: 1; }
-  .sidebar   { order: 2; }
-}
+
 
 /* ── Panel ───────────────────────────────────────────── */
 .panel { background: #fff; border: 1px solid var(--border); }
@@ -317,6 +309,16 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 }
 .btn-close-ty:hover { background: var(--navy-deep); }
 
+@media (max-width: 860px) {
+  .progress-inner { grid-template-columns: 1fr; }
+  .hero-text-col { border: none !important; padding: 0 0 28px 0; border-bottom: 1px solid rgba(255,255,255,.15) !important; }
+  .progress-of { font-size: 13px; display: block; margin-left: 0; margin-top: 4px; }
+  .progress-pct-pill { font-size: 64px; line-height: 1; align-self: flex-start; }
+  .progress-top { align-items: flex-start; }
+  .page-wrap { grid-template-columns: 1fr; }
+  .main-col  { order: 1; }
+  .sidebar   { order: 2; }
+}
 </style>
 </head>
 <body>
@@ -339,7 +341,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       <div class="progress-top">
         <div>
           <span class="progress-num" id="prog-donors">—</span>
-          <span class="progress-of">of 772 parent families</span>
+          <span class="progress-of">of 772 Trinity families</span>
         </div>
         <span class="progress-pct-pill" id="prog-pct-pill" style="display:none"></span>
       </div>
