@@ -1650,11 +1650,11 @@ app.get('/api/leaderboard', async (req, res) => {
 // PARENT_BASELINE_TOTAL is the count of UNIQUE families (< sum of per-grade counts,
 // because families with multiple children appear in more than one grade row).
 const PARENT_GRADE_BASELINE = {
-  '12': 85, '11': 52, '10': 61, '9': 61, '8': 28,
-   '7': 29,  '6': 27,  '5': 24, '4': 35, '3': 36,
+  '12': 87, '11': 53, '10': 62, '9': 62, '8': 28,
+   '7': 29,  '6': 29,  '5': 26, '4': 35, '3': 37,
    '2': 43,  '1': 42,  'K': 47,
 };
-const PARENT_BASELINE_TOTAL = 429;
+const PARENT_BASELINE_TOTAL = 434;
 
 // Total families per grade (denominator for participation %)
 const PARENT_GRADE_TOTALS = {
