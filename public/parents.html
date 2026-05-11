@@ -48,7 +48,15 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 /* ── Progress bar / dot grid ─────────────────────────── */
 .progress-wrap { background: var(--trinity-blue); padding: 36px 32px 32px; }
-.progress-inner { max-width: 760px; margin: 0 auto; }
+.progress-inner { max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; gap: 48px; align-items: center; }
+.hero-text-col { border-right: 1px solid rgba(255,255,255,.15); padding-right: 48px; }
+.hero-text-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--trinity-yellow); margin-bottom: 14px; opacity: .8; }
+.hero-text-headline { font-family: 'Lora', Georgia, serif; font-size: 22px; font-weight: 600; font-style: italic; color: #fff; margin-bottom: 16px; line-height: 1.4; }
+.hero-text-body { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,.55); }
+@media (max-width: 800px) {
+  .progress-inner { grid-template-columns: 1fr; }
+  .hero-text-col { border-left: none; border-top: 1px solid rgba(255,255,255,.15); padding-left: 0; padding-top: 28px; }
+}
 .progress-top {
   display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px;
 }
@@ -191,6 +199,14 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 }
 .recent-item.entering { animation: slide-down .32s ease-out both; }
 
+
+/* ── 1709 Society sidebar panel ──────────────────────── */
+.society-list { padding: 12px 0; }
+.society-item { padding: 10px 20px; border-top: 1px solid var(--border-lt); }
+.society-item:first-child { border-top: none; }
+.society-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.society-range { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
 /* ── Step bar (segmented header border) ──────────────── */
 .step-bar { display: flex; gap: 10px; background: #172853; }
 .step-bar-seg {
@@ -313,20 +329,27 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 <!-- ── Progress bar ────────────────────────────────────────────────────────── -->
 <div class="progress-wrap">
   <div class="progress-inner">
-    <div class="progress-eyebrow">Parent families who have given</div>
-    <div class="progress-top">
-      <div>
-        <span class="progress-num" id="prog-donors">—</span>
-        <span class="progress-of">of 772 parent families</span>
+    <div class="hero-text-col">
+      <p class="hero-text-eyebrow">2025–2026 Trinity Fund</p>
+      <h2 class="hero-text-headline">Providing Support for Our Students</h2>
+      <p class="hero-text-body">Each year, Trinity relies on the generosity of parents, alumni and their families, grandparents, faculty and staff, and friends. The Trinity Fund provides critical, unrestricted support for the basic operations of the school: student financial aid; faculty compensation; professional development; academic and extra-curricular programs; visual and performing arts; and athletics.</p>
+    </div>
+    <div>
+      <div class="progress-eyebrow">Parent families who have given</div>
+      <div class="progress-top">
+        <div>
+          <span class="progress-num" id="prog-donors">—</span>
+          <span class="progress-of">of 772 parent families</span>
+        </div>
+        <span class="progress-pct-pill" id="prog-pct-pill" style="display:none"></span>
       </div>
-      <span class="progress-pct-pill" id="prog-pct-pill" style="display:none"></span>
+      <div class="dot-grid" id="dot-grid" style="margin-top:20px"></div>
+      <div class="progress-footer" style="margin-top:10px">
+        <span id="prog-sub"></span>
+        <span>Goal: 100%</span>
+      </div>
+      <button class="btn-give-top" onclick="openModal()">Add your dot →</button>
     </div>
-    <div class="dot-grid" id="dot-grid" style="margin-top:20px"></div>
-    <div class="progress-footer" style="margin-top:10px">
-      <span id="prog-sub"></span>
-      <span>Goal: 100%</span>
-    </div>
-    <button class="btn-give-top" onclick="openModal()">Add your dot →</button>
   </div>
 </div>
 
@@ -371,9 +394,27 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="lb-empty">Loading…</div>
       </div>
     </div>
+
+    <!-- 1709 Society -->
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">The 1709 Society</div></div>
+      <div class="society-list">
+        <div class="society-item"><div class="society-name">William Huddleston Circle</div><div class="society-range">$100,000 and above</div></div>
+        <div class="society-item"><div class="society-name">Founders' Circle</div><div class="society-range">$75,000–$99,999</div></div>
+        <div class="society-item"><div class="society-name">Heritage Circle</div><div class="society-range">$50,000–$74,999</div></div>
+        <div class="society-item"><div class="society-name">President's Circle</div><div class="society-range">$25,000–$49,999</div></div>
+        <div class="society-item"><div class="society-name">Head of School's Circle</div><div class="society-range">$15,000–$24,999</div></div>
+        <div class="society-item"><div class="society-name">Cornerstone Circle</div><div class="society-range">$10,000–$14,999</div></div>
+        <div class="society-item"><div class="society-name">Benefactor</div><div class="society-range">$5,000–$9,999</div></div>
+        <div class="society-item"><div class="society-name">Patron</div><div class="society-range">$3,000–$4,999</div></div>
+        <div class="society-item"><div class="society-name">Sponsor</div><div class="society-range">$1,709–$2,999</div></div>
+      </div>
+    </div>
+
   </div>
 
 </div>
+
 
 <!-- ── Gift modal ──────────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
@@ -664,6 +705,7 @@ function renderLeaderboard(data) {
   // Dot grid
   if (!dotsBuilt) buildDotGrid();
   animateDots(Math.min(donors, PARENT_TOTAL));
+
 
   // Parent grades table — sorted by participation %
   var pr = document.getElementById('parent-rows');
