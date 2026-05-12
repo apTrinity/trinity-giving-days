@@ -311,7 +311,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 @media (max-width: 860px) {
   .progress-inner { grid-template-columns: 1fr; }
-  .hero-text-col { border: none !important; padding: 0 0 28px 0; border-bottom: 1px solid rgba(255,255,255,.15) !important; }
+  .hero-dots-col { order: 1; }
+  .hero-text-col { order: 2; border: none !important; padding: 28px 0 0 0; border-top: 1px solid rgba(255,255,255,.15) !important; }
   .progress-of { font-size: 13px; display: block; margin-left: 0; margin-top: 4px; }
   .progress-pct-pill { font-size: 64px; line-height: 1; align-self: flex-start; }
   .progress-top { align-items: flex-start; }
@@ -336,7 +337,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       <h2 class="hero-text-headline">Providing Support for Our Students</h2>
       <p class="hero-text-body">Each year, Trinity relies on the generosity of parents, alumni and their families, grandparents, faculty and staff, and friends. The Trinity Fund provides critical, unrestricted support for the basic operations of the school: student financial aid; faculty compensation; professional development; academic and extra-curricular programs; visual and performing arts; and athletics.</p>
     </div>
-    <div>
+    <div class="hero-dots-col">
       <div class="progress-eyebrow">Parent families who have given</div>
       <div class="progress-top">
         <div>
@@ -695,7 +696,6 @@ function buildRecentHTML(gifts, newKeys) {
     var isNew = newKeys.indexOf(key) !== -1;
     return '<div class="recent-item' + (isNew ? ' entering' : '') + '">' +
       '<div class="recent-name">' + (g.name || '') + '</div>' +
-      '<div class="recent-sub">'  + (g.affiliation || 'Trinity Parent') + '</div>' +
       '</div>';
   }).join('');
 }
