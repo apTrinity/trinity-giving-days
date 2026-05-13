@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trinity Admin — Parents Campaign</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: #f0ede8;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    /* ── Login ─────────────────────────────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+      width: 100%;
+      max-width: 400px;
+      overflow: hidden;
+    }
+
+    .login-header {
+      background: #172853;
+      border-bottom: 3px solid #F2CC07;
+      padding: 28px 32px 24px;
+      text-align: center;
+    }
+
+    .login-wordmark {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #F2CC07;
+    }
+
+    .login-header h1 {
+      color: #fff;
+      font-size: 17px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .login-header p {
+      color: rgba(255,255,255,0.55);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .login-body { padding: 28px 32px 32px; }
+
+    .form-group { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #222;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #172853;
+      box-shadow: 0 0 0 3px rgba(23,40,83,0.1);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 11px;
+      background: #172853;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover  { background: #1e3470; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .login-error {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      border-radius: 6px;
+      color: #B91C1C;
+      font-size: 13px;
+    }
+
+    /* ── Dashboard ─────────────────────────────────────────────────────────── */
+    #dashboard { display: none; }
+
+    .top-nav {
+      background: #172853;
+      border-bottom: 3px solid #F2CC07;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      height: 54px;
+      gap: 14px;
+    }
+
+    .nav-wordmark {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #F2CC07;
+    }
+
+    .nav-pipe {
+      width: 1px;
+      height: 18px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .nav-title {
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-email {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .btn-signout {
+      padding: 5px 13px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 5px;
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-signout:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    .main-content {
+      padding: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* ── Stats ─────────────────────────────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #172853;
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 4px;
+    }
+
+    /* ── Controls ──────────────────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #bbb;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 32px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #172853;
+      box-shadow: 0 0 0 3px rgba(23,40,83,0.08);
+    }
+
+    .filter-select {
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .filter-select:focus { outline: none; border-color: #172853; }
+
+    .btn-sync {
+      padding: 9px 15px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #172853;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      margin-left: auto;
+    }
+
+    .btn-sync:hover    { background: #f5f4f1; }
+    .btn-sync:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Table ─────────────────────────────────────────────────────────────── */
+    .table-wrap {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+
+    .table-meta {
+      padding: 12px 18px;
+      border-bottom: 1px solid #f0eeec;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-count { font-size: 12px; color: #999; }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      background: #faf9f7;
+      border-bottom: 1px solid #f0eeec;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f5f4f1;
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover    { background: #faf9f7; cursor: pointer; }
+    tbody tr:last-child { border-bottom: none; }
+
+    td {
+      padding: 11px 16px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    .td-name   { font-weight: 600; color: #172853; }
+    .td-anon   { font-style: italic; color: #bbb; font-weight: 400; }
+    .td-sub    { font-size: 11px; color: #aaa; margin-top: 2px; }
+    .td-amount { font-weight: 700; font-size: 14px; }
+    .td-date   { font-size: 12px; color: #aaa; white-space: nowrap; }
+
+    /* ── Badges ────────────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-online  { background: #EFF6FF; color: #2563EB; }
+    .badge-offline { background: #F3F4F6; color: #6B7280; }
+    .badge-grade   { background: #F0FDF4; color: #166534; margin: 1px 2px; }
+    .badge-email   { background: #ECFDF5; color: #059669; font-size: 10px; }
+    .badge-name    { background: #FFF7ED; color: #C2410C; font-size: 10px; }
+    .badge-created { background: #F5F3FF; color: #7C3AED; font-size: 10px; }
+
+    .btn-edit {
+      padding: 4px 11px;
+      background: #172853;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-edit:hover { background: #1e3470; }
+
+    .tbl-empty, .tbl-loading {
+      text-align: center;
+      padding: 52px 20px;
+      color: #bbb;
+      font-size: 14px;
+    }
+
+    /* ── Modal ─────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid #f0eeec;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+    }
+
+    .modal-header h2 { font-size: 16px; font-weight: 700; color: #172853; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      line-height: 1;
+      color: #ccc;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+
+    .modal-close:hover { color: #666; }
+
+    .modal-body { padding: 18px 22px; }
+
+    .modal-section { margin-bottom: 22px; }
+
+    .modal-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f0eeec;
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group { margin-bottom: 12px; }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .meta-box {
+      background: #f9f8f6;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .meta-box-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #bbb;
+      margin-bottom: 3px;
+    }
+
+    .meta-box-value {
+      font-size: 12px;
+      color: #555;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      word-break: break-all;
+    }
+
+    /* Grade chips */
+    .grade-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .grade-chip {
+      padding: 5px 13px;
+      border: 2px solid #e5e4e1;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #666;
+      background: #fff;
+      transition: all 0.12s;
+    }
+
+    .grade-chip:hover    { border-color: #172853; color: #172853; }
+    .grade-chip.selected { background: #172853; border-color: #172853; color: #fff; }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-row input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #172853; }
+
+    .checkbox-row label {
+      font-size: 13px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #444;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 14px 22px;
+      border-top: 1px solid #f0eeec;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+    }
+
+    .btn-save {
+      padding: 9px 20px;
+      background: #172853;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-save:hover    { background: #1e3470; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-cancel {
+      padding: 9px 16px;
+      background: transparent;
+      border: 1px solid #e0deda;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #666;
+      cursor: pointer;
+    }
+
+    .btn-cancel:hover { background: #f5f4f1; }
+
+    .btn-delete {
+      margin-left: auto;
+      padding: 9px 14px;
+      background: transparent;
+      border: 1px solid #FCA5A5;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #DC2626;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-delete:hover { background: #FEF2F2; }
+
+    .modal-status {
+      font-size: 13px;
+      display: none;
+    }
+
+    .modal-status.ok  { color: #059669; }
+    .modal-status.err { color: #DC2626; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login ──────────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-wordmark">Trinity School</div>
+      <h1>Parents Campaign Admin</h1>
+      <p>Sign in to manage donors</p>
+    </div>
+    <div class="login-body">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@trinityschoolnyc.org" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="login()">Sign In</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Dashboard ──────────────────────────────────────────────────────────── -->
+<div id="dashboard">
+  <nav class="top-nav">
+    <div class="nav-wordmark">Trinity School</div>
+    <div class="nav-pipe"></div>
+    <div class="nav-title">Parents Campaign Admin</div>
+    <div class="nav-spacer"></div>
+    <div class="nav-email" id="nav-email"></div>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  </nav>
+
+  <div class="main-content">
+
+    <!-- SKY API re-auth banner (hidden unless token is invalid) -->
+    <div id="reauth-banner" style="display:none;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:12px 18px;margin-bottom:18px;display:none;align-items:center;gap:12px;">
+      <span style="font-size:18px;">⚠️</span>
+      <div style="flex:1;">
+        <strong style="color:#92400E;font-size:13px;">Blackbaud SKY API connection lost.</strong>
+        <span style="color:#78350F;font-size:13px;"> The refresh token has expired. Offline sync won't work until you re-authorize.</span>
+      </div>
+      <a id="reauth-link" href="/auth/blackbaud" target="_blank"
+         style="padding:7px 14px;background:#92400E;color:#fff;border-radius:5px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">
+        Re-authorize →
+      </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Total Raised</div>
+        <div class="stat-value" id="stat-raised">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Gifts</div>
+        <div class="stat-value" id="stat-gifts">—</div>
+        <div class="stat-sub" id="stat-source-split"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unique Families</div>
+        <div class="stat-value" id="stat-families">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Gift Size</div>
+        <div class="stat-value" id="stat-avg">—</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" type="text" id="search-input"
+               placeholder="Search name, email, or household ID…" oninput="applyFilters()">
+      </div>
+      <select class="filter-select" id="grade-filter" onchange="applyFilters()">
+        <option value="">All Grades</option>
+        <option value="K">Kindergarten</option>
+        <option value="1">1st Grade</option>
+        <option value="2">2nd Grade</option>
+        <option value="3">3rd Grade</option>
+        <option value="4">4th Grade</option>
+        <option value="5">5th Grade</option>
+        <option value="6">6th Grade</option>
+        <option value="7">7th Grade</option>
+        <option value="8">8th Grade</option>
+        <option value="9">9th Grade</option>
+        <option value="10">10th Grade</option>
+        <option value="11">11th Grade</option>
+        <option value="12">12th Grade</option>
+      </select>
+      <select class="filter-select" id="source-filter" onchange="applyFilters()">
+        <option value="">All Sources</option>
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+      </select>
+      <button class="btn-sync" id="sync-btn" onclick="syncOffline()">↻ Sync Offline</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-meta">
+        <span class="table-count" id="table-count">Loading…</span>
+      </div>
+      <div id="table-container">
+        <div class="tbl-loading">Loading gifts…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Edit Modal ─────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Gift</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-section">
+        <div class="modal-section-title">Donor Info</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="edit-first">
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="edit-last">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="edit-email">
+        </div>
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="edit-anonymous">
+            <label for="edit-anonymous">Anonymous — hide name on leaderboard</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Gift Amount</div>
+        <div class="form-group">
+          <label>Amount ($)</label>
+          <input type="number" id="edit-amount" step="0.01" min="0" style="max-width:180px;">
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Grade Affiliations</div>
+        <div class="grade-chips" id="grade-chips"></div>
+        <div style="font-size:12px;color:#bbb;margin-top:10px;">Click grades to toggle. Unselecting all removes the affiliation.</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Record Info (read-only)</div>
+        <div class="meta-grid">
+          <div class="meta-box">
+            <div class="meta-box-label">Source</div>
+            <div class="meta-box-value" id="meta-source">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-box-label">Match Type</div>
+            <div class="meta-box-value" id="meta-match">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-box-label">Household ID</div>
+            <div class="meta-box-value" id="meta-hh">—</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-box-label">Date</div>
+            <div class="meta-box-value" id="meta-date">—</div>
+          </div>
+          <div class="meta-box" style="grid-column:span 2">
+            <div class="meta-box-label">Transaction ID</div>
+            <div class="meta-box-value" id="meta-txn">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-save" id="save-btn" onclick="saveGift()">Save Changes</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <span class="modal-status ok"  id="save-ok"></span>
+      <span class="modal-status err" id="save-err"></span>
+      <button class="btn-delete" onclick="deleteGift()">Delete Gift</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let sb           = null;   // Supabase client (anon key, auth only)
+let sessionToken = null;
+let allGifts     = [];
+let editingGift  = null;
+let selectedGrades = new Set();
+
+const GRADES = ['K','1','2','3','4','5','6','7','8','9','10','11','12'];
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+async function init() {
+  let cfg;
+  try {
+    cfg = await fetch('/api/admin/config').then(r => r.json());
+  } catch (e) {
+    showLoginError('Could not reach the server. Is it running?');
+    return;
+  }
+  if (cfg.error) {
+    showLoginError(cfg.error);
+    return;
+  }
+
+  sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+  // Restore existing session
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    sessionToken = session.access_token;
+    enterDashboard(session.user.email);
+    loadGifts();
+  }
+
+  // Keep token fresh
+  sb.auth.onAuthStateChange((_event, session) => {
+    if (session) sessionToken = session.access_token;
+  });
+
+  // Keyboard shortcuts on login form
+  document.getElementById('login-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('login-password').focus();
+  });
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function login() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn      = document.getElementById('login-btn');
+  const errEl    = document.getElementById('login-error');
+
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showLoginError(error.message);
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    return;
+  }
+
+  sessionToken = data.session.access_token;
+  enterDashboard(data.user.email);
+  loadGifts();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  sessionToken = null;
+  allGifts = [];
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+}
+
+function enterDashboard(email) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('nav-email').textContent = email;
+  checkSkyStatus();
+}
+
+async function checkSkyStatus() {
+  try {
+    const status = await fetch('/api/admin/sky-status').then(r => r.json());
+    const banner = document.getElementById('reauth-banner');
+    if (!status.ok) {
+      banner.style.display = 'flex';
+      if (status.reAuthUrl) document.getElementById('reauth-link').href = status.reAuthUrl;
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch (e) { /* server unreachable — don't show banner */ }
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+const authHeaders = () => ({ Authorization: `Bearer ${sessionToken}`, 'Content-Type': 'application/json' });
+
+async function apiGet(path) {
+  const r = await fetch(path, { headers: authHeaders() });
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+async function apiPatch(path, body) {
+  const r = await fetch(path, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+async function apiPut(path, body) {
+  const r = await fetch(path, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+async function apiDelete(path) {
+  const r = await fetch(path, { method: 'DELETE', headers: authHeaders() });
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+async function loadGifts() {
+  document.getElementById('table-container').innerHTML = '<div class="tbl-loading">Loading gifts…</div>';
+  try {
+    allGifts = await apiGet('/api/admin/gifts');
+    renderStats();
+    applyFilters();
+  } catch (err) {
+    document.getElementById('table-container').innerHTML =
+      `<div class="tbl-empty">Failed to load: ${err.message}</div>`;
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const total   = allGifts.reduce((s, g) => s + parseFloat(g.amount || 0), 0);
+  const online  = allGifts.filter(g => g.source === 'online').length;
+  const offline = allGifts.filter(g => g.source === 'offline').length;
+  const avg     = allGifts.length ? total / allGifts.length : 0;
+
+  const famSet = new Set();
+  allGifts.forEach(g => {
+    if      (g.household_import_id) famSet.add('hh:'  + g.household_import_id);
+    else if (g.constituent_id)      famSet.add('cid:' + g.constituent_id);
+    else famSet.add('n:' + (g.first_name || '').toLowerCase() + '|' + (g.last_name || '').toLowerCase());
+  });
+
+  document.getElementById('stat-raised').textContent =
+    '$' + total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  document.getElementById('stat-gifts').textContent    = allGifts.length;
+  document.getElementById('stat-source-split').textContent = `${online} online · ${offline} offline`;
+  document.getElementById('stat-families').textContent = famSet.size;
+  document.getElementById('stat-avg').textContent      =
+    '$' + avg.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ── Filters & table ───────────────────────────────────────────────────────────
+function applyFilters() {
+  const q      = document.getElementById('search-input').value.toLowerCase().trim();
+  const grade  = document.getElementById('grade-filter').value;
+  const source = document.getElementById('source-filter').value;
+
+  const filtered = allGifts.filter(g => {
+    if (source && g.source !== source) return false;
+    if (grade) {
+      const has = (g.affiliation_credits || []).some(c => c.grade === grade);
+      if (!has) return false;
+    }
+    if (q) {
+      const hay = [g.first_name, g.last_name, g.email, g.household_import_id]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const total = allGifts.length;
+  document.getElementById('table-count').textContent =
+    filtered.length === total
+      ? `${total} gift${total !== 1 ? 's' : ''}`
+      : `${filtered.length} of ${total} gifts`;
+
+  if (filtered.length === 0) {
+    document.getElementById('table-container').innerHTML =
+      '<div class="tbl-empty">No gifts match your filters.</div>';
+    return;
+  }
+
+  const rows = filtered.map(g => {
+    const grades = getGrades(g);
+    const gradeBadges = grades.length
+      ? grades.map(gr => `<span class="badge badge-grade">${gradeLabel(gr)}</span>`).join('')
+      : '<span style="color:#ddd">—</span>';
+
+    const sourceBadge = g.source === 'online'
+      ? '<span class="badge badge-online">Online</span>'
+      : '<span class="badge badge-offline">Offline</span>';
+
+    const matchClass = { email: 'badge-email', name: 'badge-name', created: 'badge-created' }[g.match_type] || '';
+    const matchBadge = g.match_type && matchClass
+      ? `<span class="badge ${matchClass}">${g.match_type}</span>` : '';
+
+    const nameHtml = g.anonymous
+      ? '<span class="td-anon">Anonymous</span>'
+      : `<span class="td-name">${esc(g.first_name || '')} ${esc(g.last_name || '')}</span>`;
+
+    return `<tr onclick="openEdit('${g.id}')">
+      <td>
+        ${nameHtml}
+        <div class="td-sub">${matchBadge}</div>
+      </td>
+      <td style="color:#666;font-size:12px;">${esc(g.email || '—')}</td>
+      <td class="td-amount">${fmtAmount(g.amount)}</td>
+      <td>${gradeBadges}</td>
+      <td>${sourceBadge}</td>
+      <td class="td-date">${fmtDate(g.created_at)}</td>
+      <td><button class="btn-edit" onclick="event.stopPropagation();openEdit('${g.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-container').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Amount</th>
+          <th>Grade(s)</th>
+          <th>Source</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── Edit Modal ────────────────────────────────────────────────────────────────
+function openEdit(giftId) {
+  editingGift = allGifts.find(g => g.id === giftId);
+  if (!editingGift) return;
+
+  document.getElementById('edit-first').value       = editingGift.first_name || '';
+  document.getElementById('edit-last').value        = editingGift.last_name  || '';
+  document.getElementById('edit-email').value       = editingGift.email      || '';
+  document.getElementById('edit-amount').value      = editingGift.amount     || '';
+  document.getElementById('edit-anonymous').checked = !!editingGift.anonymous;
+
+  document.getElementById('meta-source').textContent = editingGift.source       || '—';
+  document.getElementById('meta-match').textContent  = editingGift.match_type   || '—';
+  document.getElementById('meta-hh').textContent     = editingGift.household_import_id || '—';
+  document.getElementById('meta-date').textContent   = fmtDate(editingGift.created_at);
+  document.getElementById('meta-txn').textContent    = editingGift.transaction_id || '—';
+
+  selectedGrades = new Set(getGrades(editingGift));
+  renderGradeChips();
+
+  document.getElementById('save-ok').style.display  = 'none';
+  document.getElementById('save-err').style.display = 'none';
+  document.getElementById('save-btn').disabled = false;
+  document.getElementById('save-btn').textContent = 'Save Changes';
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function renderGradeChips() {
+  document.getElementById('grade-chips').innerHTML = GRADES.map(g =>
+    `<button class="grade-chip ${selectedGrades.has(g) ? 'selected' : ''}" onclick="toggleGrade('${g}')">${g === 'K' ? 'K' : g}</button>`
+  ).join('');
+}
+
+function toggleGrade(g) {
+  selectedGrades.has(g) ? selectedGrades.delete(g) : selectedGrades.add(g);
+  renderGradeChips();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingGift = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function saveGift() {
+  if (!editingGift) return;
+  const btn   = document.getElementById('save-btn');
+  const okEl  = document.getElementById('save-ok');
+  const errEl = document.getElementById('save-err');
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  okEl.style.display = errEl.style.display = 'none';
+
+  try {
+    const amount = parseFloat(document.getElementById('edit-amount').value);
+    if (!amount || amount <= 0) {
+      errEl.textContent = 'Amount must be greater than $0.';
+      errEl.style.display = 'inline';
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+      return;
+    }
+
+    const updates = {
+      first_name: document.getElementById('edit-first').value.trim(),
+      last_name:  document.getElementById('edit-last').value.trim(),
+      email:      document.getElementById('edit-email').value.trim(),
+      amount,
+      anonymous:  document.getElementById('edit-anonymous').checked,
+    };
+
+    await Promise.all([
+      apiPatch(`/api/admin/gifts/${editingGift.id}`, updates),
+      apiPut(`/api/admin/gifts/${editingGift.id}/grades`, { grades: [...selectedGrades] }),
+    ]);
+
+    // Patch local state so the table re-renders correctly without a full reload
+    const idx = allGifts.findIndex(g => g.id === editingGift.id);
+    if (idx !== -1) {
+      allGifts[idx] = {
+        ...allGifts[idx], ...updates,
+        affiliation_credits: [...selectedGrades].map((grade, i) => ({
+          affiliation_type:    'current_parent',
+          grade,
+          class_year:          null,
+          counts_toward_total: i === 0
+            ? (allGifts[idx].affiliation_credits || []).some(c => c.counts_toward_total)
+            : false,
+        })),
+      };
+    }
+
+    okEl.textContent = 'Saved!';
+    okEl.style.display = 'inline';
+    renderStats();
+    applyFilters();
+
+    setTimeout(() => { okEl.style.display = 'none'; closeModal(); }, 1200);
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.style.display = 'inline';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function deleteGift() {
+  if (!editingGift) return;
+  const label = editingGift.anonymous
+    ? 'this anonymous gift'
+    : `${editingGift.first_name || ''} ${editingGift.last_name || ''}`.trim() || 'this gift';
+  if (!confirm(`Delete ${label} (${fmtAmount(editingGift.amount)})?\n\nThis cannot be undone.`)) return;
+
+  try {
+    await apiDelete(`/api/admin/gifts/${editingGift.id}`);
+    allGifts = allGifts.filter(g => g.id !== editingGift.id);
+    closeModal();
+    renderStats();
+    applyFilters();
+  } catch (err) {
+    document.getElementById('save-err').textContent = 'Delete failed: ' + err.message;
+    document.getElementById('save-err').style.display = 'inline';
+  }
+}
+
+// ── Offline Sync ──────────────────────────────────────────────────────────────
+async function syncOffline() {
+  const btn = document.getElementById('sync-btn');
+  btn.textContent = '↻ Syncing…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/parents/sync-offline', { headers: authHeaders() });
+    const result = await r.json();
+    if (!result.ok) throw new Error(result.error || 'Sync failed');
+    await loadGifts();
+  } catch (err) {
+    await checkSkyStatus(); // show re-auth banner if that's why it failed
+    alert('Sync failed: ' + err.message);
+  } finally {
+    btn.textContent = '↻ Sync Offline';
+    btn.disabled = false;
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getGrades(gift) {
+  return (gift.affiliation_credits || [])
+    .filter(c => c.affiliation_type === 'current_parent' && c.grade)
+    .map(c => c.grade)
+    .sort((a, b) => GRADES.indexOf(a) - GRADES.indexOf(b));
+}
+
+function gradeLabel(g) {
+  if (g === 'K') return 'K';
+  const n = parseInt(g);
+  const s = n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th';
+  return `${n}${s}`;
+}
+
+function fmtAmount(a) {
+  return '$' + parseFloat(a || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

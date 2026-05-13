@@ -26,7 +26,16 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function toTitleCase(str) {
   if (!str) return str;
-  return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  // Split on spaces first, then on hyphens, so each segment gets its own
+  // capital — correctly handles hyphenated names like "Seib-Keenan".
+  return str
+    .split(' ')
+    .map(word =>
+      word.split('-')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join('-')
+    )
+    .join(' ');
 }
 
 function gradeLabel(grade) {
@@ -564,23 +573,53 @@ app.get('/auth/blackbaud/callback', async (req, res) => {
 });
 
 // Step A3 — Refresh the access token when it expires (access tokens last ~60 min)
-async function refreshAccessToken() {
-  if (!tokens.refresh_token) throw new Error('No refresh token available. Run the OAuth flow first.');
+// Uses a mutex so concurrent requests don't each try to refresh simultaneously,
+// which would rotate the refresh token out from under each other → invalid_grant.
+let tokenRefreshInProgress = null;
+let skyAuthValid = true; // flips false on invalid_grant; reset to true on successful refresh
 
-  const response = await axios.post(BB_TOKEN_URL, new URLSearchParams({
-    grant_type:    'refresh_token',
-    refresh_token: tokens.refresh_token,
-  }), {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    auth: { username: process.env.SKY_CLIENT_ID, password: process.env.SKY_CLIENT_SECRET },
+async function refreshAccessToken() {
+  if (!tokens.refresh_token) {
+    skyAuthValid = false;
+    throw new Error('No refresh token available. Re-authorize at /auth/blackbaud');
+  }
+
+  // If a refresh is already underway, wait for it rather than starting a second one.
+  if (tokenRefreshInProgress) {
+    console.log('Token refresh already in progress — waiting for it to finish.');
+    return tokenRefreshInProgress;
+  }
+
+  tokenRefreshInProgress = (async () => {
+    try {
+      const response = await axios.post(BB_TOKEN_URL, new URLSearchParams({
+        grant_type:    'refresh_token',
+        refresh_token: tokens.refresh_token,
+      }), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        auth: { username: process.env.SKY_CLIENT_ID, password: process.env.SKY_CLIENT_SECRET },
+      });
+
+      tokens.access_token  = response.data.access_token;
+      tokens.refresh_token = response.data.refresh_token;
+      await saveTokensToSupabase();
+      skyAuthValid = true;
+      console.log('Access token refreshed and saved to Supabase.');
+      return tokens.access_token;
+    } catch (err) {
+      const isInvalidGrant = err.response?.data?.error === 'invalid_grant';
+      if (isInvalidGrant) {
+        skyAuthValid = false;
+        console.error('SKY API refresh token is invalid — manual re-authorization required at /auth/blackbaud');
+        throw new Error('SKY API re-authorization required. Visit /auth/blackbaud to reconnect.');
+      }
+      throw err;
+    }
+  })().finally(() => {
+    tokenRefreshInProgress = null;
   });
 
-  tokens.access_token  = response.data.access_token;
-  tokens.refresh_token = response.data.refresh_token;
-  await saveTokensToSupabase();
-
-  console.log('Access token refreshed and saved to Supabase.');
-  return tokens.access_token;
+  return tokenRefreshInProgress;
 }
 
 // Step A4 — Wrapper that retries once with a fresh token if we get a 401
@@ -1007,6 +1046,20 @@ loadTokensFromSupabase().then(() => {
   resolveUnmatchedGifts();
   setInterval(resolveUnmatchedGifts, 2 * 60 * 1000);
 });
+
+// Proactively refresh the SKY API access token every 45 minutes.
+// Access tokens expire after ~60 min. Refreshing early means background jobs
+// never hit an expired token mid-run, eliminating the most common cause of
+// invalid_grant errors from concurrent refresh attempts.
+setInterval(async () => {
+  try {
+    await refreshAccessToken();
+    console.log('Proactive token refresh successful.');
+  } catch (err) {
+    console.error('Proactive token refresh failed:', err.message);
+    // skyAuthValid is already set to false inside refreshAccessToken on invalid_grant
+  }
+}, 45 * 60 * 1000);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Offline gift sync — polls RE NXT every 30 min for gifts entered by staff
@@ -1507,15 +1560,21 @@ async function syncParentsOfflineGifts() {
 
   } catch (err) {
     console.error('syncParentsOfflineGifts error:', err.response?.data || err.message);
+    throw err; // re-throw so callers (routes, manual triggers) get a real error
   } finally {
     parentsOfflineSyncRunning = false;
   }
 }
 
-// Sync parents offline gifts on startup and every 30 minutes
+// Sync parents offline gifts on startup and every 30 minutes.
+// Wrapped in try/catch so a failed background sync doesn't crash the interval.
+async function runParentsSyncSafe() {
+  try { await syncParentsOfflineGifts(); }
+  catch (err) { /* already logged inside syncParentsOfflineGifts */ }
+}
 setTimeout(() => {
-  syncParentsOfflineGifts();
-  setInterval(syncParentsOfflineGifts, 30 * 60 * 1000);
+  runParentsSyncSafe();
+  setInterval(runParentsSyncSafe, 30 * 60 * 1000);
 }, 8000); // slight offset from main sync to avoid simultaneous SKY API calls
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1892,7 +1951,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
             const compound = lastNames[0].length >= lastNames[1].length ? lastNames[0] : lastNames[1];
             name = `The ${compound} Family`;
           } else {
-            name = `${lastNames[0]} & ${lastNames[1]} Family`;
+            name = `The ${lastNames[0]} & ${lastNames[1]} Family`;
           }
         }
       }
@@ -2099,6 +2158,127 @@ app.get('/api/parents/sync-offline', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION: Admin API
+// Protected endpoints for the /admin dashboard.
+// Auth: Supabase email+password session JWT, verified via parentsSupabase.auth.getUser()
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Serve the admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Clean URL for the parents giving page
+app.get('/parents', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'parents.html'));
+});
+
+// SKY API auth status — lets the admin dashboard show a re-auth banner if needed
+app.get('/api/admin/sky-status', (req, res) => {
+  res.json({
+    ok:        skyAuthValid,
+    reAuthUrl: `${req.protocol}://${req.headers.host}/auth/blackbaud`,
+    message:   skyAuthValid
+      ? 'SKY API connection is healthy.'
+      : 'SKY API refresh token is invalid. Re-authorization required.',
+  });
+});
+
+// Public — returns the anon key so the browser can initialize the Supabase client for auth.
+// The anon key is designed to be public; the service key stays server-side only.
+app.get('/api/admin/config', (req, res) => {
+  if (!process.env.SUPABASE_ANON_KEY_PARENTS) {
+    return res.status(503).json({ error: 'SUPABASE_ANON_KEY_PARENTS not set in .env' });
+  }
+  res.json({
+    supabaseUrl:     process.env.SUPABASE_URL_PARENTS,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY_PARENTS,
+  });
+});
+
+// Middleware — verifies Supabase JWT from Authorization: Bearer <token>
+async function requireAdmin(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
+  const { data: { user }, error } = await parentsSupabase.auth.getUser(auth.slice(7));
+  if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+  req.user = user;
+  next();
+}
+
+// GET /api/admin/gifts — all gifts with their affiliation credits, newest first
+app.get('/api/admin/gifts', requireAdmin, async (req, res) => {
+  const { data, error } = await parentsSupabase
+    .from('gifts')
+    .select('*, affiliation_credits(*)')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// PATCH /api/admin/gifts/:id — update editable gift fields
+app.patch('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
+  const allowed = ['first_name', 'last_name', 'email', 'amount', 'anonymous', 'fund'];
+  const updates = {};
+  for (const key of allowed) {
+    if (key in req.body) updates[key] = req.body[key];
+  }
+  const { data, error } = await parentsSupabase
+    .from('gifts')
+    .update(updates)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// PUT /api/admin/gifts/:id/grades — replace all current_parent affiliations for a gift
+app.put('/api/admin/gifts/:id/grades', requireAdmin, async (req, res) => {
+  const { grades } = req.body; // string[] e.g. ['K', '3', '7']
+  const giftId = req.params.id;
+
+  // Preserve the counts_toward_total flag from existing affiliations
+  const { data: existing } = await parentsSupabase
+    .from('affiliation_credits')
+    .select('counts_toward_total')
+    .eq('gift_id', giftId);
+  const countsTowardTotal = (existing || []).some(a => a.counts_toward_total);
+
+  // Remove all current_parent credits for this gift
+  const { error: delError } = await parentsSupabase
+    .from('affiliation_credits')
+    .delete()
+    .eq('gift_id', giftId)
+    .eq('affiliation_type', 'current_parent');
+  if (delError) return res.status(500).json({ error: delError.message });
+
+  // Re-insert the selected grades
+  if (grades && grades.length > 0) {
+    const inserts = grades.map((grade, i) => ({
+      gift_id:             giftId,
+      affiliation_type:    'current_parent',
+      grade,
+      class_year:          null,
+      counts_toward_total: i === 0 ? countsTowardTotal : false,
+    }));
+    const { error: insError } = await parentsSupabase.from('affiliation_credits').insert(inserts);
+    if (insError) return res.status(500).json({ error: insError.message });
+  }
+
+  res.json({ ok: true });
+});
+
+// DELETE /api/admin/gifts/:id — remove a gift and all its affiliation credits
+app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
+  await parentsSupabase.from('affiliation_credits').delete().eq('gift_id', req.params.id);
+  const { error } = await parentsSupabase.from('gifts').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
