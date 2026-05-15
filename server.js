@@ -563,6 +563,7 @@ app.get('/auth/blackbaud/callback', async (req, res) => {
     tokens.access_token  = response.data.access_token;
     tokens.refresh_token = response.data.refresh_token;
     await saveTokensToSupabase();
+    skyAuthValid = true;
 
     console.log('Tokens saved to Supabase.');
     res.send('<h2>Authorized.</h2><p>Tokens saved. You can close this tab and continue.</p>');
@@ -644,6 +645,215 @@ async function skyRequest(config, subscriptionKey) {
   }
 }
 
+
+// skyRequest wrapper that retries on 429 rate-limit responses.
+// Blackbaud tells us exactly how long to wait in the error message.
+async function skyRequestRetry(config, maxRetries = 4) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await skyRequest(config);
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < maxRetries) {
+        const msg  = err.response?.data?.message || '';
+        const secs = parseInt(msg.match(/(\d+)\s*second/)?.[1] || '2', 10);
+        const wait = secs * 1000 + 250;
+        console.log(`skyRequestRetry: rate limited — waiting ${wait}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+// Core enrichment logic for a single household import ID.
+// Returns { constituentId, email1, email2, reGiving } and writes results to Supabase.
+// Throws on any unrecoverable error.
+const RE_FUND_IDS = new Set(['547', '556', '624']);
+
+// Strip trailing RE naming suffixes before saving names to Supabase.
+// Handles patterns like: ", P, P"  ", P'95"  " '08"  ", P'26, P'28"
+function stripRESuffixes(name) {
+  if (!name) return name;
+  return name.replace(/(?:[\s,]+(?:P'?\d*|'\d{2,4}))+$/gi, '').trim();
+}
+
+// Blackbaud sometimes returns amounts as { value: N } objects, sometimes as plain numbers.
+function parseAmt(a) {
+  if (a == null) return 0;
+  if (typeof a === 'object') return parseFloat(a.value ?? 0);
+  return parseFloat(a) || 0;
+}
+
+// Extract fund ID from a gift or split — handles both flat fund_id and nested fund.id
+function getFundId(obj) {
+  return String(obj?.fund?.id ?? obj?.fund_id ?? '');
+}
+
+async function enrichOneHousehold(importId) {
+  // 1. Resolve import ID → RE system_record_id
+  const mapRes = await skyRequestRetry({
+    method: 'get',
+    url: `https://api.sky.blackbaud.com/nxt-data-integration/v1/re/importidmap/constituent/${encodeURIComponent(importId)}`,
+  });
+  const constituentId = mapRes.data?.system_record_id;
+  if (!constituentId) throw new Error('no system_record_id returned');
+
+  // 2. Email addresses (Email 1 = primary, Email 2 = spouse) + timestamps
+  const emailRes = await skyRequestRetry({
+    method: 'get',
+    url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/emailaddresses`,
+  });
+  const emailList  = emailRes.data?.value || [];
+  const email1Rec  = emailList.find(e => e.type === 'Email 1' && !e.inactive) || null;
+  const email2Rec  = emailList.find(e => e.type === 'Email 2' && !e.inactive) || null;
+  const email1     = email1Rec?.address?.toLowerCase() || null;
+  const email2     = email2Rec?.address?.toLowerCase() || null;
+  const email1Date = email1Rec?.date_modified || email1Rec?.date_added || null;
+  const email2Date = email2Rec?.date_modified || email2Rec?.date_added || null;
+
+  // 3. Gifts for FY2025-26 — cash, pledge payments, and outstanding pledges
+  //    for the three Annual Fund IDs (547, 556, 624).
+  const giftRes = await skyRequestRetry({
+    method: 'get',
+    url: 'https://api.sky.blackbaud.com/gift/v1/gifts',
+    params: { constituent_id: constituentId, gift_date_start: '2025-07-01', gift_date_end: '2026-06-30', limit: 500 },
+  });
+  const gifts = giftRes.data?.value || [];
+
+  let reGiving = 0;
+  for (const gift of gifts) {
+    const type    = (gift.type || '').toLowerCase();
+    const isPledge = type.includes('pledge') && !type.includes('payment');
+
+    if (isPledge) {
+      // Only count the outstanding balance — fully-paid pledges (balance = $0) are
+      // skipped because the cash already arrived as pledge payment records.
+      const balance = parseAmt(gift.balance);
+      if (balance <= 0) continue;
+      const splits = gift.gift_splits || [];
+      if (splits.length > 0) {
+        for (const split of splits) {
+          if (RE_FUND_IDS.has(getFundId(split))) reGiving += parseAmt(split.balance ?? split.amount);
+        }
+      } else {
+        if (RE_FUND_IDS.has(getFundId(gift))) reGiving += balance;
+      }
+      continue;
+    }
+
+    // Cash, pledge payments, recurring gifts, etc. — count amount received
+    const splits = gift.gift_splits || [];
+    if (splits.length > 0) {
+      for (const split of splits) {
+        if (RE_FUND_IDS.has(getFundId(split))) reGiving += parseAmt(split.amount);
+      }
+    } else {
+      if (RE_FUND_IDS.has(getFundId(gift))) reGiving += parseAmt(gift.amount);
+    }
+  }
+
+  // 4. Fetch constituent name, relationships, and salutations — always, so names stay current in RE
+  // Salutations are fetched separately with a fallback — Blackbaud returns 404 (not an empty list)
+  // when no salutations exist on a record, so we can't include it in the Promise.all.
+  const [cRes, relRes] = await Promise.all([
+    skyRequestRetry({ method: 'get', url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}` }),
+    skyRequestRetry({ method: 'get', url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/relationships` }),
+  ]);
+
+  // Fetch name format summary — extracts Informal Salutation (for greetings) and
+  // Parent & Alumni Listing (the row display name with class years).
+  // Returns 404 if no name formats are configured — both stay null.
+  let informalSal    = null;
+  let listingName    = null;
+  try {
+    const nfRes = await skyRequestRetry({ method: 'get', url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/nameformats/summary` });
+    const additionalFormats = nfRes.data?.additional_name_formats || [];
+    informalSal = additionalFormats.find(f => f.type === 'Informal Salutation')?.formatted_name?.trim() || null;
+    listingName = additionalFormats.find(f => f.type === 'Parent & Alumni Listing')?.formatted_name?.trim() || null;
+  } catch (nfErr) {
+    if (nfErr.response?.status !== 404) {
+      console.warn(`enrich: ${importId} — name format fetch failed (${nfErr.response?.status || nfErr.message}), continuing without it`);
+    }
+  }
+
+  const c         = cRes.data || {};
+  const firstName = toTitleCase(stripRESuffixes(c.first || ''));
+  const lastName  = toTitleCase(stripRESuffixes(c.last  || ''));
+
+  const relationships = relRes.data?.value || [];
+  const spouseRel = relationships.find(r =>
+    r.relation_type?.toLowerCase().includes('spouse') ||
+    r.relation_type?.toLowerCase().includes('husband') ||
+    r.relation_type?.toLowerCase().includes('wife')  ||
+    r.relation_type?.toLowerCase().includes('partner')
+  );
+
+  // Log relationship types so we can debug unexpected cases
+  if (!spouseRel && relationships.length > 0) {
+    console.log(`enrich: ${importId} — no spouse relationship found. Types present: ${[...new Set(relationships.map(r => r.relation_type))].join(', ')}`);
+  }
+
+  // Parse spouse name: prefer relationship record, fall back to parsing the informal salutation.
+  // The informal salutation is typically "FirstName1 and FirstName2" — cleaner than household_name.
+  let spouseFirstName = '';
+  let spouseLastName  = lastName; // default to same last name as primary
+  if (spouseRel) {
+    spouseFirstName = toTitleCase(spouseRel.first_name || spouseRel.name?.split(' ')[0] || '');
+    spouseLastName  = toTitleCase(spouseRel.last_name  || spouseRel.name?.split(' ').slice(1).join(' ') || lastName);
+  } else if (email2 && informalSal) {
+    // Informal salutation is "Primary and Spouse" — extract the part after " and "
+    const andIdx = informalSal.toLowerCase().indexOf(' and ');
+    if (andIdx !== -1) {
+      const spousePart = informalSal.slice(andIdx + 5).trim();
+      const parts = spousePart.split(/\s+/);
+      // If the spouse part has multiple words it's "FirstName LastName"; if just one word it's a first name
+      spouseFirstName = toTitleCase(parts[0] || '');
+      spouseLastName  = toTitleCase(parts.slice(1).join(' ') || lastName);
+    }
+  }
+
+  // Upsert primary constituent (creates if missing, updates name/email if existing)
+  await parentsSupabase.from('parent_constituents').upsert({
+    fid:                 String(constituentId),
+    household_import_id: importId,
+    first_name:          firstName,
+    last_name:           lastName,
+    email:               email1,
+    is_spouse:           false,
+  }, { onConflict: 'fid' });
+
+  // Upsert spouse — either from relationship record or household_name parse
+  if (spouseRel || (email2 && spouseFirstName)) {
+    await parentsSupabase.from('parent_constituents').upsert({
+      fid:                 String(constituentId) + 'S',
+      household_import_id: importId,
+      first_name:          spouseFirstName,
+      last_name:           spouseLastName,
+      email:               email2,
+      is_spouse:           true,
+    }, { onConflict: 'fid' });
+  } else if (email2) {
+    // Have Email 2 but couldn't determine a name — update any existing spouse record
+    await parentsSupabase.from('parent_constituents').update({ email: email2 }).eq('household_import_id', importId).eq('is_spouse', true);
+  }
+
+  console.log(`enrich: ${importId} → id=${constituentId} ${firstName} ${lastName}${(spouseRel || spouseFirstName) ? ` + ${spouseFirstName} ${spouseLastName}` : ''} email1=${email1 || '—'} email2=${email2 || '—'} giving=$${reGiving}`);
+
+  // 5. Update household giving total, name formats, and informal salutation.
+  // Only overwrite household_name if RE returned a clean Parent & Alumni Listing value.
+  const hhUpdate = { re_giving_2526: reGiving, informal_salutation: informalSal };
+  if (listingName) hhUpdate.household_name = listingName;
+
+  const { error: hhErr } = await parentsSupabase
+    .from('parent_households')
+    .update(hhUpdate)
+    .eq('household_import_id', importId);
+  if (hhErr) throw new Error(hhErr.message);
+
+  console.log(`enrich: ${importId} → id=${constituentId} listing="${listingName || '—'}" informal="${informalSal || '—'}" email1=${email1 || '—'} email2=${email2 || '—'} giving=$${reGiving}`);
+  return { constituentId, email1, email2, email1Date, email2Date, reGiving, informalSal };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION B: Constituent resolution
@@ -2210,6 +2420,40 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
+// GET /api/admin/households — all parent households with members and gift status
+app.get('/api/admin/households', requireAdmin, async (req, res) => {
+  const [hhRes, pcRes, giftsRes] = await Promise.all([
+    parentsSupabase.from('parent_households').select('*').order('household_import_id'),
+    parentsSupabase.from('parent_constituents').select('*'),
+    parentsSupabase.from('gifts').select('id, amount, created_at, household_import_id, first_name, last_name, anonymous'),
+  ]);
+
+  if (hhRes.error) return res.status(500).json({ error: hhRes.error.message });
+
+  // Index constituents and gifts by household
+  const membersByHH = {};
+  (pcRes.data || []).forEach(c => {
+    if (!membersByHH[c.household_import_id]) membersByHH[c.household_import_id] = [];
+    membersByHH[c.household_import_id].push(c);
+  });
+
+  const giftsByHH = {};
+  (giftsRes.data || []).forEach(g => {
+    if (!g.household_import_id) return;
+    if (!giftsByHH[g.household_import_id]) giftsByHH[g.household_import_id] = [];
+    giftsByHH[g.household_import_id].push(g);
+  });
+
+  const result = (hhRes.data || []).map(hh => {
+    const members  = membersByHH[hh.household_import_id] || [];
+    const hhGifts  = giftsByHH[hh.household_import_id]  || [];
+    const total    = hhGifts.reduce((s, g) => s + parseFloat(g.amount || 0), 0);
+    return { ...hh, members, gifts: hhGifts, has_given: hhGifts.length > 0, total_given: total };
+  });
+
+  res.json(result);
+});
+
 // GET /api/admin/gifts — all gifts with their affiliation credits, newest first
 app.get('/api/admin/gifts', requireAdmin, async (req, res) => {
   const { data, error } = await parentsSupabase
@@ -2279,6 +2523,125 @@ app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
   const { error } = await parentsSupabase.from('gifts').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
+});
+
+// POST /api/admin/enrich — pulls emails + FY2526 giving from RE NXT for a batch of households.
+//
+// Supabase prerequisite — run this once in the SQL editor if the column doesn't exist:
+//   ALTER TABLE parent_households ADD COLUMN IF NOT EXISTS re_giving_2526 NUMERIC DEFAULT 0;
+//
+// Body: { offset: number, limit: number }   (defaults: offset=0, limit=50)
+// Response: { ok, total, offset, limit, processed, enriched, errors[] }
+//
+// The three Annual Fund IDs for 2025-2026:
+//   547 = 2025-2026 Annual Fund ("2025-2026 Annual")
+//   556 = RGI - Annual Fund 2025-2026 ("RGI - AF 25-26")
+//   624 = Reunion 2026 - Ten for Trinity ("RE26 Ten for Trinity")
+app.post('/api/admin/enrich', requireAdmin, async (req, res) => {
+  const limit  = Math.min(parseInt(req.body.limit  ?? 50, 10), 100);
+  const offset = parseInt(req.body.offset ?? 0, 10);
+  const mode   = req.body.mode === 'all' ? 'all' : 'gaps'; // 'gaps' = NULL only, 'all' = everyone
+
+  // Load household list — gaps mode skips already-enriched rows
+  let query = parentsSupabase
+    .from('parent_households')
+    .select('household_import_id')
+    .order('household_import_id');
+  if (mode === 'gaps') query = query.is('re_giving_2526', null);
+
+  const { data: allHH, error: hhErr } = await query;
+
+  if (hhErr) return res.status(500).json({ error: hhErr.message });
+
+  const total = allHH.length;
+  const batch = allHH.slice(offset, offset + limit);
+
+  let enriched = 0;
+  const errors = [];
+  const RE_FUND_IDS = new Set(['547', '556', '624']);
+  const CONCURRENCY = 2; // conservative — avoids SKY API rate limits
+
+  // Uses module-level enrichOneHousehold() with controlled concurrency
+  async function enrichHousehold(hh) {
+    try {
+      await enrichOneHousehold(hh.household_import_id);
+      enriched++;
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+      errors.push({ importId: hh.household_import_id, error: msg });
+      console.warn(`enrich batch: ${hh.household_import_id} failed — ${msg}`);
+    }
+  }
+
+  // Process the batch with controlled concurrency
+  const queue = [...batch];
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (queue.length > 0) {
+        const hh = queue.shift();
+        if (hh) await enrichHousehold(hh);
+      }
+    })
+  );
+
+  res.json({
+    ok:          true,
+    total,
+    offset,
+    limit,
+    processed:   batch.length,
+    enriched,
+    error_count: errors.length,          // accurate count before slicing
+    errors:      errors.slice(0, 10),    // sample for diagnosis
+  });
+});
+
+// POST /api/admin/enrich/one — enriches a single household by import ID.
+// Used by the household detail modal for one-off testing before running the full batch.
+app.post('/api/admin/enrich/one', requireAdmin, async (req, res) => {
+  const { household_import_id } = req.body;
+  if (!household_import_id) return res.status(400).json({ error: 'household_import_id is required' });
+
+  try {
+    const result = await enrichOneHousehold(household_import_id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+    console.warn(`enrich/one: ${household_import_id} failed — ${msg}`);
+    res.status(500).json({ error: msg });
+  }
+});
+
+// GET /api/admin/debug/constituent/:importId — dumps raw RE constituent JSON for inspection.
+// Temporary diagnostic route — shows the full constituent record + salutation endpoint response.
+app.get('/api/admin/debug/constituent/:importId', requireAdmin, async (req, res) => {
+  const { importId } = req.params;
+  try {
+    const mapRes = await skyRequestRetry({
+      method: 'get',
+      url: `https://api.sky.blackbaud.com/nxt-data-integration/v1/re/importidmap/constituent/${encodeURIComponent(importId)}`,
+    });
+    const constituentId = mapRes.data?.system_record_id;
+    if (!constituentId) return res.status(404).json({ error: 'no system_record_id' });
+
+    // Fetch constituent record and name format summary
+    const [cRes, nfResult] = await Promise.allSettled([
+      skyRequestRetry({ method: 'get', url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}` }),
+      skyRequestRetry({ method: 'get', url: `https://api.sky.blackbaud.com/constituent/v1/constituents/${constituentId}/nameformats/summary` }),
+    ]);
+
+    const nfData = nfResult.status === 'fulfilled' ? nfResult.value.data : { error: nfResult.reason?.message, status: nfResult.reason?.response?.status };
+    const informalSal = nfData?.additional_name_formats?.find(f => f.type === 'Informal Salutation')?.formatted_name || null;
+
+    res.json({
+      constituentId,
+      constituent: cRes.status === 'fulfilled' ? cRes.value.data : { error: cRes.reason?.message },
+      nameFormats: nfData,
+      informalSalutation: informalSal,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -380,6 +380,61 @@
       font-size: 14px;
     }
 
+    /* ── Tabs ──────────────────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      width: fit-content;
+    }
+
+    .tab-btn {
+      padding: 7px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #888;
+      background: transparent;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover  { color: #172853; }
+    .tab-btn.active { background: #172853; color: #fff; }
+
+    /* ── Members cell ──────────────────────────────────────────────────────── */
+    .member-row { line-height: 1.4; }
+    .member-name  { font-size: 13px; font-weight: 600; color: #222; }
+    .member-email { font-size: 11px; color: #aaa; }
+    .member-sep   { border: none; border-top: 1px solid #f0eeec; margin: 5px 0; }
+    .hh-row       { cursor: pointer; }
+    .hh-row:hover td { background: #f7f5f2 !important; }
+
+    /* ── Pagination ────────────────────────────────────────────────────────── */
+    .pagination { display: flex; align-items: center; gap: 8px; }
+    .page-btn {
+      padding: 4px 12px;
+      border: 1px solid #e5e2dc;
+      border-radius: 5px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: #172853;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .page-btn:hover:not(:disabled) { background: #f0ede8; }
+    .page-btn:disabled { color: #ccc; cursor: default; border-color: #f0ede8; }
+    .page-info { font-size: 12px; color: #888; white-space: nowrap; }
+
+    .badge-given    { background: #F0FDF4; color: #166534; }
+    .badge-not-yet  { background: #F3F4F6; color: #6B7280; }
+
     /* ── Modal ─────────────────────────────────────────────────────────────── */
     .modal-overlay {
       display: none;
@@ -654,44 +709,128 @@
       </div>
     </div>
 
-    <!-- Controls -->
-    <div class="controls">
-      <div class="search-wrap">
-        <span class="search-icon">⌕</span>
-        <input class="search-input" type="text" id="search-input"
-               placeholder="Search name, email, or household ID…" oninput="applyFilters()">
-      </div>
-      <select class="filter-select" id="grade-filter" onchange="applyFilters()">
-        <option value="">All Grades</option>
-        <option value="K">Kindergarten</option>
-        <option value="1">1st Grade</option>
-        <option value="2">2nd Grade</option>
-        <option value="3">3rd Grade</option>
-        <option value="4">4th Grade</option>
-        <option value="5">5th Grade</option>
-        <option value="6">6th Grade</option>
-        <option value="7">7th Grade</option>
-        <option value="8">8th Grade</option>
-        <option value="9">9th Grade</option>
-        <option value="10">10th Grade</option>
-        <option value="11">11th Grade</option>
-        <option value="12">12th Grade</option>
-      </select>
-      <select class="filter-select" id="source-filter" onchange="applyFilters()">
-        <option value="">All Sources</option>
-        <option value="online">Online</option>
-        <option value="offline">Offline</option>
-      </select>
-      <button class="btn-sync" id="sync-btn" onclick="syncOffline()">↻ Sync Offline</button>
+    <!-- Tab switcher -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-donors"  onclick="switchTab('donors')">Donors</button>
+      <button class="tab-btn"        id="tab-parents" onclick="switchTab('parents')">All Parents</button>
     </div>
 
-    <!-- Table -->
-    <div class="table-wrap">
-      <div class="table-meta">
-        <span class="table-count" id="table-count">Loading…</span>
+    <!-- ── Donors view ─────────────────────────────────────────────────── -->
+    <div id="view-donors">
+      <div class="controls">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input class="search-input" type="text" id="search-input"
+                 placeholder="Search name, email, or household ID…" oninput="applyFilters()">
+        </div>
+        <select class="filter-select" id="grade-filter" onchange="applyFilters()">
+          <option value="">All Grades</option>
+          <option value="K">Kindergarten</option>
+          <option value="1">1st Grade</option>
+          <option value="2">2nd Grade</option>
+          <option value="3">3rd Grade</option>
+          <option value="4">4th Grade</option>
+          <option value="5">5th Grade</option>
+          <option value="6">6th Grade</option>
+          <option value="7">7th Grade</option>
+          <option value="8">8th Grade</option>
+          <option value="9">9th Grade</option>
+          <option value="10">10th Grade</option>
+          <option value="11">11th Grade</option>
+          <option value="12">12th Grade</option>
+        </select>
+        <select class="filter-select" id="source-filter" onchange="applyFilters()">
+          <option value="">All Sources</option>
+          <option value="online">Online</option>
+          <option value="offline">Offline</option>
+        </select>
+        <button class="btn-sync" id="sync-btn" onclick="syncOffline()">↻ Sync Offline</button>
       </div>
-      <div id="table-container">
-        <div class="tbl-loading">Loading gifts…</div>
+      <div class="table-wrap">
+        <div class="table-meta">
+          <span class="table-count" id="table-count">Loading…</span>
+        </div>
+        <div id="table-container">
+          <div class="tbl-loading">Loading gifts…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── All Parents view ────────────────────────────────────────────── -->
+    <div id="view-parents" style="display:none">
+
+      <!-- Parents stats bar -->
+      <div class="stats-bar" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Total Households</div>
+          <div class="stat-value" id="pstat-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Have Given</div>
+          <div class="stat-value" id="pstat-given" style="color:#166534;">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Not Yet Given</div>
+          <div class="stat-value" id="pstat-notyet">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Participation</div>
+          <div class="stat-value" id="pstat-pct">—</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input class="search-input" type="text" id="psearch-input"
+                 placeholder="Search by name or email…" oninput="applyParentsFilters(true)">
+        </div>
+        <select class="filter-select" id="pgrade-filter" onchange="applyParentsFilters(true)">
+          <option value="">All Grades</option>
+          <option value="K">Kindergarten</option>
+          <option value="1">1st Grade</option>
+          <option value="2">2nd Grade</option>
+          <option value="3">3rd Grade</option>
+          <option value="4">4th Grade</option>
+          <option value="5">5th Grade</option>
+          <option value="6">6th Grade</option>
+          <option value="7">7th Grade</option>
+          <option value="8">8th Grade</option>
+          <option value="9">9th Grade</option>
+          <option value="10">10th Grade</option>
+          <option value="11">11th Grade</option>
+          <option value="12">12th Grade</option>
+        </select>
+        <select class="filter-select" id="pstatus-filter" onchange="applyParentsFilters(true)">
+          <option value="">All Families</option>
+          <option value="given">Have Given</option>
+          <option value="notyet">Not Yet Given</option>
+        </select>
+        <button class="btn-sync" id="enrich-btn" onclick="enrichFromRE('gaps')" title="Enrich households not yet pulled from RE">⬇ Enrich New</button>
+        <button class="btn-sync" id="reenrich-btn" onclick="enrichFromRE('all')" title="Re-pull RE data for all households" style="background:#6b7280;">↺ Re-enrich All</button>
+      </div>
+      <div id="enrich-status" style="display:none;padding:10px 16px;font-size:12px;color:#666;background:#fafaf8;border-radius:6px;margin-top:8px;border:1px solid #e5e2dc;"></div>
+
+      <div class="table-wrap" id="ptable-wrap">
+        <div class="table-meta">
+          <span class="table-count" id="ptable-count">Loading…</span>
+          <div class="pagination" id="ptable-pagination" style="display:none;">
+            <button class="page-btn" id="ppage-prev" onclick="changeParentsPage(-1)">‹ Prev</button>
+            <span class="page-info" id="ppage-info"></span>
+            <button class="page-btn" id="ppage-next" onclick="changeParentsPage(1)">Next ›</button>
+          </div>
+        </div>
+        <div id="ptable-container">
+          <div class="tbl-loading">Click "All Parents" to load…</div>
+        </div>
+        <div class="table-meta" id="ptable-footer" style="display:none;border-top:1px solid #f0ede8;border-bottom:none;padding-top:10px;">
+          <span></span>
+          <div class="pagination">
+            <button class="page-btn" onclick="changeParentsPage(-1)">‹ Prev</button>
+            <span class="page-info" id="ppage-info-bottom"></span>
+            <button class="page-btn" onclick="changeParentsPage(1)">Next ›</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -782,14 +921,38 @@
   </div>
 </div>
 
+<!-- ── Household Detail Modal ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="hh-modal-overlay" onclick="handleHHOverlayClick(event)">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h2 id="hh-modal-title">Family</h2>
+      <button class="modal-close" onclick="closeHHModal()">×</button>
+    </div>
+    <div class="modal-body" id="hh-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-save" id="hh-enrich-btn" onclick="enrichOneFromModal()">⬇ Enrich from RE</button>
+      <button class="btn-cancel" onclick="closeHHModal()">Close</button>
+      <span class="modal-status ok"  id="hh-enrich-ok"></span>
+      <span class="modal-status err" id="hh-enrich-err"></span>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let sb           = null;   // Supabase client (anon key, auth only)
 let sessionToken = null;
-let allGifts     = [];
-let editingGift  = null;
+let allGifts       = [];
+let allHouseholds  = [];
+let householdsLoaded = false;
+let editingGift    = null;
 let selectedGrades = new Set();
+let activeTab      = 'donors';
+let openHHImportId  = null; // tracks which household modal is currently open
+let parentsPage     = 1;
+const PARENTS_PAGE_SIZE = 50;
+let parentsSort     = { col: null, dir: 1 }; // col: 'family'|'status'|'platform'|'re_giving'
 
 const GRADES = ['K','1','2','3','4','5','6','7','8','9','10','11','12'];
 
@@ -1168,6 +1331,464 @@ async function deleteGift() {
   }
 }
 
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('view-donors').style.display  = tab === 'donors'  ? 'block' : 'none';
+  document.getElementById('view-parents').style.display = tab === 'parents' ? 'block' : 'none';
+  document.getElementById('tab-donors').classList.toggle('active',  tab === 'donors');
+  document.getElementById('tab-parents').classList.toggle('active', tab === 'parents');
+
+  if (tab === 'parents' && !householdsLoaded) loadHouseholds();
+}
+
+// ── All Parents data ──────────────────────────────────────────────────────────
+async function loadHouseholds() {
+  document.getElementById('ptable-container').innerHTML = '<div class="tbl-loading">Loading all parents…</div>';
+  try {
+    allHouseholds = await apiGet('/api/admin/households');
+    householdsLoaded = true;
+    renderParentsStats();
+    applyParentsFilters();
+  } catch (err) {
+    document.getElementById('ptable-container').innerHTML =
+      `<div class="tbl-empty">Failed to load: ${err.message}</div>`;
+  }
+}
+
+function renderParentsStats() {
+  const total   = allHouseholds.length;
+  const given   = allHouseholds.filter(h => h.has_given).length;
+  const notYet  = total - given;
+  const pct     = total ? Math.round(given / total * 100) : 0;
+  document.getElementById('pstat-total').textContent  = total;
+  document.getElementById('pstat-given').textContent  = given;
+  document.getElementById('pstat-notyet').textContent = notYet;
+  document.getElementById('pstat-pct').textContent    = pct + '%';
+}
+
+function sortParents(col) {
+  if (parentsSort.col === col) {
+    parentsSort.dir *= -1;
+  } else {
+    parentsSort.col = col;
+    parentsSort.dir = 1;
+  }
+  applyParentsFilters();
+}
+
+function sortArrow(col) {
+  if (parentsSort.col !== col) return '<span style="color:#ccc;font-size:10px;margin-left:4px;">⇅</span>';
+  return parentsSort.dir === 1
+    ? '<span style="font-size:10px;margin-left:4px;">↑</span>'
+    : '<span style="font-size:10px;margin-left:4px;">↓</span>';
+}
+
+function applyParentsFilters(resetPage = false) {
+  if (resetPage) parentsPage = 1;
+  const q      = document.getElementById('psearch-input').value.toLowerCase().trim();
+  const grade  = document.getElementById('pgrade-filter').value;
+  const status = document.getElementById('pstatus-filter').value;
+
+  const filtered = allHouseholds.filter(h => {
+    if (status === 'given'  && !h.has_given) return false;
+    if (status === 'notyet' &&  h.has_given) return false;
+    if (grade && !(h.grades || []).includes(grade)) return false;
+    if (q) {
+      const hay = [
+        ...h.members.map(m => `${m.first_name} ${m.last_name} ${m.email || ''}`),
+        h.household_import_id,
+      ].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (parentsSort.col) {
+    filtered.sort((a, b) => {
+      let av, bv;
+      if (parentsSort.col === 'family') {
+        av = buildFamilyName(a.members, a.household_name).toLowerCase();
+        bv = buildFamilyName(b.members, b.household_name).toLowerCase();
+      } else if (parentsSort.col === 'status') {
+        av = a.has_given ? 1 : 0; bv = b.has_given ? 1 : 0;
+      } else if (parentsSort.col === 'platform') {
+        av = parseFloat(a.total_given || 0); bv = parseFloat(b.total_given || 0);
+      } else if (parentsSort.col === 're_giving') {
+        av = parseFloat(a.re_giving_2526 || 0); bv = parseFloat(b.re_giving_2526 || 0);
+      }
+      return av < bv ? -parentsSort.dir : av > bv ? parentsSort.dir : 0;
+    });
+  }
+
+  const total      = allHouseholds.length;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PARENTS_PAGE_SIZE));
+  if (parentsPage > totalPages) parentsPage = totalPages;
+
+  const pageStart  = (parentsPage - 1) * PARENTS_PAGE_SIZE;
+  const pageEnd    = pageStart + PARENTS_PAGE_SIZE;
+  const pageRows   = filtered.slice(pageStart, pageEnd);
+
+  document.getElementById('ptable-count').textContent =
+    filtered.length === total
+      ? `${total} household${total !== 1 ? 's' : ''}`
+      : `${filtered.length} of ${total} households`;
+
+  const pageInfoText = `Page ${parentsPage} of ${totalPages}`;
+  document.getElementById('ppage-info').textContent        = pageInfoText;
+  document.getElementById('ppage-info-bottom').textContent = pageInfoText;
+
+  const showPagination = totalPages > 1;
+  document.getElementById('ptable-pagination').style.display = showPagination ? 'flex' : 'none';
+  document.getElementById('ptable-footer').style.display     = showPagination ? 'block' : 'none';
+  document.getElementById('ppage-prev').disabled = parentsPage === 1;
+  document.getElementById('ppage-next').disabled = parentsPage === totalPages;
+
+  if (filtered.length === 0) {
+    document.getElementById('ptable-container').innerHTML =
+      '<div class="tbl-empty">No households match your filters.</div>';
+    return;
+  }
+
+  const rows = pageRows.map(h => {
+    const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation /* stored, not used for display */);
+    const gradeBadges = (h.grades || [])
+      .sort((a, b) => GRADES.indexOf(a) - GRADES.indexOf(b))
+      .map(g => `<span class="badge badge-grade">${gradeLabel(g)}</span>`)
+      .join('');
+
+    const membersHtml = h.members
+      .sort((a, b) => a.is_spouse - b.is_spouse) // primary first
+      .map((m, i) => `
+        ${i > 0 ? '<hr class="member-sep">' : ''}
+        <div class="member-row">
+          <div class="member-name">${esc(stripRESuffixesClient(m.first_name))} ${esc(stripRESuffixesClient(m.last_name))}</div>
+          ${m.email ? `<div class="member-email">${esc(m.email)}</div>` : ''}
+        </div>`).join('');
+
+    const statusBadge = h.has_given
+      ? `<span class="badge badge-given">Given</span>`
+      : `<span class="badge badge-not-yet">Not Yet</span>`;
+
+    const platformHtml = h.has_given
+      ? `<strong>${fmtAmount(h.total_given)}</strong>`
+      : '<span style="color:#ddd">—</span>';
+
+    const reGiving = parseFloat(h.re_giving_2526 || 0);
+    const reGivingHtml = reGiving > 0
+      ? `<strong>${fmtAmount(reGiving)}</strong>`
+      : '<span style="color:#ddd">—</span>';
+
+    return `<tr class="hh-row" onclick="openHHModal('${esc(h.household_import_id)}')">
+      <td><div style="font-weight:600;color:#172853;">${esc(familyName)}</div>
+          ${h.is_hh2 ? '<div style="font-size:10px;color:#aaa;margin-top:2px;">HH2</div>' : ''}</td>
+      <td>${membersHtml}</td>
+      <td>${gradeBadges || '<span style="color:#ddd">—</span>'}</td>
+      <td>${statusBadge}</td>
+      <td>${platformHtml}</td>
+      <td>${reGivingHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ptable-container').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortParents('family')" style="cursor:pointer;user-select:none;">Family${sortArrow('family')}</th>
+          <th>Members</th>
+          <th>Grade(s)</th>
+          <th onclick="sortParents('status')" style="cursor:pointer;user-select:none;">Status${sortArrow('status')}</th>
+          <th onclick="sortParents('platform')" style="cursor:pointer;user-select:none;">Platform Gifts${sortArrow('platform')}</th>
+          <th onclick="sortParents('re_giving')" style="cursor:pointer;user-select:none;">RE Giving 25-26${sortArrow('re_giving')}</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function changeParentsPage(dir) {
+  parentsPage += dir;
+  applyParentsFilters();
+  document.getElementById('ptable-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildFamilyName(members, householdName, informalSalutation) {
+  // Primary display: the RE household name (Parent & Alumni Listing format, updated by enrichment).
+  // Return as-is — class years like P'28, P'32 are intentional and should be shown.
+  if (householdName) return householdName;
+  // Fall back to building from member last names when no household name is available.
+  const lastNames = [...new Set(
+    members.map(m => toTitleCaseClient(m.last_name)).filter(Boolean)
+  )];
+  if (lastNames.length === 0) return 'Unknown Family';
+  if (lastNames.length === 1) return `The ${lastNames[0]} Family`;
+  const words0 = lastNames[0].toLowerCase().split(/[\s\-]+/);
+  const words1 = lastNames[1].toLowerCase().split(/[\s\-]+/);
+  const hasOverlap = words0.some(w => w.length > 1 && words1.includes(w));
+  if (hasOverlap) {
+    const compound = lastNames[0].length >= lastNames[1].length ? lastNames[0] : lastNames[1];
+    return `The ${compound} Family`;
+  }
+  return `The ${lastNames[0]} & ${lastNames[1]} Family`;
+}
+
+function toTitleCaseClient(str) {
+  if (!str) return str;
+  return str.split(' ')
+    .map(word => word.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join('-'))
+    .join(' ');
+}
+
+// Strip trailing RE naming suffixes from display names (", P, P", ", P'95", " '08", etc.)
+function stripRESuffixesClient(name) {
+  if (!name) return name;
+  return name.replace(/(?:[\s,]+(?:P'?\d*|'\d{2,4}))+$/gi, '').trim();
+}
+
+// ── Household Detail Modal ────────────────────────────────────────────────────
+function openHHModal(importId) {
+  const h = allHouseholds.find(hh => hh.household_import_id === importId);
+  if (!h) return;
+
+  const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation /* stored, not used for display */);
+  document.getElementById('hh-modal-title').textContent =
+    familyName + (h.is_hh2 ? '  ·  HH2' : '');
+
+  const grades = (h.grades || [])
+    .sort((a, b) => GRADES.indexOf(a) - GRADES.indexOf(b));
+  const gradeBadges = grades.length
+    ? grades.map(g => `<span class="badge badge-grade">${gradeLabel(g)}</span>`).join(' ')
+    : '<span style="color:#bbb;font-size:12px;">No grades on record</span>';
+
+  // Members
+  const memberRows = h.members.length
+    ? h.members
+        .sort((a, b) => a.is_spouse - b.is_spouse)
+        .map(m => `
+          <div style="margin-bottom:12px;">
+            <div style="font-weight:600;">${esc(stripRESuffixesClient(m.first_name))} ${esc(stripRESuffixesClient(m.last_name))}
+              ${m.is_spouse ? '<span style="font-size:11px;color:#aaa;font-weight:400;"> · Spouse</span>' : ''}
+            </div>
+            <div style="font-size:12px;color:#555;">${m.email ? esc(m.email) : '<span style="color:#ddd;">No email on record</span>'}
+              ${m._emailDate ? `<span style="color:#aaa;"> · updated ${fmtDateShort(m._emailDate)}</span>` : ''}
+            </div>
+          </div>`).join('')
+    : '';
+
+  const membersHtml = memberRows ||
+    '<div style="color:#bbb;font-size:12px;">No constituent records found</div>';
+
+  // Platform gifts
+  const giftsHtml = h.gifts && h.gifts.length
+    ? h.gifts.map(g => {
+        const name = g.anonymous ? 'Anonymous' : `${g.first_name || ''} ${g.last_name || ''}`.trim();
+        const sourceBadge = g.source === 'online'
+          ? '<span class="badge badge-online">Online</span>'
+          : '<span class="badge badge-offline">Offline</span>';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <strong>${fmtAmount(g.amount)}</strong>
+          ${sourceBadge}
+          <span style="font-size:12px;color:#888;">${fmtDate(g.created_at)}</span>
+          ${name !== familyName ? `<span style="font-size:12px;color:#aaa;">— ${esc(name)}</span>` : ''}
+        </div>`;
+      }).join('')
+    : '<div style="color:#bbb;font-size:12px;">No platform gifts</div>';
+
+  const reGiving = parseFloat(h.re_giving_2526 || 0);
+
+  document.getElementById('hh-modal-body').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Grades</div>
+      <div style="margin-top:4px;">${gradeBadges}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Members</div>
+      <div style="margin-top:6px;">${membersHtml}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Platform Gifts</div>
+      <div style="margin-top:6px;">${giftsHtml}</div>
+      ${h.has_given ? `<div style="margin-top:8px;font-size:12px;color:#555;">Total: <strong>${fmtAmount(h.total_given)}</strong></div>` : ''}
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">RE Giving 2025–26</div>
+      <div style="margin-top:6px;font-size:15px;">
+        ${reGiving > 0 ? `<strong>${fmtAmount(reGiving)}</strong> <span style="font-size:11px;color:#aaa;">(Annual Fund funds only)</span>` : '<span style="color:#bbb;font-size:12px;">Not yet enriched or $0</span>'}
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Record Info</div>
+      <div class="meta-grid" style="margin-top:6px;">
+        <div class="meta-box">
+          <div class="meta-box-label">Household ID</div>
+          <div class="meta-box-value" style="font-size:11px;">${esc(h.household_import_id)}</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-box-label">Type</div>
+          <div class="meta-box-value">${h.is_hh2 ? 'HH2 (split)' : 'Standard'}</div>
+        </div>
+      </div>
+    </div>`;
+
+  openHHImportId = importId;
+  document.getElementById('hh-enrich-ok').style.display  = 'none';
+  document.getElementById('hh-enrich-err').style.display = 'none';
+  document.getElementById('hh-enrich-btn').disabled = false;
+  document.getElementById('hh-enrich-btn').textContent = '⬇ Enrich from RE';
+  document.getElementById('hh-modal-overlay').classList.add('open');
+}
+
+function closeHHModal() {
+  document.getElementById('hh-modal-overlay').classList.remove('open');
+  openHHImportId = null;
+}
+
+function handleHHOverlayClick(e) {
+  if (e.target === document.getElementById('hh-modal-overlay')) closeHHModal();
+}
+
+async function enrichOneFromModal() {
+  if (!openHHImportId) return;
+  const btn   = document.getElementById('hh-enrich-btn');
+  const okEl  = document.getElementById('hh-enrich-ok');
+  const errEl = document.getElementById('hh-enrich-err');
+
+  btn.disabled = true;
+  btn.textContent = '⬇ Enriching…';
+  okEl.style.display = errEl.style.display = 'none';
+
+  const importId = openHHImportId; // capture before any async re-render resets it
+
+  try {
+    const result = await fetch('/api/admin/enrich/one', {
+      method:  'POST',
+      headers: authHeaders(),
+      body:    JSON.stringify({ household_import_id: importId }),
+    }).then(async r => {
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.error || r.statusText);
+      return body;
+    });
+
+    // Reload all household data so new member records created from RE appear
+    householdsLoaded = false;
+    await loadHouseholds();
+
+    // Patch the freshly-loaded household with email dates and any Email 2 that
+    // didn't get a spouse record (so the modal can display them)
+    const hh = allHouseholds.find(h => h.household_import_id === importId);
+    if (hh) {
+      const primary = hh.members.find(m => !m.is_spouse);
+      const spouse  = hh.members.find(m =>  m.is_spouse);
+      if (primary && result.email1Date) primary._emailDate = result.email1Date;
+      if (spouse  && result.email2Date) spouse._emailDate  = result.email2Date;
+      // If Email 2 exists but no spouse record was created, attach it to the household
+      // so the modal can still display it
+      // (Spouse record is always created/updated server-side, so no orphan handling needed)
+    }
+
+    // Re-render the modal with fresh + patched data
+    openHHModal(importId);
+    document.getElementById('hh-enrich-ok').textContent =
+      result.reGiving > 0 ? `✓ Saved` : `✓ Saved — $0 to qualifying funds this year`;
+    document.getElementById('hh-enrich-ok').style.display = 'inline';
+    document.getElementById('hh-enrich-btn').textContent = '⬇ Enrich from RE';
+
+  } catch (err) {
+    document.getElementById('hh-enrich-err').textContent = err.message;
+    document.getElementById('hh-enrich-err').style.display = 'inline';
+    document.getElementById('hh-enrich-btn').disabled = false;
+    document.getElementById('hh-enrich-btn').textContent = '⬇ Enrich from RE';
+  }
+}
+
+// ── RE Enrichment ─────────────────────────────────────────────────────────────
+async function enrichFromRE(mode = 'gaps') {
+  const btn        = document.getElementById('enrich-btn');
+  const reenrichBtn = document.getElementById('reenrich-btn');
+  const statusEl   = document.getElementById('enrich-status');
+
+  btn.disabled = reenrichBtn.disabled = true;
+  btn.textContent      = mode === 'all' ? '⬇ Enriching…' : '⬇ Enriching New…';
+  reenrichBtn.textContent = mode === 'all' ? '↺ Re-enriching…' : '↺ Re-enrich All';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = mode === 'gaps'
+    ? 'Looking for households not yet enriched…'
+    : 'Re-enriching all households from RE…';
+
+  const BATCH_SIZE = 50;
+  let offset   = 0;
+  let total    = null;
+  let totalEnriched = 0;
+  let totalErrors   = 0;
+  window._enrichErrors = [];
+
+  try {
+    while (true) {
+      const result = await fetch('/api/admin/enrich', {
+        method:  'POST',
+        headers: authHeaders(),
+        body:    JSON.stringify({ offset, limit: BATCH_SIZE, mode }),
+      }).then(async r => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error || r.statusText);
+        }
+        return r.json();
+      });
+
+      if (total === null) {
+        total = result.total;
+        if (total === 0) {
+          statusEl.innerHTML = '✓ All households already enriched — nothing to do. '
+            + 'Use <strong>↺ Re-enrich All</strong> to refresh RE data.';
+          return;
+        }
+      }
+      totalEnriched += result.enriched;
+      totalErrors   += result.error_count || 0;
+      offset        += result.processed;
+      // Collect a sample of error messages for diagnosis (cap at 5 unique)
+      if (result.errors?.length && !window._enrichErrors) window._enrichErrors = [];
+      if (window._enrichErrors && window._enrichErrors.length < 5) {
+        window._enrichErrors.push(...result.errors.slice(0, 5 - window._enrichErrors.length));
+      }
+
+      const pct = total > 0 ? Math.round(offset / total * 100) : 100;
+      statusEl.innerHTML =
+        `<strong>${offset} of ${total}</strong> households processed &nbsp;·&nbsp; ` +
+        `<span style="color:#166534;">${totalEnriched} enriched</span>` +
+        (totalErrors > 0 ? ` &nbsp;·&nbsp; <span style="color:#b91c1c;">${totalErrors} errors</span>` : '') +
+        ` &nbsp;·&nbsp; ${pct}%`;
+
+      if (offset >= total || result.processed === 0) break;
+    }
+
+    // Done — reload households so updated emails + RE giving show immediately
+    const sampleHtml = totalErrors > 0 && window._enrichErrors?.length
+      ? `<div style="margin-top:6px;font-size:11px;color:#999;">
+           Sample errors: ${window._enrichErrors.map(e => `<code>${esc(e.importId)}: ${esc(e.error)}</code>`).join(' &nbsp;·&nbsp; ')}
+         </div>`
+      : '';
+    statusEl.innerHTML =
+      `✓ Enrichment complete — <strong>${totalEnriched} of ${total}</strong> households updated` +
+      (totalErrors > 0 ? ` &nbsp;·&nbsp; <span style="color:#b91c1c;">${totalErrors} could not be resolved</span>` : '') +
+      ' &nbsp;·&nbsp; <a href="#" onclick="document.getElementById(\'enrich-status\').style.display=\'none\';return false;">dismiss</a>' +
+      sampleHtml;
+
+    householdsLoaded = false; // force reload
+    await loadHouseholds();
+  } catch (err) {
+    statusEl.innerHTML = `<span style="color:#b91c1c;">Enrichment failed: ${esc(err.message)}</span>`;
+    await checkSkyStatus(); // show re-auth banner if SKY API token is the issue
+  } finally {
+    btn.disabled = reenrichBtn.disabled = false;
+    btn.textContent      = '⬇ Enrich New';
+    reenrichBtn.textContent = '↺ Re-enrich All';
+  }
+}
+
 // ── Offline Sync ──────────────────────────────────────────────────────────────
 async function syncOffline() {
   const btn = document.getElementById('sync-btn');
@@ -1211,6 +1832,13 @@ function fmtDate(d) {
   return new Date(d).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
     hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
+  });
+}
+
+function fmtDateShort(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York',
   });
 }
 

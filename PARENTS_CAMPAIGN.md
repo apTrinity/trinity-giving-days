@@ -181,12 +181,50 @@ The three-segment yellow progress indicator at the base of the modal header.
 
 ---
 
+## Admin Dashboard (`/admin`)
+
+A password-protected internal dashboard for managing parents campaign donors.
+
+**Auth:** Supabase email + password. Account created manually in Supabase dashboard (Authentication → Users). Session lasts 1 week and auto-refreshes.
+
+**Access:** `https://trinity-giving-days.onrender.com/admin`
+
+**Features:**
+- Stats bar — total raised, total gifts, unique families, avg gift size
+- Donor table — searchable by name, email, or household ID; filterable by grade and source (online/offline)
+- Edit modal — update donor name, email, amount, anonymous flag, and grade affiliations
+- Delete gift — removes gift and all affiliation credits from Supabase
+- Sync Offline button — manually triggers `syncParentsOfflineGifts()` on demand
+- SKY API re-auth banner — appears automatically if the Blackbaud refresh token expires, with a direct link to `/auth/blackbaud`
+
+**API routes (all require Supabase JWT in Authorization header):**
+| Route | Description |
+|---|---|
+| `GET /api/admin/config` | Returns Supabase URL + anon key for browser auth (public) |
+| `GET /api/admin/sky-status` | Returns whether SKY API token is valid |
+| `GET /api/admin/gifts` | All gifts with affiliation credits, newest first |
+| `PATCH /api/admin/gifts/:id` | Update gift fields (name, email, amount, anonymous) |
+| `PUT /api/admin/gifts/:id/grades` | Replace all current_parent affiliations for a gift |
+| `DELETE /api/admin/gifts/:id` | Delete gift and its affiliation credits |
+
+---
+
+## SKY API Token Management
+
+- **Mutex on refresh:** concurrent requests wait for an in-progress refresh rather than each triggering their own, preventing `invalid_grant` race conditions
+- **Proactive refresh:** access token is refreshed every 45 minutes (tokens expire at ~60 min), so background jobs never hit an expired token mid-run
+- **`skyAuthValid` flag:** set to `false` on `invalid_grant`; admin dashboard polls `/api/admin/sky-status` and shows a re-auth banner when needed
+- **Manual re-auth:** visit `/auth/blackbaud` in the browser to restart the OAuth flow and save new tokens to Supabase
+
+---
+
 ## Environment Variables
 
 | Variable | Description |
 |---|---|
 | `SUPABASE_URL_PARENTS` | `https://xkrvkswtljwswlnkzqhc.supabase.co` |
 | `SUPABASE_KEY_PARENTS` | Supabase service role key for parents project |
+| `SUPABASE_ANON_KEY_PARENTS` | Supabase anon key — safe to expose in browser, used for admin login |
 | `PAYMENT_CONFIG_ID_TEST` | `e9126f05-0cc7-4a36-ba68-ac6bffd9f969` |
 | `PAYMENT_CONFIG_ID_LIVE` | `8d2a50a3-deb8-41d0-8f0a-01b5955d69d6` |
 
