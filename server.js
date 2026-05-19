@@ -71,7 +71,7 @@ async function sendConfirmationEmail(gift, affiliations) {
 
         <!-- Header -->
         <div style="padding:24px 32px 20px;border-bottom:1px solid #ddd;">
-          <img src="https://givecampus.s3-accelerate.amazonaws.com/uploads/project/share_image/72106/facebook_small_trinity_giving_days_2025_logo.png"
+          <img src="https://giving.trinityschoolnyc.org/trinity-fund-logo.png"
                alt="Trinity School" width="180" style="display:block;" />
         </div>
 
@@ -237,7 +237,7 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
 
         <!-- Header -->
         <div class="em-hdr" bgcolor="#172853" style="background-color:#172853;padding:24px 32px 20px;border-bottom:3px solid #F2CC07;">
-          <img src="https://trinity-giving-days.onrender.com/trinity-fund-logo.png"
+          <img src="https://giving.trinityschoolnyc.org/trinity-fund-logo.png"
                alt="Trinity Fund 2025–2026" width="220" style="display:block;" />
         </div>
 
