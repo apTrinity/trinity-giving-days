@@ -119,7 +119,13 @@ async function sendConfirmationEmail(gift, affiliations) {
 
 // ─── Staff notification email ─────────────────────────────────────────────────
 const STAFF_EMAILS = [
+  'abigail.bedrick@trinityschoolnyc.org',
   'andrew.peterson@trinityschoolnyc.org',
+  'edward.griffin@trinityschoolnyc.org',
+  'frances.shafer@trinityschoolnyc.org',
+  'migdalia.villanueva@trinityschoolnyc.org',
+  'myles.amend@trinityschoolnyc.org',
+  'philip.bien@trinityschoolnyc.org',
 ];
 
 async function sendStaffNotification(gift, affiliations) {
@@ -315,7 +321,13 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
 
 // ─── Parents: staff notification email ───────────────────────────────────────
 const PARENTS_STAFF_EMAILS = [
+  'abigail.bedrick@trinityschoolnyc.org',
   'andrew.peterson@trinityschoolnyc.org',
+  'edward.griffin@trinityschoolnyc.org',
+  'frances.shafer@trinityschoolnyc.org',
+  'migdalia.villanueva@trinityschoolnyc.org',
+  'myles.amend@trinityschoolnyc.org',
+  'philip.bien@trinityschoolnyc.org',
 ];
 
 async function sendParentsStaffNotification(gift, affiliations) {
