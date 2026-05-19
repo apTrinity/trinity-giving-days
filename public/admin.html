@@ -1390,50 +1390,54 @@ function applyParentsFilters(resetPage = false) {
   const grade  = document.getElementById('pgrade-filter').value;
   const status = document.getElementById('pstatus-filter').value;
 
-  const filtered = allHouseholds.filter(h => {
-    if (status === 'given'  && !h.has_given) return false;
-    if (status === 'notyet' &&  h.has_given) return false;
-    if (grade && !(h.grades || []).includes(grade)) return false;
-    if (q) {
-      const hay = [
-        ...h.members.map(m => `${m.first_name} ${m.last_name} ${m.email || ''}`),
-        h.household_import_id,
-      ].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
+  // Flatten to one row per member, carrying household data alongside
+  let flatRows = [];
+  for (const h of allHouseholds) {
+    if (status === 'given'  && !h.has_given) continue;
+    if (status === 'notyet' &&  h.has_given) continue;
+    if (grade && !(h.grades || []).includes(grade)) continue;
+    const familyName = buildFamilyName(h.members, h.household_name);
+    for (const m of h.members) {
+      if (q) {
+        const hay = `${m.first_name} ${m.last_name} ${m.email || ''} ${m.fid || ''} ${familyName} ${h.household_import_id}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      flatRows.push({ m, h, familyName });
     }
-    return true;
-  });
+  }
 
   // Sort
   if (parentsSort.col) {
-    filtered.sort((a, b) => {
+    flatRows.sort((a, b) => {
       let av, bv;
-      if (parentsSort.col === 'family') {
-        av = buildFamilyName(a.members, a.household_name).toLowerCase();
-        bv = buildFamilyName(b.members, b.household_name).toLowerCase();
+      if (parentsSort.col === 'name') {
+        av = `${a.m.last_name} ${a.m.first_name}`.toLowerCase();
+        bv = `${b.m.last_name} ${b.m.first_name}`.toLowerCase();
+      } else if (parentsSort.col === 'household') {
+        av = a.familyName.toLowerCase(); bv = b.familyName.toLowerCase();
       } else if (parentsSort.col === 'status') {
-        av = a.has_given ? 1 : 0; bv = b.has_given ? 1 : 0;
+        av = a.h.has_given ? 1 : 0; bv = b.h.has_given ? 1 : 0;
       } else if (parentsSort.col === 'platform') {
-        av = parseFloat(a.total_given || 0); bv = parseFloat(b.total_given || 0);
+        av = parseFloat(a.h.total_given || 0); bv = parseFloat(b.h.total_given || 0);
       } else if (parentsSort.col === 're_giving') {
-        av = parseFloat(a.re_giving_2526 || 0); bv = parseFloat(b.re_giving_2526 || 0);
+        av = parseFloat(a.h.re_giving_2526 || 0); bv = parseFloat(b.h.re_giving_2526 || 0);
       }
       return av < bv ? -parentsSort.dir : av > bv ? parentsSort.dir : 0;
     });
   }
 
-  const total      = allHouseholds.length;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PARENTS_PAGE_SIZE));
+  const totalMembers = flatRows.length;
+  const totalHH      = allHouseholds.length;
+  const totalPages   = Math.max(1, Math.ceil(totalMembers / PARENTS_PAGE_SIZE));
   if (parentsPage > totalPages) parentsPage = totalPages;
 
-  const pageStart  = (parentsPage - 1) * PARENTS_PAGE_SIZE;
-  const pageEnd    = pageStart + PARENTS_PAGE_SIZE;
-  const pageRows   = filtered.slice(pageStart, pageEnd);
+  const pageStart = (parentsPage - 1) * PARENTS_PAGE_SIZE;
+  const pageRows  = flatRows.slice(pageStart, pageStart + PARENTS_PAGE_SIZE);
 
   document.getElementById('ptable-count').textContent =
-    filtered.length === total
-      ? `${total} household${total !== 1 ? 's' : ''}`
-      : `${filtered.length} of ${total} households`;
+    totalMembers === flatRows.length && !q && !grade && !status
+      ? `${totalHH} households · ${totalMembers} people`
+      : `${totalMembers} people`;
 
   const pageInfoText = `Page ${parentsPage} of ${totalPages}`;
   document.getElementById('ppage-info').textContent        = pageInfoText;
@@ -1445,27 +1449,17 @@ function applyParentsFilters(resetPage = false) {
   document.getElementById('ppage-prev').disabled = parentsPage === 1;
   document.getElementById('ppage-next').disabled = parentsPage === totalPages;
 
-  if (filtered.length === 0) {
+  if (flatRows.length === 0) {
     document.getElementById('ptable-container').innerHTML =
-      '<div class="tbl-empty">No households match your filters.</div>';
+      '<div class="tbl-empty">No people match your filters.</div>';
     return;
   }
 
-  const rows = pageRows.map(h => {
-    const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation /* stored, not used for display */);
+  const rows = pageRows.map(({ m, h, familyName }) => {
     const gradeBadges = (h.grades || [])
       .sort((a, b) => GRADES.indexOf(a) - GRADES.indexOf(b))
       .map(g => `<span class="badge badge-grade">${gradeLabel(g)}</span>`)
       .join('');
-
-    const membersHtml = h.members
-      .sort((a, b) => a.is_spouse - b.is_spouse) // primary first
-      .map((m, i) => `
-        ${i > 0 ? '<hr class="member-sep">' : ''}
-        <div class="member-row">
-          <div class="member-name">${esc(stripRESuffixesClient(m.first_name))} ${esc(stripRESuffixesClient(m.last_name))}</div>
-          ${m.email ? `<div class="member-email">${esc(m.email)}</div>` : ''}
-        </div>`).join('');
 
     const statusBadge = h.has_given
       ? `<span class="badge badge-given">Given</span>`
@@ -1481,9 +1475,15 @@ function applyParentsFilters(resetPage = false) {
       : '<span style="color:#ddd">—</span>';
 
     return `<tr class="hh-row" onclick="openHHModal('${esc(h.household_import_id)}')">
-      <td><div style="font-weight:600;color:#172853;">${esc(familyName)}</div>
-          ${h.is_hh2 ? '<div style="font-size:10px;color:#aaa;margin-top:2px;">HH2</div>' : ''}</td>
-      <td>${membersHtml}</td>
+      <td>
+        <div style="font-weight:600;">${esc(m.first_name)} ${esc(m.last_name)}</div>
+        ${m.email ? `<div class="member-email">${esc(m.email)}</div>` : ''}
+        ${m.fid ? `<div style="font-size:10px;color:#bbb;font-family:monospace;margin-top:2px;">?fid=${esc(m.fid)}</div>` : ''}
+      </td>
+      <td>
+        <div style="color:#172853;">${esc(familyName)}</div>
+        ${h.is_hh2 ? '<div style="font-size:10px;color:#aaa;">HH2</div>' : ''}
+      </td>
       <td>${gradeBadges || '<span style="color:#ddd">—</span>'}</td>
       <td>${statusBadge}</td>
       <td>${platformHtml}</td>
@@ -1495,8 +1495,8 @@ function applyParentsFilters(resetPage = false) {
     <table>
       <thead>
         <tr>
-          <th onclick="sortParents('family')" style="cursor:pointer;user-select:none;">Family${sortArrow('family')}</th>
-          <th>Members</th>
+          <th onclick="sortParents('name')" style="cursor:pointer;user-select:none;">Name${sortArrow('name')}</th>
+          <th onclick="sortParents('household')" style="cursor:pointer;user-select:none;">Household${sortArrow('household')}</th>
           <th>Grade(s)</th>
           <th onclick="sortParents('status')" style="cursor:pointer;user-select:none;">Status${sortArrow('status')}</th>
           <th onclick="sortParents('platform')" style="cursor:pointer;user-select:none;">Platform Gifts${sortArrow('platform')}</th>
@@ -1573,6 +1573,10 @@ function openHHModal(importId) {
             <div style="font-size:12px;color:#555;">${m.email ? esc(m.email) : '<span style="color:#ddd;">No email on record</span>'}
               ${m._emailDate ? `<span style="color:#aaa;"> · updated ${fmtDateShort(m._emailDate)}</span>` : ''}
             </div>
+            ${m.fid ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+              <code style="font-size:10px;color:#aaa;font-family:monospace;">?fid=${esc(m.fid)}</code>
+              <button style="font-size:10px;padding:1px 6px;border:1px solid #ddd;border-radius:3px;background:#fff;cursor:pointer;color:#555;" onclick="event.stopPropagation();navigator.clipboard.writeText('https://giving.trinityschoolnyc.org/parents?fid=${esc(m.fid)}').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy link',1500)})">Copy link</button>
+            </div>` : ''}
           </div>`).join('')
     : '';
 

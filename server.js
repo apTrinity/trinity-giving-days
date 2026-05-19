@@ -1958,19 +1958,31 @@ app.get('/api/parents/lookup', async (req, res) => {
   try {
     // ── Email lookup (step-1 form path) ──────────────────────────────────────
     if (email) {
-      const { data: constituent } = await parentsSupabase
+      // Fetch ALL constituents with this email — the same email can appear on
+      // multiple records when a parent is both a primary constituent and a spouse
+      // entry (e.g. dual-alumni HH2 households). We prefer the record whose
+      // household has grades, so the form can pre-fill grade chips.
+      const { data: constituents } = await parentsSupabase
         .from('parent_constituents')
         .select('fid, household_import_id, first_name, last_name, email')
-        .ilike('email', email.trim())
-        .maybeSingle();
+        .ilike('email', email.trim());
 
-      if (!constituent) return res.json({ found: false });
+      if (!constituents || constituents.length === 0) return res.json({ found: false });
 
-      const { data: household } = await parentsSupabase
+      // Fetch all matching households and pick the one with grades if there are multiple.
+      const hhIds = [...new Set(constituents.map(c => c.household_import_id))];
+      const { data: households } = await parentsSupabase
         .from('parent_households')
-        .select('household_name, grades')
-        .eq('household_import_id', constituent.household_import_id)
-        .maybeSingle();
+        .select('household_import_id, household_name, grades')
+        .in('household_import_id', hhIds);
+
+      const hhMap = Object.fromEntries((households || []).map(h => [h.household_import_id, h]));
+
+      // Prefer a constituent whose household has grades; fall back to first match.
+      const constituent = constituents.find(c => (hhMap[c.household_import_id]?.grades || []).length > 0)
+        || constituents[0];
+
+      const household = hhMap[constituent.household_import_id] || null;
 
       const { data: priorGift } = await parentsSupabase
         .from('gifts')
