@@ -2449,30 +2449,48 @@ async function requireAdmin(req, res, next) {
 }
 
 // GET /api/admin/households — all parent households with members and gift status
-app.get('/api/admin/households', requireAdmin, async (req, res) => {
-  const [hhRes, pcRes, giftsRes] = await Promise.all([
-    parentsSupabase.from('parent_households').select('*').order('household_import_id'),
-    parentsSupabase.from('parent_constituents').select('*').limit(5000),
-    parentsSupabase.from('gifts').select('id, amount, created_at, household_import_id, first_name, last_name, anonymous').limit(5000),
-  ]);
+// Fetch all rows from a Supabase table, paginating past the project's max-rows limit.
+async function fetchAll(query, pageSize = 900) {
+  let all = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
 
-  if (hhRes.error) return res.status(500).json({ error: hhRes.error.message });
+app.get('/api/admin/households', requireAdmin, async (req, res) => {
+  let households, constituents, gifts;
+  try {
+    [households, constituents, gifts] = await Promise.all([
+      fetchAll(parentsSupabase.from('parent_households').select('*').order('household_import_id')),
+      fetchAll(parentsSupabase.from('parent_constituents').select('*')),
+      fetchAll(parentsSupabase.from('gifts').select('id, amount, created_at, household_import_id, first_name, last_name, anonymous')),
+    ]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 
   // Index constituents and gifts by household
   const membersByHH = {};
-  (pcRes.data || []).forEach(c => {
+  constituents.forEach(c => {
     if (!membersByHH[c.household_import_id]) membersByHH[c.household_import_id] = [];
     membersByHH[c.household_import_id].push(c);
   });
 
   const giftsByHH = {};
-  (giftsRes.data || []).forEach(g => {
+  gifts.forEach(g => {
     if (!g.household_import_id) return;
     if (!giftsByHH[g.household_import_id]) giftsByHH[g.household_import_id] = [];
     giftsByHH[g.household_import_id].push(g);
   });
 
-  const result = (hhRes.data || []).map(hh => {
+  const result = households.map(hh => {
     const members  = membersByHH[hh.household_import_id] || [];
     const hhGifts  = giftsByHH[hh.household_import_id]  || [];
     const total    = hhGifts.reduce((s, g) => s + parseFloat(g.amount || 0), 0);
