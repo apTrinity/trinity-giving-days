@@ -1014,6 +1014,7 @@ window.addEventListener('load', function() {
   checkoutService.checkoutReady.subscribe(function() { checkoutReady = true; });
 
   checkoutService.checkoutComplete.subscribe(function(e) {
+    console.log('CHECKOUT EVENT:', JSON.stringify(e));  // TEMP — remove after wallet type test
     if (!e || !e.success) return;
 
     var txnId = e.transaction.id;
