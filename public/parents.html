@@ -622,6 +622,11 @@ function renderAskAmounts(askA, askB, askLy) {
     var label = '$' + amt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     return '<button class="amt-btn" onclick="pickAmt(' + amt + ',this)">' + label + '</button>';
   }).join('') + '<button class="amt-btn" onclick="showCustomAmt(this)">Other</button>';
+
+  // Pre-select the highest amount
+  var highest = amounts[amounts.length - 1];
+  var highBtn = grid.querySelector('.amt-btn:nth-last-child(2)');
+  if (highest && highBtn) pickAmt(highest, highBtn);
 }
 
 function buildGradeChips(grades) {
