@@ -477,7 +477,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <!-- 1709 Society accordion -->
         <div style="margin-top:20px;margin-bottom:16px;">
           <button type="button" onclick="toggle1709(this)" style="background:#172853;border:none;padding:8px 28px 8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Open Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#fff;border-left:3px solid rgb(242,204,7);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);width:100%;text-align:left;opacity:0.85;transition:opacity 0.15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
-            <span id="toggle-1709-arrow" style="font-size:9px;transition:transform 0.2s;display:inline-block;">▶</span>
+            <span id="toggle-1709-arrow" style="display:inline-block;width:7px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);transition:transform 0.2s;flex-shrink:0;margin-bottom:1px;"></span>
             The 1709 Society Giving Levels
           </button>
           <div id="society-accordion" style="display:none;margin-top:6px;border:1px solid #e8e4de;border-radius:6px;overflow:hidden;">
@@ -966,7 +966,7 @@ function toggle1709(btn) {
   var arrow = document.getElementById('toggle-1709-arrow');
   var open  = panel.style.display === 'none';
   panel.style.display = open ? 'block' : 'none';
-  arrow.style.transform = open ? 'rotate(90deg)' : '';
+  arrow.style.transform = open ? 'rotate(45deg)' : 'rotate(-45deg)';
 }
 
 function pickAmt(amt, btn) {
