@@ -745,6 +745,8 @@
           <option value="offline">Offline</option>
         </select>
         <button class="btn-sync" id="sync-btn" onclick="syncOffline()">↻ Sync Offline</button>
+        <button class="btn-sync" id="export-re-btn" onclick="exportRECsv()" style="background:#EEF2FF;color:#3730a3;border-color:#c7d2fe;" title="Download unsynced online gifts as a RE NXT import CSV">⬇ Export RE CSV</button>
+        <button class="btn-sync" id="mark-synced-btn" onclick="markRESynced()" style="background:#F0FDF4;color:#166534;border-color:#bbf7d0;" title="Mark all exported gifts as synced in Supabase">✓ Mark Synced</button>
       </div>
       <div class="table-wrap">
         <div class="table-meta">
@@ -947,6 +949,7 @@ let allGifts       = [];
 let allHouseholds  = [];
 let householdsLoaded = false;
 let editingGift    = null;
+let selectedGiftIds = new Set();
 let selectedGrades = new Set();
 let activeTab      = 'donors';
 let openHHImportId  = null; // tracks which household modal is currently open
@@ -1169,7 +1172,15 @@ function applyFilters() {
       ? '<span class="td-anon">Anonymous</span>'
       : `<span class="td-name">${esc(g.first_name || '')} ${esc(g.last_name || '')}</span>`;
 
-    return `<tr onclick="openEdit('${g.id}')">
+    const syncedCell = g.re_synced_at
+      ? `<span style="color:#16a34a;font-size:11px;font-weight:600;">✓ Synced</span>`
+      : `<input type="checkbox" class="re-sync-check" data-id="${g.id}"
+           ${selectedGiftIds.has(g.id) ? 'checked' : ''}
+           onclick="event.stopPropagation();toggleSyncSelect('${g.id}', this.checked)"
+           style="width:15px;height:15px;cursor:pointer;accent-color:#3730a3;">`;
+
+    return `<tr onclick="openEdit('${g.id}')" ${g.re_synced_at ? 'style="opacity:0.55;"' : ''}>
+      <td onclick="event.stopPropagation()">${syncedCell}</td>
       <td>
         ${nameHtml}
         <div class="td-sub">${matchBadge}</div>
@@ -1183,10 +1194,18 @@ function applyFilters() {
     </tr>`;
   }).join('');
 
+  const unsyncedCount = filtered.filter(g => !g.re_synced_at).length;
+  const allChecked = unsyncedCount > 0 && filtered.filter(g => !g.re_synced_at).every(g => selectedGiftIds.has(g.id));
+
   document.getElementById('table-container').innerHTML = `
     <table>
       <thead>
         <tr>
+          <th style="width:36px;">
+            <input type="checkbox" title="Select all unsynced" ${allChecked ? 'checked' : ''}
+              onclick="toggleSelectAll(this.checked, ${JSON.stringify(filtered.filter(g => !g.re_synced_at).map(g => g.id))})"
+              style="width:15px;height:15px;cursor:pointer;accent-color:#3730a3;">
+          </th>
           <th>Name</th>
           <th>Email</th>
           <th>Amount</th>
@@ -1808,6 +1827,81 @@ async function syncOffline() {
     alert('Sync failed: ' + err.message);
   } finally {
     btn.textContent = '↻ Sync Offline';
+    btn.disabled = false;
+  }
+}
+
+async function exportRECsv() {
+  const btn = document.getElementById('export-re-btn');
+  btn.textContent = '⬇ Exporting…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/admin/export-re-csv', { headers: authHeaders() });
+    if (r.headers.get('Content-Type')?.includes('application/json')) {
+      const result = await r.json();
+      if (result.empty) { alert('No unsynced gifts to export.'); return; }
+      throw new Error(result.error || 'Export failed');
+    }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `re-gift-import-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Export failed: ' + err.message);
+  } finally {
+    btn.textContent = '⬇ Export RE CSV';
+    btn.disabled = false;
+  }
+}
+
+function toggleSyncSelect(id, checked) {
+  if (checked) selectedGiftIds.add(id);
+  else selectedGiftIds.delete(id);
+  updateMarkSyncedBtn();
+}
+
+function toggleSelectAll(checked, ids) {
+  ids.forEach(id => checked ? selectedGiftIds.add(id) : selectedGiftIds.delete(id));
+  applyFilters();
+  updateMarkSyncedBtn();
+}
+
+function updateMarkSyncedBtn() {
+  const btn = document.getElementById('mark-synced-btn');
+  btn.textContent = selectedGiftIds.size > 0
+    ? `✓ Mark Synced (${selectedGiftIds.size})`
+    : '✓ Mark Synced';
+}
+
+async function markRESynced() {
+  const ids = [...selectedGiftIds];
+  const msg = ids.length > 0
+    ? `Mark ${ids.length} selected gift(s) as synced?\n\nOnly do this after successfully importing them into RE NXT.`
+    : 'No gifts selected. Check the boxes next to the gifts you imported into RE NXT first.';
+  if (ids.length === 0) { alert(msg); return; }
+  if (!confirm(msg)) return;
+
+  const btn = document.getElementById('mark-synced-btn');
+  btn.textContent = '✓ Marking…';
+  btn.disabled = true;
+  try {
+    const r      = await fetch('/api/admin/mark-re-synced', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    const result = await r.json();
+    if (result.error) throw new Error(result.error);
+    selectedGiftIds.clear();
+    alert(`✓ ${result.count} gift(s) marked as synced.`);
+    await loadGifts();
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  } finally {
+    btn.textContent = '✓ Mark Synced';
     btn.disabled = false;
   }
 }

@@ -2553,6 +2553,112 @@ app.delete('/api/admin/gifts/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/admin/export-re-csv — generate RE NXT gift import CSV for all unsynced online gifts
+app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
+  const { data: gifts, error } = await parentsSupabase
+    .from('gifts')
+    .select('*')
+    .eq('source', 'online')
+    .is('re_synced_at', null)
+    .order('created_at', { ascending: true });
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!gifts || gifts.length === 0) {
+    return res.status(200).json({ empty: true, message: 'No unsynced gifts to export.' });
+  }
+
+  const fmtDate = iso => {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
+  };
+  const toCSV = arr => arr.map(v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(',');
+
+  const columns = [
+    'ImportID', 'GiftID', 'donor_name', 'GFType',
+    'GFDate', 'GFTAmt', 'GFAnon', 'note_content',
+    'CampID', 'FundID', 'GFAppeal', 'GFPayMeth',
+    'GFCCType', 'GFCardholderName',
+    'GFAckStatus', 'GFAckLetter',
+    'GFAttrImpID', 'GFAttrCat', 'checkout_id', 'GFAttrDate',
+  ];
+  const rows = [toCSV(columns)];
+
+  for (const gift of gifts) {
+    let cardType = '';
+    let cardholderName = `${gift.first_name} ${gift.last_name}`;
+    try {
+      const txnRes = await skyRequest({
+        method: 'get',
+        url: `https://api.sky.blackbaud.com/payments/v1/transactions/${gift.transaction_id}`,
+      }, process.env.BBMS_API_KEY);
+      cardType       = txnRes.data?.credit_card?.card_type || '';
+      cardholderName = txnRes.data?.credit_card?.name      || cardholderName;
+    } catch (err) {
+      console.warn(`export-re-csv: BBMS lookup failed for ${gift.transaction_id}: ${err.response?.status || err.message}`);
+    }
+
+    const ackLetter = parseFloat(gift.amount) >= 1709 ? '1709 Society' : 'Trinity Fund';
+
+    rows.push(toCSV([
+      gift.constituent_id || '',
+      gift.transaction_id,
+      `${gift.first_name} ${gift.last_name}`,
+      'Cash',
+      fmtDate(gift.created_at),
+      parseFloat(gift.amount).toFixed(2),
+      gift.anonymous ? 'Y' : '',
+      '',
+      'Unrest. Oper.',
+      '2025-2026 Annual',
+      '',
+      'Credit Card',
+      cardType,
+      cardholderName,
+      'NeedsAcknowledgement',
+      ackLetter,
+      '',
+      'BBMS Transaction ID',
+      gift.transaction_id,
+      fmtDate(gift.created_at),
+    ]));
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="re-gift-import-${today}.csv"`);
+  res.send(rows.join('\n'));
+});
+
+// POST /api/admin/mark-re-synced — stamp re_synced_at on selected (or all unsynced) online gifts
+// Body: { ids: string[] }  — if omitted or empty, marks all unsynced online gifts
+app.post('/api/admin/mark-re-synced', requireAdmin, async (req, res) => {
+  let ids = req.body?.ids;
+
+  if (!ids || ids.length === 0) {
+    const { data: gifts, error: fetchError } = await parentsSupabase
+      .from('gifts')
+      .select('id')
+      .eq('source', 'online')
+      .is('re_synced_at', null);
+    if (fetchError) return res.status(500).json({ error: fetchError.message });
+    ids = (gifts || []).map(g => g.id);
+  }
+
+  if (ids.length === 0) return res.json({ count: 0 });
+
+  const { error: updateError } = await parentsSupabase
+    .from('gifts')
+    .update({ re_synced_at: new Date().toISOString() })
+    .in('id', ids);
+
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  res.json({ count: ids.length });
+});
+
 // POST /api/admin/enrich — pulls emails + FY2526 giving from RE NXT for a batch of households.
 //
 // Supabase prerequisite — run this once in the SQL editor if the column doesn't exist:
