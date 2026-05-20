@@ -599,6 +599,29 @@ function applyLookupData(data, firstName) {
   if (data.grades && data.grades.length > 0) {
     buildGradeChips(data.grades);
   }
+
+  // Custom ask amounts — replace standard buttons when present
+  if (data.ask_a || data.ask_b || data.ask_ly) {
+    renderAskAmounts(data.ask_a, data.ask_b, data.ask_ly);
+  }
+}
+
+function renderAskAmounts(askA, askB, askLy) {
+  var grid = document.querySelector('.amt-grid');
+  if (!grid) return;
+
+  // Build the list of non-zero, non-duplicate ask amounts + Other
+  var amounts = [];
+  [askLy, askA, askB].forEach(function(a) {
+    var n = parseFloat(a);
+    if (n > 0 && amounts.indexOf(n) === -1) amounts.push(n);
+  });
+  amounts.sort(function(a, b) { return a - b; });
+
+  grid.innerHTML = amounts.map(function(amt) {
+    var label = '$' + amt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return '<button class="amt-btn" onclick="pickAmt(' + amt + ',this)">' + label + '</button>';
+  }).join('') + '<button class="amt-btn" onclick="showCustomAmt(this)">Other</button>';
 }
 
 function buildGradeChips(grades) {

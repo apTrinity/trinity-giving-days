@@ -1973,7 +1973,7 @@ app.get('/api/parents/lookup', async (req, res) => {
       const hhIds = [...new Set(constituents.map(c => c.household_import_id))];
       const { data: households } = await parentsSupabase
         .from('parent_households')
-        .select('household_import_id, household_name, grades')
+        .select('household_import_id, household_name, grades, ask_a, ask_b, ask_ly')
         .in('household_import_id', hhIds);
 
       const hhMap = Object.fromEntries((households || []).map(h => [h.household_import_id, h]));
@@ -1998,6 +1998,9 @@ app.get('/api/parents/lookup', async (req, res) => {
         household_import_id:  constituent.household_import_id,
         grades:               household?.grades || [],
         already_gave:         !!(priorGift && priorGift.length > 0),
+        ask_a:                household?.ask_a  || null,
+        ask_b:                household?.ask_b  || null,
+        ask_ly:               household?.ask_ly || null,
       });
     }
 
@@ -2021,7 +2024,7 @@ app.get('/api/parents/lookup', async (req, res) => {
 
     const { data: household } = await parentsSupabase
       .from('parent_households')
-      .select('household_name, grades, is_hh2')
+      .select('household_name, grades, is_hh2, ask_a, ask_b, ask_ly')
       .eq('household_import_id', householdImportId)
       .maybeSingle();
 
@@ -2043,6 +2046,9 @@ app.get('/api/parents/lookup', async (req, res) => {
       household_name:       household.household_name,
       grades:               household.grades,
       already_gave:         !!(priorGift && priorGift.length > 0),
+      ask_a:                household.ask_a  || null,
+      ask_b:                household.ask_b  || null,
+      ask_ly:               household.ask_ly || null,
     });
 
   } catch (err) {
