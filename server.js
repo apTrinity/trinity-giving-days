@@ -2452,8 +2452,8 @@ async function requireAdmin(req, res, next) {
 app.get('/api/admin/households', requireAdmin, async (req, res) => {
   const [hhRes, pcRes, giftsRes] = await Promise.all([
     parentsSupabase.from('parent_households').select('*').order('household_import_id'),
-    parentsSupabase.from('parent_constituents').select('*'),
-    parentsSupabase.from('gifts').select('id, amount, created_at, household_import_id, first_name, last_name, anonymous'),
+    parentsSupabase.from('parent_constituents').select('*').limit(5000),
+    parentsSupabase.from('gifts').select('id, amount, created_at, household_import_id, first_name, last_name, anonymous').limit(5000),
   ]);
 
   if (hhRes.error) return res.status(500).json({ error: hhRes.error.message });
