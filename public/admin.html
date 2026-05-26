@@ -1641,6 +1641,35 @@ function openHHModal(importId) {
       </div>
     </div>
     <div class="modal-section">
+      <div class="modal-section-title">Ask Amounts</div>
+      <div style="margin-top:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">LY Ask</label>
+            <input id="ask-ly-input" type="number" min="0" step="1" value="${h.ask_ly || ''}" placeholder="—"
+              style="width:90px;padding:6px 8px;border:1px solid #e0deda;border-radius:5px;font-size:14px;color:#333;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Ask A</label>
+            <input id="ask-a-input" type="number" min="0" step="1" value="${h.ask_a || ''}" placeholder="—"
+              style="width:90px;padding:6px 8px;border:1px solid #e0deda;border-radius:5px;font-size:14px;color:#333;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:11px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Ask B</label>
+            <input id="ask-b-input" type="number" min="0" step="1" value="${h.ask_b || ''}" placeholder="—"
+              style="width:90px;padding:6px 8px;border:1px solid #e0deda;border-radius:5px;font-size:14px;color:#333;">
+          </div>
+          <button onclick="saveAskAmounts()"
+            style="padding:6px 16px;background:#172853;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer;height:34px;">
+            Save
+          </button>
+          <span id="ask-save-ok"  style="font-size:12px;color:#059669;display:none;">✓ Saved</span>
+          <span id="ask-save-err" style="font-size:12px;color:#DC2626;display:none;">Error saving</span>
+        </div>
+        <p style="font-size:11px;color:#bbb;margin:8px 0 0 0;">Leave blank to clear. Middle value will be pre-selected on the donor's form.</p>
+      </div>
+    </div>
+    <div class="modal-section">
       <div class="modal-section-title">Record Info</div>
       <div class="meta-grid" style="margin-top:6px;">
         <div class="meta-box">
@@ -1665,6 +1694,39 @@ function openHHModal(importId) {
 function closeHHModal() {
   document.getElementById('hh-modal-overlay').classList.remove('open');
   openHHImportId = null;
+}
+
+async function saveAskAmounts() {
+  if (!openHHImportId) return;
+  const parse = id => {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) || v <= 0 ? null : v;
+  };
+  const ask_ly = parse('ask-ly-input');
+  const ask_a  = parse('ask-a-input');
+  const ask_b  = parse('ask-b-input');
+
+  const okEl  = document.getElementById('ask-save-ok');
+  const errEl = document.getElementById('ask-save-err');
+  okEl.style.display = 'none';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/admin/update-ask-amounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ household_import_id: openHHImportId, ask_ly, ask_a, ask_b }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    // Update local data so table re-renders correctly
+    const hh = allHouseholds.find(h => h.household_import_id === openHHImportId);
+    if (hh) { hh.ask_ly = ask_ly; hh.ask_a = ask_a; hh.ask_b = ask_b; }
+    okEl.style.display = 'inline';
+    setTimeout(() => okEl.style.display = 'none', 3000);
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.style.display = 'inline';
+  }
 }
 
 function handleHHOverlayClick(e) {

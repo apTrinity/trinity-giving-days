@@ -2802,6 +2802,20 @@ app.get('/api/admin/debug/constituent/:importId', requireAdmin, async (req, res)
   }
 });
 
+// POST /api/admin/update-ask-amounts — update ask_a, ask_b, ask_ly on a household
+app.post('/api/admin/update-ask-amounts', requireAdmin, async (req, res) => {
+  const { household_import_id, ask_a, ask_b, ask_ly } = req.body;
+  if (!household_import_id) return res.status(400).json({ error: 'household_import_id required' });
+
+  const { error } = await parentsSupabase
+    .from('parent_households')
+    .update({ ask_a: ask_a ?? null, ask_b: ask_b ?? null, ask_ly: ask_ly ?? null })
+    .eq('household_import_id', household_import_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Start
 // ─────────────────────────────────────────────────────────────────────────────
