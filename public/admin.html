@@ -1415,7 +1415,7 @@ function applyParentsFilters(resetPage = false) {
     if (status === 'given'  && !h.has_given) continue;
     if (status === 'notyet' &&  h.has_given) continue;
     if (grade && !(h.grades || []).includes(grade)) continue;
-    const familyName = buildFamilyName(h.members, h.household_name);
+    const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation, h.annual_report_listing);
     for (const m of h.members) {
       if (q) {
         const hay = `${m.first_name} ${m.last_name} ${m.email || ''} ${m.fid || ''} ${familyName} ${h.household_import_id}`.toLowerCase();
@@ -1532,9 +1532,10 @@ function changeParentsPage(dir) {
   document.getElementById('ptable-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function buildFamilyName(members, householdName, informalSalutation) {
-  // Primary display: the RE household name (Parent & Alumni Listing format, updated by enrichment).
-  // Return as-is — class years like P'28, P'32 are intentional and should be shown.
+function buildFamilyName(members, householdName, informalSalutation, annualReportListing) {
+  // Primary display: Annual Report Listing (e.g. "John T. Hodges and Audrey Francis")
+  if (annualReportListing) return annualReportListing;
+  // Fall back to RE household name (Parent & Alumni Listing format, includes class years)
   if (householdName) return householdName;
   // Fall back to building from member last names when no household name is available.
   const lastNames = [...new Set(
@@ -1570,7 +1571,7 @@ function openHHModal(importId) {
   const h = allHouseholds.find(hh => hh.household_import_id === importId);
   if (!h) return;
 
-  const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation /* stored, not used for display */);
+  const familyName = buildFamilyName(h.members, h.household_name, h.informal_salutation, h.annual_report_listing);
   document.getElementById('hh-modal-title').textContent =
     familyName + (h.is_hh2 ? '  ·  HH2' : '');
 

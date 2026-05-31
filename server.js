@@ -2131,15 +2131,19 @@ app.get('/api/parents/leaderboard', async (req, res) => {
     // Batch-fetch household members for all recent gifts that have a household_import_id
     const recentHHIds = [...new Set(recentRows.map(g => g.household_import_id).filter(Boolean))];
     const householdLastNames = {};
+    const householdAnnualNames = {};
     if (recentHHIds.length > 0) {
-      const { data: hhMembers } = await parentsSupabase
-        .from('parent_constituents')
-        .select('household_import_id, last_name')
-        .in('household_import_id', recentHHIds);
+      const [{ data: hhMembers }, { data: hhRecords }] = await Promise.all([
+        parentsSupabase.from('parent_constituents').select('household_import_id, last_name').in('household_import_id', recentHHIds),
+        parentsSupabase.from('parent_households').select('household_import_id, annual_report_listing').in('household_import_id', recentHHIds),
+      ]);
       (hhMembers || []).forEach(m => {
         if (!m.last_name) return;
         if (!householdLastNames[m.household_import_id]) householdLastNames[m.household_import_id] = new Set();
         householdLastNames[m.household_import_id].add(m.last_name);
+      });
+      (hhRecords || []).forEach(h => {
+        if (h.annual_report_listing) householdAnnualNames[h.household_import_id] = h.annual_report_listing;
       });
     }
 
@@ -2178,6 +2182,8 @@ app.get('/api/parents/leaderboard', async (req, res) => {
       let name;
       if (g.anonymous) {
         name = 'Anonymous Trinity Family';
+      } else if (g.household_import_id && householdAnnualNames[g.household_import_id]) {
+        name = householdAnnualNames[g.household_import_id];
       } else {
         const lastNameSet = g.household_import_id
           ? (householdLastNames[g.household_import_id] || new Set([g.last_name]))
