@@ -746,7 +746,7 @@
         </select>
         <button class="btn-sync" id="sync-btn" onclick="syncOffline()">↻ Sync Offline</button>
         <button class="btn-sync" id="export-re-btn" onclick="exportRECsv()" style="background:#EEF2FF;color:#3730a3;border-color:#c7d2fe;" title="Download unsynced online gifts as a RE NXT import CSV">⬇ Export RE CSV</button>
-        <button class="btn-sync" id="mark-synced-btn" onclick="markRESynced()" style="background:#F0FDF4;color:#166534;border-color:#bbf7d0;" title="Mark all exported gifts as synced in Supabase">✓ Mark Synced</button>
+        <button class="btn-sync" id="mark-synced-btn" onclick="markRESynced()" style="background:#F0FDF4;color:#166534;border-color:#bbf7d0;" title="Mark all exported gifts as imported in Supabase">✓ Mark Imported</button>
       </div>
       <div class="table-wrap">
         <div class="table-meta">
@@ -1173,7 +1173,7 @@ function applyFilters() {
       : `<span class="td-name">${esc(g.first_name || '')} ${esc(g.last_name || '')}</span>`;
 
     const syncedCell = g.re_synced_at
-      ? `<span style="color:#16a34a;font-size:11px;font-weight:600;">✓ Synced</span>`
+      ? `<span style="color:#16a34a;font-size:11px;font-weight:600;">✓ Imported</span>`
       : `<input type="checkbox" class="re-sync-check" data-id="${g.id}"
            ${selectedGiftIds.has(g.id) ? 'checked' : ''}
            onclick="event.stopPropagation();toggleSyncSelect('${g.id}', this.checked)"
@@ -1935,8 +1935,8 @@ function toggleSelectAll(checked, ids) {
 function updateMarkSyncedBtn() {
   const btn = document.getElementById('mark-synced-btn');
   btn.textContent = selectedGiftIds.size > 0
-    ? `✓ Mark Synced (${selectedGiftIds.size})`
-    : '✓ Mark Synced';
+    ? `✓ Mark Imported (${selectedGiftIds.size})`
+    : '✓ Mark Imported';
 }
 
 async function markRESynced() {
@@ -1959,12 +1959,12 @@ async function markRESynced() {
     const result = await r.json();
     if (result.error) throw new Error(result.error);
     selectedGiftIds.clear();
-    alert(`✓ ${result.count} gift(s) marked as synced.`);
+    alert(`✓ ${result.count} gift(s) marked as imported.`);
     await loadGifts();
   } catch (err) {
     alert('Failed: ' + err.message);
   } finally {
-    btn.textContent = '✓ Mark Synced';
+    btn.textContent = '✓ Mark Imported';
     btn.disabled = false;
   }
 }
