@@ -2609,15 +2609,25 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
 
   const columns = [
     'ImportID', 'GiftID', 'donor_name', 'GFType',
-    'GFDate', 'GFTAmt', 'GFAnon', 'note_content',
+    'GFDate', 'GFTAmt', 'GFAnon', 'GFRef',
     'CampID', 'FundID', 'GFAppeal', 'GFPayMeth',
     'GFCCType', 'GFCardholderName',
-    'GFAckStatus', 'GFAckLetter',
-    'GFAttrImpID', 'GFAttrCat', 'checkout_id', 'GFAttrDate',
+    'GFAck', 'GFLtrCode',
+    'GFAttrImpID', 'GFAttrCat', 'GFAttrDesc', 'GFAttrDate',
   ];
   const rows = [toCSV(columns)];
 
-  for (const gift of gifts) {
+  // Normalize card type strings from BBMS to RE-expected values
+  // Only AmericanExpress needs fixing — all others match RE exactly
+  const normalizeCardType = raw => {
+    if (!raw) return '';
+    if (raw.toLowerCase().replace(/\s+/g, '') === 'americanexpress') return 'American Express';
+    return raw;
+  };
+
+  for (let i = 0; i < gifts.length; i++) {
+    const gift = gifts[i];
+    const giftId = `PARGIV-${String(i + 1).padStart(4, '0')}`;
     let cardType = '';
     let cardholderName = `${gift.first_name} ${gift.last_name}`;
     try {
@@ -2625,8 +2635,8 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
         method: 'get',
         url: `https://api.sky.blackbaud.com/payments/v1/transactions/${gift.transaction_id}`,
       }, process.env.BBMS_API_KEY);
-      cardType       = txnRes.data?.credit_card?.card_type || '';
-      cardholderName = txnRes.data?.credit_card?.name      || cardholderName;
+      cardType       = normalizeCardType(txnRes.data?.credit_card?.card_type || '');
+      cardholderName = txnRes.data?.credit_card?.name || cardholderName;
     } catch (err) {
       console.warn(`export-re-csv: BBMS lookup failed for ${gift.transaction_id}: ${err.response?.status || err.message}`);
     }
@@ -2634,8 +2644,8 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
     const ackLetter = parseFloat(gift.amount) >= 1709 ? '1709 Society' : 'Trinity Fund';
 
     rows.push(toCSV([
-      gift.constituent_id || '',
-      gift.transaction_id,
+      gift.household_import_id || '',
+      giftId,
       `${gift.first_name} ${gift.last_name}`,
       'Cash',
       fmtDate(gift.created_at),
@@ -2648,7 +2658,7 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
       'Credit Card',
       cardType,
       cardholderName,
-      'NeedsAcknowledgement',
+      'Not Acknowledged',
       ackLetter,
       '',
       'BBMS Transaction ID',
