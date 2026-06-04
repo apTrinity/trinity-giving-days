@@ -104,7 +104,7 @@ async function sendConfirmationEmail(gift, affiliations) {
             <tr><td style="padding-right:20px;">Amount</td><td><strong style="color:#222;">${amountFormatted}</strong></td></tr>
             <tr><td style="padding-right:20px;">Fund</td><td style="color:#222;">${gift.fund}</td></tr>
             ${affLabels ? `<tr><td style="padding-right:20px;">Credited to</td><td style="color:#222;">${affLabels}</td></tr>` : ''}
-            <tr><td style="padding-right:20px;">Transaction ID</td><td style="font-family:monospace;font-size:11px;color:#222;">${gift.transaction_id}</td></tr>
+            <tr><td style="padding-right:20px;">Transaction ID</td><td style="color:#222;">${gift.transaction_id}</td></tr>
           </table>
         </div>
 
@@ -182,7 +182,7 @@ async function sendStaffNotification(gift, affiliations) {
             </tr>
             <tr>
               <td style="color:#666;">Transaction ID</td>
-              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+              <td style="">${gift.transaction_id}</td>
             </tr>
           </table>
         </div>
@@ -279,7 +279,7 @@ async function sendParentsConfirmationEmail(gift, affiliations) {
               </tr>` : ''}
               <tr style="border-top:1px solid #E2E0DA;">
                 <td class="em-grey" style="padding:5px 20px 5px 0;color:#888;">Transaction ID</td>
-                <td class="em-med" style="padding:5px 0;font-family:monospace;font-size:11px;color:#555;">${gift.transaction_id}</td>
+                <td class="em-med" style="padding:5px 0;color:#555;">${gift.transaction_id}</td>
               </tr>
             </table>
           </div>
@@ -378,14 +378,14 @@ async function sendParentsStaffNotification(gift, affiliations) {
               <td class="sn-label" style="color:#666;">Grade(s)</td>
               <td class="sn-val" style="color:#222;">${gradeStr}</td>
             </tr>
-            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td class="sn-label" style="color:#666;">Household ID</td><td class="sn-val" style="color:#222;font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td class="sn-label" style="color:#666;">Household ID</td><td class="sn-val" style="color:#222;">${gift.household_import_id}</td></tr>` : ''}
             <tr style="border-bottom:1px solid #eee;">
               <td class="sn-label" style="color:#666;">Date</td>
               <td class="sn-val" style="color:#222;">${new Date(gift.created_at).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })}</td>
             </tr>
             <tr>
               <td class="sn-label" style="color:#666;">Transaction ID</td>
-              <td class="sn-mono" style="color:#555;font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+              <td class="sn-mono" style="color:#555;">${gift.transaction_id}</td>
             </tr>
           </table>
         </div>
@@ -452,14 +452,14 @@ async function sendParentsEmergencyNotification(gift, rawAffiliations) {
               <td style="color:#666;">Grade(s)</td>
               <td>${gradeStr}</td>
             </tr>
-            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666;">Household ID</td><td style="font-family:monospace;font-size:12px;">${gift.household_import_id}</td></tr>` : ''}
+            ${gift.household_import_id ? `<tr style="border-bottom:1px solid #eee;"><td style="color:#666;">Household ID</td><td style="">${gift.household_import_id}</td></tr>` : ''}
             <tr style="border-bottom:1px solid #eee;">
               <td style="color:#666;">Fund</td>
               <td>${gift.fund || 'Annual Fund'}</td>
             </tr>
             <tr>
               <td style="color:#666;">Transaction ID</td>
-              <td style="font-family:monospace;font-size:12px;">${gift.transaction_id}</td>
+              <td style="">${gift.transaction_id}</td>
             </tr>
           </table>
         </div>
@@ -2207,7 +2207,7 @@ app.get('/api/parents/leaderboard', async (req, res) => {
       }
 
       return {
-        name: g.anonymous ? 'Trinity Family' : name,
+        name,
         affiliation: g.anonymous ? 'Anonymous' : affiliation,
         amount:     parseFloat(g.amount) || 0,
         created_at: g.created_at,
