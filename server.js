@@ -2597,6 +2597,14 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
     return res.status(200).json({ empty: true, message: 'No unsynced gifts to export.' });
   }
 
+  // Count already-imported gifts so Gift IDs continue the sequence and never repeat
+  const { count: syncedCount } = await parentsSupabase
+    .from('gifts')
+    .select('id', { count: 'exact', head: true })
+    .eq('source', 'online')
+    .not('re_synced_at', 'is', null);
+  const giftIdOffset = syncedCount || 0;
+
   const fmtDate = iso => {
     const d = new Date(iso);
     return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
@@ -2627,7 +2635,7 @@ app.get('/api/admin/export-re-csv', requireAdmin, async (req, res) => {
 
   for (let i = 0; i < gifts.length; i++) {
     const gift = gifts[i];
-    const giftId = `PARGIV-${String(i + 1).padStart(4, '0')}`;
+    const giftId = `PARGIV-${String(giftIdOffset + i + 1).padStart(4, '0')}`;
     let cardType = '';
     let cardholderName = `${gift.first_name} ${gift.last_name}`;
     try {
