@@ -2432,6 +2432,19 @@ app.get('/preview', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'giving-days-mockup.html'));
 });
 
+// Giving Days payment mode. GIVING_MODE=live on Render switches the gift form to the
+// live BBMS configuration — but only once GD_LIVE_ALLOWED is true (gift saving is not
+// built yet, so live mode stays locked). Anything else means test mode.
+const GD_LIVE_ALLOWED = false;
+const GD_TEST_CONFIG_ID = process.env.PAYMENT_CONFIG_ID_TEST || 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969';
+app.get('/api/gd/config', (req, res) => {
+  const live = GD_LIVE_ALLOWED && process.env.GIVING_MODE === 'live' && !!process.env.PAYMENT_CONFIG_ID_LIVE;
+  res.json({
+    mode: live ? 'live' : 'test',
+    paymentConfigurationId: live ? process.env.PAYMENT_CONFIG_ID_LIVE : GD_TEST_CONFIG_ID,
+  });
+});
+
 // SKY API auth status — lets the admin dashboard show a re-auth banner if needed
 app.get('/api/admin/sky-status', (req, res) => {
   res.json({

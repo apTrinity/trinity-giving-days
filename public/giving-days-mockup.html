@@ -255,6 +255,102 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .faq-body .kind { grid-template-columns: 1fr; gap: 4px; }
 }
 
+/* ── Gift modal (option B: form left, warm gray info panel right) ── */
+.gm-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,10,30,.65); overflow-y: auto; padding: 40px 16px; display: flex; align-items: flex-start; justify-content: center; }
+.gm-overlay[hidden] { display: none; }
+.gm-modal { width: 100%; max-width: 940px; background: #fff; box-shadow: 0 24px 80px rgba(0,30,80,.35); }
+.gm-modal [hidden] { display: none !important; }
+.gm-header { background: var(--navy); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 3px solid var(--trinity-yellow); }
+.gm-title { font-family: 'Lora', serif; font-size: 21px; font-weight: 600; }
+.gm-title em { color: var(--trinity-yellow); }
+.gm-close { background: none; border: none; color: rgba(255,255,255,.7); font-size: 22px; line-height: 1; cursor: pointer; padding: 4px; }
+.gm-close:hover { color: #fff; }
+.gm-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.gm-form { padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 18px; }
+.gm-test { background: var(--yellow-15); border: 1px solid color-mix(in srgb, rgb(242,204,7) 55%, white); font-size: 12px; color: var(--ink-mid); padding: 8px 12px; line-height: 1.5; }
+.gm-test b { color: var(--ink); }
+.gm-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
+.gm-amts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gm-amt { padding: 11px 4px; border: 1.5px solid var(--border); background: #fff; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.gm-amt:hover { border-color: var(--trinity-blue); }
+.gm-amt.on { background: var(--trinity-blue); border-color: var(--trinity-blue); color: #fff; }
+.gm-custom { margin-top: 8px; position: relative; }
+.gm-custom::before { content: '$'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--ink-muted); }
+.gm-custom .gm-input { padding-left: 24px; }
+.gm-input, .gm-select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); font-family: inherit; font-size: 14px; background: #fff; color: var(--ink); }
+.gm-input:focus, .gm-select:focus { border-color: var(--trinity-blue); outline: none; }
+.gm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gm-stack { display: flex; flex-direction: column; gap: 8px; }
+.gm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gm-chip { padding: 7px 12px; border: 1.5px solid var(--border); background: #fff; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); cursor: pointer; }
+.gm-chip.on { background: var(--blue-10); border-color: var(--trinity-blue); color: var(--trinity-blue); }
+.gm-chips .gm-chip.on::before { content: '✓ '; }
+.gm-subfield { margin-top: 8px; padding: 10px 12px; background: var(--cream); border-left: 3px solid var(--trinity-blue); display: flex; flex-direction: column; gap: 6px; }
+.gm-subfield label, .gm-subfield .gm-sublabel { font-size: 12px; font-weight: 600; color: var(--ink-mid); }
+.gm-grades { display: flex; flex-wrap: wrap; gap: 4px; }
+.gm-grades .gm-chip { padding: 5px 9px; font-size: 12px; min-width: 34px; text-align: center; }
+.gm-check { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; color: var(--ink-mid); cursor: pointer; line-height: 1.45; }
+.gm-check input { margin-top: 2px; accent-color: var(--trinity-blue); width: 16px; height: 16px; flex-shrink: 0; }
+.gm-error { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; font-size: 13px; padding: 10px 12px; }
+.gm-pay { background: var(--trinity-yellow); color: var(--trinity-blue); border: none; padding: 15px; font-family: inherit; font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; width: 100%; }
+.gm-pay:hover { background: color-mix(in srgb, rgb(242,204,7) 85%, white); }
+.gm-pay:disabled { opacity: .5; cursor: not-allowed; }
+.gm-secure { font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: -8px; }
+.gm-link { font-size: 12px; font-weight: 700; color: var(--trinity-blue); text-decoration: none; letter-spacing: .04em; }
+.gm-link:hover { text-decoration: underline; }
+.gm-levelline, .gm-mmatch { display: none; }
+
+.gm-side { background: var(--paper-2); border-left: 1px solid var(--border); padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 16px; }
+.gm-card { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--trinity-yellow); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.gm-card h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; }
+.gm-card p { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-top: 2px; }
+.gm-now { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--navy); background: var(--yellow-15); padding: 4px 9px; }
+.gm-now:empty { display: none; }
+.gm-levels > summary { display: none; list-style: none; }
+.gm-levels > summary::-webkit-details-marker { display: none; }
+.gm-ladder { position: relative; padding-left: 20px; display: flex; flex-direction: column; }
+.gm-ladder::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+.gm-rung { position: relative; display: flex; justify-content: space-between; gap: 10px; padding: 3.5px 0; font-size: 12px; color: var(--ink-muted); }
+.gm-rung::before { content: ''; position: absolute; left: -19px; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translateY(-50%); background: #fff; border: 2px solid #C9CFDB; transition: all .2s; }
+.gm-rung span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gm-rung.reached { color: var(--ink-mid); }
+.gm-rung.reached::before { background: var(--trinity-blue); border-color: var(--trinity-blue); }
+.gm-rung.on { color: var(--trinity-blue); font-weight: 700; }
+.gm-rung.on::before { background: var(--trinity-yellow); border-color: var(--trinity-blue); width: 14px; height: 14px; left: -21px; box-shadow: 0 0 0 3px rgba(242,204,7,.35); }
+
+.gm-thanks { grid-column: 1 / -1; padding: 48px 32px 52px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gm-thanks h2 { font-family: 'Lora', serif; font-size: 28px; font-weight: 600; color: var(--navy); }
+.gm-thanks p { font-size: 14px; color: var(--ink-mid); max-width: 460px; line-height: 1.6; }
+.gm-thanks .gm-pay { max-width: 280px; margin-top: 8px; }
+
+@media (max-width: 760px) {
+  .gm-overlay { padding: 0; }
+  .gm-modal { min-height: 100%; box-shadow: none; }
+  .gm-header { padding: 14px 18px; position: sticky; top: 0; z-index: 2; }
+  .gm-title { font-size: 18px; }
+  .gm-body { grid-template-columns: 1fr; }
+  .gm-form { padding: 20px 18px; gap: 26px; }
+  .gm-label { margin-bottom: 10px; }
+  .gm-amts { gap: 8px; }
+  .gm-amt { padding: 13px 4px; }
+  .gm-row { grid-template-columns: 1fr; gap: 10px; }
+  .gm-stack { gap: 10px; }
+  .gm-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gm-chips .gm-chip { padding: 11px 8px; text-align: center; font-size: 13px; }
+  .gm-grades { gap: 6px; }
+  .gm-grades .gm-chip { min-width: 40px; padding: 8px 6px; }
+  .gm-levelline { display: block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); padding: 8px 12px; background: var(--paper-2); }
+  .gm-levelline.in { background: var(--blue-10); color: var(--trinity-blue); }
+  .gm-levelline:empty { display: none; }
+  .gm-mmatch { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
+  .gm-side { border-left: none; border-top: 1px solid var(--border); padding: 16px 18px 24px; }
+  .gm-side .gm-match, .gm-now { display: none; }
+  .gm-card { gap: 4px; }
+  .gm-levels > summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12.5px; font-weight: 700; padding: 8px 0 2px; color: var(--trinity-blue); }
+  .gm-levels > summary::after { content: '+'; font-size: 18px; font-weight: 400; }
+  .gm-levels[open] > summary::after { content: '–'; }
+}
+
 /* Sticky give bar (mobile) */
 .sticky-give { display: none; }
 
@@ -462,6 +558,88 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 <div class="sticky-give" id="sticky-give"><button class="btn-give" onclick="giveClick()">Make your gift →</button></div>
 
+<!-- ═══ Gift modal ═══ -->
+<div class="gm-overlay" id="gm-overlay" hidden>
+  <div class="gm-modal" role="dialog" aria-modal="true" aria-labelledby="gm-title">
+    <div class="gm-header">
+      <div class="gm-title" id="gm-title">Make your <em>Giving Days</em> gift</div>
+      <button type="button" class="gm-close" id="gm-close" aria-label="Close">✕</button>
+    </div>
+    <div class="gm-body" id="gm-body">
+      <div class="gm-form">
+        <div class="gm-test" id="gm-test" hidden><b>Test mode.</b> Use Blackbaud's test card 4111 1111 1111 1111 with any future expiration date. No real charges, and test gifts are not saved yet.</div>
+        <div>
+          <span class="gm-label">Gift amount</span>
+          <div class="gm-amts" id="gm-amts"></div>
+          <div class="gm-levelline" id="gm-levelline"></div>
+          <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="1" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
+        </div>
+        <div>
+          <span class="gm-label">Your information</span>
+          <div class="gm-stack">
+            <div class="gm-row">
+              <input class="gm-input" id="gm-first" placeholder="First name" autocomplete="given-name" aria-label="First name">
+              <input class="gm-input" id="gm-last" placeholder="Last name" autocomplete="family-name" aria-label="Last name">
+            </div>
+            <input class="gm-input" id="gm-email" type="email" placeholder="Email address" autocomplete="email" aria-label="Email address">
+          </div>
+        </div>
+        <div>
+          <span class="gm-label">How are you connected to Trinity?</span>
+          <div class="gm-chips" id="gm-affs">
+            <button type="button" class="gm-chip" data-aff="alumni">Alumni</button>
+            <button type="button" class="gm-chip" data-aff="current_parent">Current Parent</button>
+            <button type="button" class="gm-chip" data-aff="parent_of_alumni">Parent of Alumni</button>
+            <button type="button" class="gm-chip" data-aff="faculty">Faculty &amp; Staff</button>
+            <button type="button" class="gm-chip" data-aff="grandparent">Grandparent</button>
+            <button type="button" class="gm-chip" data-aff="friend">Friend</button>
+          </div>
+          <div class="gm-subfield" data-sub="alumni" hidden><label for="gm-class-year">Class year</label><select class="gm-select" id="gm-class-year"></select></div>
+          <div class="gm-subfield" data-sub="current_parent" hidden><span class="gm-sublabel">Child's grade (select all that apply)</span><div class="gm-grades" id="gm-grades"></div></div>
+        </div>
+        <div class="gm-mmatch">
+          <label class="gm-check"><input type="checkbox" id="gm-mmatch"> My employer matches gifts</label>
+          <input class="gm-input" id="gm-memployer" placeholder="Employer name" aria-label="Employer name" hidden>
+          <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Check if your employer matches →</a>
+        </div>
+        <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
+        <div class="gm-error" id="gm-error" hidden></div>
+        <button type="button" class="gm-pay" id="gm-pay">Complete <span id="gm-pay-amt">$2,500</span> gift</button>
+        <div class="gm-secure">Secure payment processed by Blackbaud Merchant Services</div>
+      </div>
+      <div class="gm-side">
+        <div class="gm-card">
+          <div>
+            <h3>The 1709 Society</h3>
+            <p>Gifts of $1,709 or more, in honor of the year Trinity was founded.</p>
+            <div class="gm-now" id="gm-now"></div>
+          </div>
+          <details class="gm-levels" id="gm-levels" open>
+            <summary>See giving levels</summary>
+            <div class="gm-ladder" id="gm-ladder"></div>
+          </details>
+        </div>
+        <div class="gm-card gm-match">
+          <h3>Is your employer a matching company?</h3>
+          <p>A match can double your gift at no cost to you.</p>
+          <label class="gm-check"><input type="checkbox" id="gm-match"> My employer matches gifts</label>
+          <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
+          <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Check if your employer matches →</a>
+        </div>
+      </div>
+    </div>
+    <div class="gm-body" id="gm-done" hidden>
+      <div class="gm-thanks">
+        <h2 id="gm-thanks-title">Thank you!</h2>
+        <p id="gm-thanks-text"></p>
+        <button type="button" class="gm-pay" id="gm-done-close">Back to Giving Days</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+
 <script>
 // ── Sample data (in the real build all of this comes from /api/leaderboard + admin-managed challenges) ──
 const GOAL = 350;
@@ -631,7 +809,147 @@ function playVideo() {
 }
 document.getElementById('video-frame').addEventListener('click', playVideo);
 document.getElementById('video-frame').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playVideo(); } });
-function giveClick() { alert('Opens the gift form (same three-step modal as the parents page).'); }
+// ── Gift modal ──────────────────────────────────────────────────────────────
+// Payment mode comes from the server (/api/gd/config) so one setting on Render
+// flips test ↔ live. If that call fails, the form stays in TEST mode.
+const GM_TEST_CONFIG_ID = 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969';
+const GM_AMOUNTS = [100, 250, 500, 1709, 2500, 5000, 10000];
+const GM_LEVELS = [
+  ['William Huddleston Circle', 100000, '$100,000+'],
+  ["Founders' Circle", 75000, '$75,000–$99,999'],
+  ['Heritage Circle', 50000, '$50,000–$74,999'],
+  ["President's Circle", 25000, '$25,000–$49,999'],
+  ["Head of School's Circle", 15000, '$15,000–$24,999'],
+  ['Cornerstone Circle', 10000, '$10,000–$14,999'],
+  ['Benefactor', 5000, '$5,000–$9,999'],
+  ['Patron', 3000, '$3,000–$4,999'],
+  ['Sponsor', 1709, '$1,709–$2,999'],
+];
+const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
+const $gm = id => document.getElementById(id);
+
+(function buildGiftForm() {
+  $gm('gm-amts').innerHTML = GM_AMOUNTS.map(a => `<button type="button" class="gm-amt${a === gm.amount ? ' on' : ''}" data-amt="${a}">${fmt$(a)}</button>`).join('') +
+    '<button type="button" class="gm-amt" data-amt="other">Other</button>';
+  let years = '<option value="">Select class year</option>';
+  for (let y = 2026; y >= 1940; y--) years += `<option>${y}</option>`;
+  $gm('gm-class-year').innerHTML = years;
+  $gm('gm-grades').innerHTML = ['K','1','2','3','4','5','6','7','8','9','10','11','12'].map(g => `<button type="button" class="gm-chip" data-grade="${g}">${g}</button>`).join('');
+  $gm('gm-ladder').innerHTML = GM_LEVELS.map((l, i) => `<div class="gm-rung" data-i="${i}"><span>${l[0]}</span><span>${l[2]}</span></div>`).join('');
+})();
+
+function gmUpdate() {
+  const a = gm.amount, li = GM_LEVELS.findIndex(l => a >= l[1]);
+  const line = !a ? '' : li === -1 ? `${fmt$(1709 - a)} more to join the 1709 Society` : `Your gift: ${GM_LEVELS[li][0]}`;
+  $gm('gm-now').textContent = line;
+  $gm('gm-levelline').textContent = line;
+  $gm('gm-levelline').classList.toggle('in', li !== -1);
+  document.querySelectorAll('.gm-rung').forEach(r => { const i = +r.dataset.i; r.classList.toggle('on', i === li); r.classList.toggle('reached', li !== -1 && i > li); });
+  $gm('gm-pay-amt').textContent = a ? fmt$(a) : '$—';
+  $gm('gm-pay').disabled = !a;
+}
+
+$gm('gm-amts').addEventListener('click', e => {
+  const b = e.target.closest('.gm-amt'); if (!b) return;
+  document.querySelectorAll('.gm-amt').forEach(x => x.classList.toggle('on', x === b));
+  const other = b.dataset.amt === 'other';
+  $gm('gm-custom').hidden = !other;
+  gm.amount = other ? (Math.round(parseFloat($gm('gm-custom-amt').value)) || 0) : +b.dataset.amt;
+  if (other) $gm('gm-custom-amt').focus();
+  gmUpdate();
+});
+$gm('gm-custom-amt').addEventListener('input', e => { gm.amount = Math.round(parseFloat(e.target.value)) || 0; gmUpdate(); });
+$gm('gm-affs').addEventListener('click', e => {
+  const c = e.target.closest('.gm-chip'); if (!c) return;
+  c.classList.toggle('on');
+  const sub = document.querySelector(`.gm-subfield[data-sub="${c.dataset.aff}"]`);
+  if (sub) sub.hidden = !c.classList.contains('on');
+});
+$gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) c.classList.toggle('on'); });
+// The two matching checkboxes (desktop panel / phone inline) stay in sync
+[['gm-match', 'gm-employer'], ['gm-mmatch', 'gm-memployer']].forEach(([chk, emp]) => $gm(chk).addEventListener('change', e => {
+  const on = e.target.checked;
+  ['gm-match', 'gm-mmatch'].forEach(id => { $gm(id).checked = on; });
+  ['gm-employer', 'gm-memployer'].forEach(id => { $gm(id).hidden = !on; });
+}));
+['gm-employer', 'gm-memployer'].forEach(id => $gm(id).addEventListener('input', e => { ['gm-employer', 'gm-memployer'].forEach(o => { if (o !== id) $gm(o).value = e.target.value; }); }));
+
+function gmAffiliations() {
+  const out = [];
+  document.querySelectorAll('#gm-affs .gm-chip.on').forEach(c => {
+    const t = c.dataset.aff;
+    if (t === 'alumni') out.push({ type: t, class_year: parseInt($gm('gm-class-year').value) || null });
+    else if (t === 'current_parent') {
+      const gs = [...document.querySelectorAll('#gm-grades .gm-chip.on')].map(g => g.dataset.grade);
+      if (gs.length) gs.forEach(g => out.push({ type: t, grade: g })); else out.push({ type: t, grade: null });
+    } else out.push({ type: t });
+  });
+  return out;
+}
+
+function gmError(msg) { const e = $gm('gm-error'); e.textContent = msg; e.hidden = !msg; }
+
+function openGift() {
+  gm.lastFocus = document.activeElement;
+  $gm('gm-body').hidden = false; $gm('gm-done').hidden = true; gmError('');
+  $gm('gm-levels').open = innerWidth > 760;
+  $gm('gm-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  gmUpdate();
+  setTimeout(() => $gm('gm-first').focus(), 30);
+}
+function closeGift() {
+  $gm('gm-overlay').hidden = true;
+  document.body.style.overflow = '';
+  if (gm.lastFocus) gm.lastFocus.focus();
+}
+function giveClick() { openGift(); }
+$gm('gm-close').addEventListener('click', closeGift);
+$gm('gm-done-close').addEventListener('click', closeGift);
+$gm('gm-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeGift(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$gm('gm-overlay').hidden) closeGift(); });
+
+$gm('gm-pay').addEventListener('click', () => {
+  const first = $gm('gm-first').value.trim(), last = $gm('gm-last').value.trim(), email = $gm('gm-email').value.trim();
+  if (!gm.amount || gm.amount < 1) return gmError('Please choose or enter a gift amount.');
+  if (!first || !last) return gmError('Please enter your first and last name.');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return gmError('Please enter a valid email address.');
+  const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
+  if (alum && !$gm('gm-class-year').value) return gmError('Please select your class year.');
+  if (!gm.checkout || !gm.ready) return gmError('The payment system is still loading. Please try again in a moment.');
+  gmError('');
+  gm.checkout.checkoutModal.openPaymentForm({ baseAmount: Math.round(gm.amount * 100), billingDetails: { name: first + ' ' + last, email } });
+});
+
+function gmThanks(total) {
+  const first = $gm('gm-first').value.trim();
+  $gm('gm-thanks-title').textContent = `Thank you, ${first}!`;
+  $gm('gm-thanks-text').textContent = gm.mode === 'test'
+    ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. In test mode nothing is charged or saved yet.`
+    : `Your ${fmt$(total)} gift has been received. A receipt is on its way to your inbox.`;
+  $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
+  // Show it on this page right away (this viewer only, until gifts are saved)
+  state.donors++; state.raised += total;
+  recent.unshift([$gm('gm-anon').checked ? 'Anonymous' : `${first} ${$gm('gm-last').value.trim()}`, 'Just now']);
+  renderSeal(); renderChallenges(); renderRecent(true);
+}
+
+function gmInitCheckout(configId) {
+  if (typeof window.BlackbaudCheckout !== 'function') { console.warn('Blackbaud Checkout script did not load.'); return; }
+  gm.checkout = window.BlackbaudCheckout({ paymentConfigurationId: configId, workflowMode: 'modal' });
+  gm.checkout.checkoutReady.subscribe(() => { gm.ready = true; });
+  gm.checkout.checkoutComplete.subscribe(e => {
+    if (!e || !e.success) return;
+    gmThanks(e.transaction.amountDetails.total / 100);
+  });
+}
+
+window.addEventListener('load', () => {
+  fetch('/api/gd/config').then(r => r.ok ? r.json() : Promise.reject())
+    .then(cfg => { gm.mode = cfg.mode; return cfg.paymentConfigurationId; })
+    .catch(() => { gm.mode = 'test'; return GM_TEST_CONFIG_ID; })
+    .then(id => { $gm('gm-test').hidden = gm.mode !== 'test'; gmInitCheckout(id); });
+});
 
 // Sticky mobile give button once hero button scrolls away
 new IntersectionObserver(([e]) => document.getElementById('sticky-give').classList.toggle('show', !e.isIntersecting))
