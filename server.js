@@ -2426,6 +2426,12 @@ app.get('/parents', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'parents.html'));
 });
 
+// Design preview of the Giving Days page (sample data, not indexed by search engines)
+app.get('/preview', (req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(__dirname, 'public', 'giving-days-mockup.html'));
+});
+
 // SKY API auth status — lets the admin dashboard show a re-auth banner if needed
 app.get('/api/admin/sky-status', (req, res) => {
   res.json({
