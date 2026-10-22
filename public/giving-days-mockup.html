@@ -298,7 +298,19 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-secure { font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: -8px; }
 .gm-link { font-size: 12px; font-weight: 700; color: var(--trinity-blue); text-decoration: none; letter-spacing: .04em; }
 .gm-link:hover { text-decoration: underline; }
-.gm-levelline, .gm-mmatch { display: none; }
+.gm-levelline { display: none; }
+.gm-matchbox { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: var(--cream); border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
+.gm-matchbox .gm-check b { display: block; color: var(--ink); font-weight: 700; }
+.gm-matchbox .gm-check small { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+.gm-ways { display: flex; flex-direction: column; }
+.gm-way { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border-lt); }
+.gm-way:first-child { border-top: none; padding-top: 2px; }
+.gm-way svg { width: 20px; height: 20px; fill: none; stroke: var(--trinity-blue); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+.gm-way b { font-size: 13px; color: var(--ink); }
+.gm-way p { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-top: 2px; }
+.gm-way .gm-link { display: inline-block; margin-top: 4px; }
+.gm-sel { color: var(--ink); font-weight: 600; user-select: all; }
+.gm-mail { color: var(--trinity-blue); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
 
 .gm-side { background: var(--paper-2); border-left: 1px solid var(--border); padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 16px; }
 .gm-card { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--trinity-yellow); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
@@ -342,9 +354,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .gm-levelline { display: block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--ink-mid); padding: 8px 12px; background: var(--paper-2); }
   .gm-levelline.in { background: var(--blue-10); color: var(--trinity-blue); }
   .gm-levelline:empty { display: none; }
-  .gm-mmatch { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
   .gm-side { border-left: none; border-top: 1px solid var(--border); padding: 16px 18px 24px; }
-  .gm-side .gm-match, .gm-now { display: none; }
+  .gm-now { display: none; }
   .gm-card { gap: 4px; }
   .gm-levels > summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12.5px; font-weight: 700; padding: 8px 0 2px; color: var(--trinity-blue); }
   .gm-levels > summary::after { content: '+'; font-size: 18px; font-weight: 400; }
@@ -597,9 +608,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-subfield" data-sub="alumni" hidden><label for="gm-class-year">Class year</label><select class="gm-select" id="gm-class-year"></select></div>
           <div class="gm-subfield" data-sub="current_parent" hidden><span class="gm-sublabel">Child's grade (select all that apply)</span><div class="gm-grades" id="gm-grades"></div></div>
         </div>
-        <div class="gm-mmatch">
-          <label class="gm-check"><input type="checkbox" id="gm-mmatch"> My employer matches gifts</label>
-          <input class="gm-input" id="gm-memployer" placeholder="Employer name" aria-label="Employer name" hidden>
+        <div class="gm-matchbox">
+          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift at no cost to you.</small></span></label>
+          <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
           <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Check if your employer matches →</a>
         </div>
         <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
@@ -619,12 +630,22 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
             <div class="gm-ladder" id="gm-ladder"></div>
           </details>
         </div>
-        <div class="gm-card gm-match">
-          <h3>Is your employer a matching company?</h3>
-          <p>A match can double your gift at no cost to you.</p>
-          <label class="gm-check"><input type="checkbox" id="gm-match"> My employer matches gifts</label>
-          <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
-          <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Check if your employer matches →</a>
+        <div class="gm-card">
+          <h3>Other ways to give</h3>
+          <div class="gm-ways">
+            <div class="gm-way">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="1"/><path d="M3 9h18M8 2v4M16 2v4M8 14l2.5 2.5L16 11"/></svg>
+              <div><b>Make a pledge</b><p>Commit now and pay by June 30, 2027. Pledges count toward every challenge.</p><p>Email <a class="gm-sel gm-mail" id="gm-pledge-mail" href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> or call <span class="gm-sel">(212) 932-6860</span>.</p></div>
+            </div>
+            <div class="gm-way">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="1"/><path d="M3 6l9 7 9-7"/></svg>
+              <div><b>Mail a check</b><p>Trinity School Advancement Office<br>139 West 91st Street, New York, NY 10024</p></div>
+            </div>
+            <div class="gm-way">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>
+              <div><b>Give stock</b><p>Transfer securities using our stock gift form.</p><a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/making-a-stock-gift" target="_blank" rel="noopener">Stock gift instructions →</a></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -847,6 +868,9 @@ function gmUpdate() {
   document.querySelectorAll('.gm-rung').forEach(r => { const i = +r.dataset.i; r.classList.toggle('on', i === li); r.classList.toggle('reached', li !== -1 && i > li); });
   $gm('gm-pay-amt').textContent = a ? fmt$(a) : '$—';
   $gm('gm-pay').disabled = !a;
+  // Pledge email: pre-fill subject and the opening line with the selected amount
+  const pledgeBody = `I would like to pledge ${a ? fmt$(a) : '$[amount]'} to Trinity Giving Days.\n\n`;
+  $gm('gm-pledge-mail').href = 'mailto:trinityfund@trinityschoolnyc.org?subject=' + encodeURIComponent('My Trinity Giving Days Pledge') + '&body=' + encodeURIComponent(pledgeBody);
 }
 
 $gm('gm-amts').addEventListener('click', e => {
@@ -866,13 +890,7 @@ $gm('gm-affs').addEventListener('click', e => {
   if (sub) sub.hidden = !c.classList.contains('on');
 });
 $gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) c.classList.toggle('on'); });
-// The two matching checkboxes (desktop panel / phone inline) stay in sync
-[['gm-match', 'gm-employer'], ['gm-mmatch', 'gm-memployer']].forEach(([chk, emp]) => $gm(chk).addEventListener('change', e => {
-  const on = e.target.checked;
-  ['gm-match', 'gm-mmatch'].forEach(id => { $gm(id).checked = on; });
-  ['gm-employer', 'gm-memployer'].forEach(id => { $gm(id).hidden = !on; });
-}));
-['gm-employer', 'gm-memployer'].forEach(id => $gm(id).addEventListener('input', e => { ['gm-employer', 'gm-memployer'].forEach(o => { if (o !== id) $gm(o).value = e.target.value; }); }));
+$gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
 
 function gmAffiliations() {
   const out = [];
