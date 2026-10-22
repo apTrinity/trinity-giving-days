@@ -258,7 +258,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 /* ── Gift modal (option B: form left, warm gray info panel right) ── */
 .gm-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,10,30,.65); overflow-y: auto; padding: 40px 16px; display: flex; align-items: flex-start; justify-content: center; }
 .gm-overlay[hidden] { display: none; }
-.gm-modal { width: 100%; max-width: 940px; background: #fff; box-shadow: 0 24px 80px rgba(0,30,80,.35); }
+.gm-modal { width: 100%; max-width: 940px; min-width: 0; background: #fff; box-shadow: 0 24px 80px rgba(0,30,80,.35); }
 .gm-modal [hidden] { display: none !important; }
 .gm-header { background: var(--navy); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 3px solid var(--trinity-yellow); }
 .gm-title { font-family: 'Lora', serif; font-size: 21px; font-weight: 600; }
@@ -267,8 +267,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-close:hover { color: #fff; }
 .gm-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .gm-form { padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 18px; }
-.gm-test { background: var(--yellow-15); border: 1px solid color-mix(in srgb, rgb(242,204,7) 55%, white); font-size: 12px; color: var(--ink-mid); padding: 8px 12px; line-height: 1.5; }
-.gm-test b { color: var(--ink); }
 .gm-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
 .gm-amts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .gm-amt { padding: 11px 4px; border: 1.5px solid var(--border); background: #fff; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; }
@@ -302,13 +300,12 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-matchbox { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: var(--cream); border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
 .gm-matchbox .gm-check b { display: block; color: var(--ink); font-weight: 700; }
 .gm-matchbox .gm-check small { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
-.gm-ways { display: flex; flex-direction: column; }
-.gm-way { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border-lt); }
-.gm-way:first-child { border-top: none; padding-top: 2px; }
-.gm-way svg { width: 20px; height: 20px; fill: none; stroke: var(--trinity-blue); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
-.gm-way b { font-size: 13px; color: var(--ink); }
-.gm-way p { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-top: 2px; }
-.gm-way .gm-link { display: inline-block; margin-top: 4px; }
+.gm-waytabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gm-waytab { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 9px; background: #fff; border: 1.5px solid var(--border); font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; text-align: center; line-height: 1.25; }
+.gm-waytab:hover { border-color: var(--trinity-blue); }
+.gm-waytab[aria-expanded="true"] { border-color: var(--trinity-blue); background: var(--blue-10); color: var(--trinity-blue); }
+.gm-waytab svg { width: 20px; height: 20px; fill: none; stroke: var(--trinity-blue); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.gm-waydetail { font-size: 12.5px; color: var(--ink-mid); line-height: 1.55; background: var(--cream); border: 1px solid var(--border-lt); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .gm-sel { color: var(--ink); font-weight: 600; user-select: all; }
 .gm-mail { color: var(--trinity-blue); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
 
@@ -316,10 +313,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-card { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--trinity-yellow); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .gm-card h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; }
 .gm-card p { font-size: 12.5px; color: var(--ink-mid); line-height: 1.5; margin-top: 2px; }
-.gm-now { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--navy); background: var(--yellow-15); padding: 4px 9px; }
-.gm-now:empty { display: none; }
-.gm-levels > summary { display: none; list-style: none; }
-.gm-levels > summary::-webkit-details-marker { display: none; }
+.gm-ladders { display: flex; flex-direction: column; gap: 10px; }
+.gm-sec-title { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
 .gm-ladder { position: relative; padding-left: 20px; display: flex; flex-direction: column; }
 .gm-ladder::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
 .gm-rung { position: relative; display: flex; justify-content: space-between; gap: 10px; padding: 3.5px 0; font-size: 12px; color: var(--ink-muted); }
@@ -340,7 +335,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .gm-modal { min-height: 100%; box-shadow: none; }
   .gm-header { padding: 14px 18px; position: sticky; top: 0; z-index: 2; }
   .gm-title { font-size: 18px; }
-  .gm-body { grid-template-columns: 1fr; }
+  .gm-body { grid-template-columns: minmax(0, 1fr); }
   .gm-form { padding: 20px 18px; gap: 26px; }
   .gm-label { margin-bottom: 10px; }
   .gm-amts { gap: 8px; }
@@ -355,11 +350,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .gm-levelline.in { background: var(--blue-10); color: var(--trinity-blue); }
   .gm-levelline:empty { display: none; }
   .gm-side { border-left: none; border-top: 1px solid var(--border); padding: 16px 18px 24px; }
-  .gm-now { display: none; }
-  .gm-card { gap: 4px; }
-  .gm-levels > summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 12.5px; font-weight: 700; padding: 8px 0 2px; color: var(--trinity-blue); }
-  .gm-levels > summary::after { content: '+'; font-size: 18px; font-weight: 400; }
-  .gm-levels[open] > summary::after { content: '–'; }
+    .gm-card { gap: 4px; }
 }
 
 /* Sticky give bar (mobile) */
@@ -399,7 +390,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 </head>
 <body>
 
-<div class="mock-flag"><b>Design preview</b>Sample data only. Donor names and totals are made up, and no gifts can be made on this page.</div>
+<div class="mock-flag"><b>Design preview</b>Sample data only, and the gift form is in test mode: use card 4242 4242 4242 4242 with any future date. Real cards are declined and nothing is charged.</div>
 
 <!-- ═══ Header (text wordmark — pending Communications' answer on seal + signature) ═══ -->
 <header class="site-header">
@@ -578,7 +569,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
     </div>
     <div class="gm-body" id="gm-body">
       <div class="gm-form">
-        <div class="gm-test" id="gm-test" hidden><b>Test mode.</b> Use Blackbaud's test card 4242 4242 4242 4242 with any future expiration date and any security code. Real cards are declined, Apple Pay and Google Pay won't work, and test gifts are not saved yet.</div>
         <div>
           <span class="gm-label">Gift amount</span>
           <div class="gm-amts" id="gm-amts"></div>
@@ -621,31 +611,21 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       <div class="gm-side">
         <div class="gm-card">
           <div>
-            <h3>The 1709 Society</h3>
-            <p>Gifts of $1,709 or more, in honor of the year Trinity was founded.</p>
-            <div class="gm-now" id="gm-now"></div>
+            <h3>Giving levels</h3>
+            <p id="gm-levels-intro">Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.</p>
           </div>
-          <details class="gm-levels" id="gm-levels" open>
-            <summary>See giving levels</summary>
-            <div class="gm-ladder" id="gm-ladder"></div>
-          </details>
+          <div class="gm-ladders" id="gm-ladders"></div>
         </div>
         <div class="gm-card">
           <h3>Other ways to give</h3>
-          <div class="gm-ways">
-            <div class="gm-way">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="1"/><path d="M3 9h18M8 2v4M16 2v4M8 14l2.5 2.5L16 11"/></svg>
-              <div><b>Make a pledge</b><p>Commit now and pay by June 30, 2027. Pledges count toward every challenge.</p><p>Email <a class="gm-sel gm-mail" id="gm-pledge-mail" href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> or call <span class="gm-sel">(212) 932-6860</span>.</p></div>
-            </div>
-            <div class="gm-way">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="1"/><path d="M3 6l9 7 9-7"/></svg>
-              <div><b>Mail a check</b><p>Trinity School Advancement Office<br>139 West 91st Street, New York, NY 10024</p></div>
-            </div>
-            <div class="gm-way">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>
-              <div><b>Give stock</b><p>Transfer securities using our stock gift form.</p><a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/making-a-stock-gift" target="_blank" rel="noopener">Stock gift instructions →</a></div>
-            </div>
+          <div class="gm-waytabs">
+            <button type="button" class="gm-waytab" data-way="pledge" aria-expanded="false" aria-controls="gm-way-pledge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="1"/><path d="M3 9h18M8 2v4M16 2v4M8 14l2.5 2.5L16 11"/></svg>Make a pledge</button>
+            <button type="button" class="gm-waytab" data-way="check" aria-expanded="false" aria-controls="gm-way-check"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="1"/><path d="M3 6l9 7 9-7"/></svg>Mail a check</button>
+            <button type="button" class="gm-waytab" data-way="stock" aria-expanded="false" aria-controls="gm-way-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>Give stock</button>
           </div>
+          <div class="gm-waydetail" id="gm-way-pledge" hidden><p>Commit now and pay by June 30, 2027. Pledges count toward every challenge.</p><p>Email <a class="gm-sel gm-mail" id="gm-pledge-mail" href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> or call <span class="gm-sel">(212) 932-6860</span>.</p></div>
+          <div class="gm-waydetail" id="gm-way-check" hidden><p>Mail to the Trinity School Advancement Office, 139 West 91st Street, New York, NY 10024.</p></div>
+          <div class="gm-waydetail" id="gm-way-stock" hidden><p>Transfer securities using our stock gift form.</p><a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/making-a-stock-gift" target="_blank" rel="noopener">Stock gift instructions →</a></div>
         </div>
       </div>
     </div>
@@ -835,7 +815,8 @@ document.getElementById('video-frame').addEventListener('keydown', e => { if (e.
 // flips test ↔ live. If that call fails, the form stays in TEST mode.
 const GM_TEST_CONFIG_ID = 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969';
 const GM_AMOUNTS = [100, 250, 500, 1709, 2500, 5000, 10000];
-const GM_LEVELS = [
+// Giving levels, highest first. [name, minimum, label]
+const GM_SOCIETY = [
   ['William Huddleston Circle', 100000, '$100,000+'],
   ["Founders' Circle", 75000, '$75,000–$99,999'],
   ['Heritage Circle', 50000, '$50,000–$74,999'],
@@ -845,6 +826,20 @@ const GM_LEVELS = [
   ['Benefactor', 5000, '$5,000–$9,999'],
   ['Patron', 3000, '$3,000–$4,999'],
   ['Sponsor', 1709, '$1,709–$2,999'],
+];
+const GM_FRIENDS = [
+  ['91st Street Sustainer', 1000, '$1,000–$1,708'],
+  ['139 Council', 500, '$500–$999'],
+  ['115 Guild', 250, '$250–$499'],
+  ['101 Club', 101, '$101–$249'],
+  ['Tiger Den', 1, 'Up to $100'],
+];
+// Blue & Gold Club: young alumni (classes of '12–'26). Supporter is '17–'26 only.
+const GM_BLUEGOLD = [
+  ['Benefactor', 1000, '$1,000 and above'],
+  ['Patron', 500, '$500–$999'],
+  ['Sponsor', 250, '$250–$499'],
+  ['Supporter', 100, '$100–$249', 2017],
 ];
 const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
 const $gm = id => document.getElementById(id);
@@ -856,16 +851,58 @@ const $gm = id => document.getElementById(id);
   for (let y = 2026; y >= 1940; y--) years += `<option>${y}</option>`;
   $gm('gm-class-year').innerHTML = years;
   $gm('gm-grades').innerHTML = ['K','1','2','3','4','5','6','7','8','9','10','11','12'].map(g => `<button type="button" class="gm-chip" data-grade="${g}">${g}</button>`).join('');
-  $gm('gm-ladder').innerHTML = GM_LEVELS.map((l, i) => `<div class="gm-rung" data-i="${i}"><span>${l[0]}</span><span>${l[2]}</span></div>`).join('');
 })();
 
+// Class year if the donor chose Alumni (later: also from their personalized link)
+function gmClassYear() {
+  const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
+  return alum ? (parseInt($gm('gm-class-year').value) || null) : null;
+}
+
+// Which ladders apply to this donor, and where their gift lands on each
+function gmLevels(amount) {
+  const cy = gmClassYear();
+  const young = cy && cy >= 2012 && cy <= 2026;
+  const sections = [{ key: 'society', title: 'The 1709 Society', tiers: GM_SOCIETY }];
+  if (young) sections.push({ key: 'bluegold', title: '1709 Society: Blue & Gold Club', tiers: GM_BLUEGOLD.filter(t => !t[3] || cy >= t[3]) });
+  // Young alumni only use Friends of Trinity below their Blue & Gold starting point ($100 for '17–'26, $250 for '12–'16)
+  const bgFloor = young ? (cy >= 2017 ? 100 : 250) : Infinity;
+  sections.push({ key: 'friends', title: 'Friends of Trinity', tiers: GM_FRIENDS.filter(t => t[1] < bgFloor) });
+  const hit = {};
+  if (amount) {
+    const soc = GM_SOCIETY.findIndex(t => amount >= t[1]);
+    if (soc !== -1) hit.society = soc;
+    if (young) {
+      const bg = sections[1].tiers.findIndex(t => amount >= t[1]);
+      if (bg !== -1) hit.bluegold = bg;
+    }
+    // Friends of Trinity applies below $1,709, unless a Blue & Gold level already recognizes the gift
+    if (soc === -1 && hit.bluegold === undefined) hit.friends = sections[sections.length - 1].tiers.findIndex(t => amount >= t[1]);
+  }
+  return { cy, young, sections, hit };
+}
+
 function gmUpdate() {
-  const a = gm.amount, li = GM_LEVELS.findIndex(l => a >= l[1]);
-  const line = !a ? '' : li === -1 ? `${fmt$(1709 - a)} more to join the 1709 Society` : `Your gift: ${GM_LEVELS[li][0]}`;
-  $gm('gm-now').textContent = line;
-  $gm('gm-levelline').textContent = line;
-  $gm('gm-levelline').classList.toggle('in', li !== -1);
-  document.querySelectorAll('.gm-rung').forEach(r => { const i = +r.dataset.i; r.classList.toggle('on', i === li); r.classList.toggle('reached', li !== -1 && i > li); });
+  const a = gm.amount, L = gmLevels(a);
+  // Phone-only line under the amounts: every level this gift earns (young alumni at $1,709+ earn two)
+  const earned = L.sections.filter(sec => L.hit[sec.key] !== undefined)
+    .map(sec => `${sec.key === 'society' ? '1709 Society' : sec.key === 'bluegold' ? 'Blue & Gold Club' : 'Friends of Trinity'}: ${sec.tiers[L.hit[sec.key]][0]}`);
+  $gm('gm-levelline').textContent = earned.length ? 'Your gift: ' + earned.join(' · ') : '';
+  $gm('gm-levelline').classList.toggle('in', L.hit.society !== undefined || L.hit.bluegold !== undefined);
+  $gm('gm-levels-intro').textContent = L.young
+    ? `As a member of the Class of ${L.cy}, your gift of ${L.cy >= 2017 ? '$100' : '$250'} or more joins the 1709 Society through the Blue & Gold Club.`
+    : 'Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.';
+
+  // Ladder: every level for this donor, with the level(s) their gift earns highlighted
+  const html = L.sections.map(sec => {
+    const cur = L.hit[sec.key];
+    const rows = sec.tiers.map((t, i) => {
+      const cls = i === cur ? ' on' : cur !== undefined && i > cur ? ' reached' : '';
+      return `<div class="gm-rung${cls}"><span>${t[0]}</span><span>${t[2]}</span></div>`;
+    }).join('');
+    return rows ? `<div><div class="gm-sec-title">${sec.title}</div><div class="gm-ladder">${rows}</div></div>` : '';
+  }).join('');
+  $gm('gm-ladders').innerHTML = html;
   $gm('gm-pay-amt').textContent = a ? fmt$(a) : '$—';
   $gm('gm-pay').disabled = !a;
   // Pledge email: pre-fill subject and the opening line with the selected amount
@@ -888,8 +925,18 @@ $gm('gm-affs').addEventListener('click', e => {
   c.classList.toggle('on');
   const sub = document.querySelector(`.gm-subfield[data-sub="${c.dataset.aff}"]`);
   if (sub) sub.hidden = !c.classList.contains('on');
+  if (c.dataset.aff === 'alumni') gmUpdate();
 });
 $gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) c.classList.toggle('on'); });
+$gm('gm-class-year').addEventListener('change', gmUpdate);
+document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('click', () => {
+  const open = tab.getAttribute('aria-expanded') !== 'true';
+  document.querySelectorAll('.gm-waytab').forEach(t => {
+    const on = open && t === tab;
+    t.setAttribute('aria-expanded', on);
+    $gm('gm-way-' + t.dataset.way).hidden = !on;
+  });
+}));
 $gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
 
 function gmAffiliations() {
@@ -910,7 +957,6 @@ function gmError(msg) { const e = $gm('gm-error'); e.textContent = msg; e.hidden
 function openGift() {
   gm.lastFocus = document.activeElement;
   $gm('gm-body').hidden = false; $gm('gm-done').hidden = true; gmError('');
-  $gm('gm-levels').open = innerWidth > 760;
   $gm('gm-overlay').hidden = false;
   document.body.style.overflow = 'hidden';
   gmUpdate();
@@ -966,7 +1012,7 @@ window.addEventListener('load', () => {
   fetch('/api/gd/config').then(r => r.ok ? r.json() : Promise.reject())
     .then(cfg => { gm.mode = cfg.mode; return cfg.paymentConfigurationId; })
     .catch(() => { gm.mode = 'test'; return GM_TEST_CONFIG_ID; })
-    .then(id => { $gm('gm-test').hidden = gm.mode !== 'test'; gmInitCheckout(id); });
+    .then(id => gmInitCheckout(id));
 });
 
 // Sticky mobile give button once hero button scrolls away
