@@ -508,7 +508,7 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
-// Redirect root to /parents — the WIP giving day platform at index.html is not public-facing yet.
+// Redirect root to /parents (the Giving Days page is in progress at /preview).
 app.get('/', (req, res) => res.redirect(301, '/parents'));
 
 app.use(express.static(path.join(__dirname, 'public')));
