@@ -2432,6 +2432,12 @@ app.get('/preview', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'giving-days-mockup.html'));
 });
 
+// Second design direction (navy + yellow), shown alongside /preview for comparison
+app.get('/preview-v2', (req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(__dirname, 'public', 'giving-days-v2.html'));
+});
+
 // Giving Days payment mode. GIVING_MODE=live on Render switches the gift form to the
 // live BBMS configuration — but only once GD_LIVE_ALLOWED is true (gift saving is not
 // built yet, so live mode stays locked). Anything else means test mode.
