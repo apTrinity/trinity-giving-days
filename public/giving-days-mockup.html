@@ -386,6 +386,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 @media (prefers-reduced-motion: reduce) {
   .d-fill::before, .live-dot { animation: none; }
 }
+
+/* iPhones zoom in when a field's text is under 16px, so phones get 16px fields */
+@media (max-width: 760px) {
+  .gm-input, .gm-select, .lb-search, .lb-toolbar input { font-size: 16px; }
+}
 </style>
 </head>
 <body>

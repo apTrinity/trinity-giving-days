@@ -683,6 +683,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .fold { display: none; }
 .stage.phone .fold { display: block; position: absolute; left: 0; right: 0; top: 650px; height: 0; z-index: 5; pointer-events: none; }
 .fold::after { content: '↑ first screen on a typical phone'; position: absolute; left: 0; right: 0; top: 0; border-top: 2px dashed #d33; font-size: 10px; font-weight: 700; color: #d33; text-align: right; padding: 3px 8px 0; letter-spacing: .04em; text-transform: uppercase; }
+
+/* iPhones zoom in when a field's text is under 16px, so phones get 16px fields */
+@media (max-width: 760px) {
+  .gm-input, .gm-select, .lb-search, .lb-toolbar input { font-size: 16px; }
+}
 </style>
 </head>
 <body>
