@@ -589,6 +589,18 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .ub-card .ub-name { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: rgba(255,255,255,.6); margin-top: -6px; }
 .ub-leaddesc { font-size: 13.5px; line-height: 1.55; color: rgba(255,255,255,.8); border-top: 1px solid rgba(255,255,255,.14); padding-top: 14px; margin-top: 6px; }
 .ub-leaddesc span { display: block; margin-top: 6px; font-size: 12px; font-style: italic; color: rgba(255,255,255,.6); }
+.lb-find { display: flex; }
+.lb-find .lb-search { border-right: 0; }
+.lb-find button { border: 1.5px solid var(--navy); background: var(--navy); color: #fff; font: 700 12.5px 'Open Sans', sans-serif; letter-spacing: .04em; padding: 0 16px; cursor: pointer; }
+.lb-hit:empty { display: none; }
+.lb-hit { margin: -4px 0 16px; }
+.lb-hit-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--navy); color: #fff; border-left: 5px solid var(--trinity-yellow); padding: 12px 14px 12px 16px; }
+.lb-hit-rank { font-family: 'Lora', serif; font-size: 28px; font-weight: 700; color: var(--trinity-yellow); }
+.lb-hit-card b { font-size: 15px; }
+.lb-hit-card small { display: block; font-size: 12.5px; color: rgba(255,255,255,.75); margin-top: 2px; }
+.lb-hit-x { background: rgba(255,255,255,.1); border: 0; color: #fff; width: 30px; height: 30px; font-size: 18px; cursor: pointer; }
+.lb-hit-msg { font-size: 13px; color: var(--ink-mid); background: var(--paper-2); padding: 10px 14px; }
+@container (max-width: 860px) { .lb-find { width: 100%; } .lb-find .lb-search { flex: 1; width: auto; } }
 .tap-touch { display: none; }
 @media (hover: none) { .tap-touch { display: inline; } .tap-mouse { display: none; } }
 @container (max-width: 1000px) {
@@ -1140,7 +1152,8 @@ const LB = {
     const R = lbBoard === 'alumni' ? RA : RP;
     const step = (r, cls, place) => `<div class="pd-step ${cls}"><div class="pd-place">${place}</div><div class="pd-name">${lbBoard === 'alumni' ? r.label : r.label.replace(' Parents', '')}</div><div class="pd-n">${r.donors}<small>donors</small></div></div>`;
     return head('Leader<em>boards</em>', 'Ranked by number of donors') + `
-      <div class="pd-top">${boardTabs()}${lbBoard === 'alumni' ? '<input class="lb-search" id="pd-find" type="search" inputmode="numeric" placeholder="Find your class (e.g. 1996)">' : ''}</div>
+      <div class="pd-top">${boardTabs()}${lbBoard === 'alumni' ? '<form class="lb-find" id="pd-form" role="search"><input class="lb-search" id="pd-find" type="search" inputmode="numeric" enterkeyhint="search" maxlength="4" placeholder="Find your class (e.g. 1996)" aria-label="Find your class year"><button type="submit">Find</button></form>' : ''}</div>
+      <div class="lb-hit" id="lb-hit" aria-live="polite"></div>
       <div class="pd">${step(R[1], '', '2nd')}${step(R[0], 'first', '1st place')}${step(R[2], '', '3rd')}</div>
       <div class="lb-card"><ol class="pd-list" id="pd-list">${R.slice(3, 10).map(r => `<li><span class="r">${r.rank}</span><span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / R[0].donors * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('')}</ol></div>`;
   },
@@ -1158,8 +1171,24 @@ function renderLB() {
     if (r && info) info.innerHTML = `<b>${r.label}</b>${r.reunion ? ' (reunion year)' : ''} · ${r.donors} donor${r.donors === 1 ? '' : 's'} · <b>#${r.rank}</b> of ${R.length}`;
   };
   el.querySelectorAll('.cw-t[data-k]').forEach(t => t.addEventListener('click', () => showTile(t.dataset.k)));
-  const find = el.querySelector('.lb-search');
+  const find = el.querySelector('.lb-search'), hit = document.getElementById('lb-hit'), form = document.getElementById('pd-form');
+  const showHit = (q, done) => {
+    if (!hit) return;
+    const r = rankOf(RA, q);
+    hit.innerHTML = !q ? '' : q.length < 4 ? (done ? '<div class="lb-hit-msg">Enter a four-digit class year, like 1996.</div>' : '')
+      : r ? `<div class="lb-hit-card"><span class="lb-hit-rank">#${r.rank}</span><span><b>${r.label}</b>${r.reunion ? '<span class="reu">Reunion</span>' : ''}<small>${r.donors} donor${r.donors === 1 ? '' : 's'} · ${r.rank === 1 ? 'in 1st place!' : `#${r.rank} of ${RA.length} classes`}</small></span><button type="button" class="lb-hit-x" aria-label="Clear search">×</button></div>`
+      : `<div class="lb-hit-msg">We couldn't find the Class of ${q}.</div>`;
+    const x = hit.querySelector('.lb-hit-x');
+    if (x) x.addEventListener('click', () => { find.value = ''; find.dispatchEvent(new Event('input')); find.focus(); });
+    if (q.length === 4 || done) {
+      find.blur(); // closes the phone keyboard so the result is visible
+      setTimeout(() => hit.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
+    }
+  };
+  if (form) form.addEventListener('submit', e => { e.preventDefault(); showHit(find.value.trim(), true); });
   if (find) find.addEventListener('input', () => {
+    find.value = find.value.replace(/\D/g, '').slice(0, 4);
+    if (lbView === 'pd') showHit(find.value.trim(), false);
     const q = find.value.trim();
     if (lbView === 'cw') { if (q.length === 4) showTile(q); return; }
     const list = el.querySelector(lbView === 'sx' ? '#sx-alumni' : '#pd-list');
