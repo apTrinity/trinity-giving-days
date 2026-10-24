@@ -81,7 +81,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .pips { display: inline-flex; gap: 4px; }
 .pips i { width: 16px; height: 4px; background: rgba(255,255,255,.2); }
 .pips i.done { background: #fff; }
-.pips i.live { background: var(--trinity-yellow); }
+.pips i.now { background: var(--trinity-yellow); }
 .prog-fig { flex: 1 1 auto; min-height: 150px; container-type: size; display: flex; justify-content: center; align-items: center; }
 .d-seal { position: relative; height: min(100cqh, 105cqw); aspect-ratio: 443 / 465; flex-shrink: 0; overflow: hidden;
   -webkit-mask: var(--seal-mask) center / contain no-repeat; mask: var(--seal-mask) center / contain no-repeat; }
@@ -152,14 +152,14 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .ub-card.flipped .ub-front { transform: rotateY(-180deg); }
 .ub-card.flipped .ub-back { transform: rotateY(0); }
 .ub-more { margin-top: auto; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--trinity-yellow); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.ub-card.done .ub-more { color: var(--navy); }
+
 .ub-bname { font-size: 13px; font-weight: 700; }
 .ub-bdesc { font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.88); }
 .ub-bmeta { font-size: 11.5px; line-height: 1.45; color: rgba(255,255,255,.62); }
 .ub-bmeta b { color: #fff; font-weight: 700; }
 .ub-give { color: var(--trinity-yellow); text-decoration: none; }
 .ub-give:hover { text-decoration: underline; }
-.ub-card.done .ub-bdesc, .ub-card.done .ub-bmeta, .ub-card.done .ub-bmeta b, .ub-card.done .ub-give { color: var(--navy); }
+
 /* Pop-up details: centered on desktop, bottom sheet on phones */
 .ub-pop { border: 0; padding: 0; background: var(--navy); color: #fff; width: min(560px, calc(100vw - 32px)); max-height: 85vh; margin: auto; border-top: 5px solid var(--trinity-yellow); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
 .ub-pop::backdrop { background: rgba(10,18,40,.55); }
@@ -177,11 +177,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .ub-segs i.on { background: #fff; }
 .ub-cap { font-size: 12px; color: rgba(255,255,255,.72); line-height: 1.45; }
 .ub-cap b { color: #fff; }
-.ub-card.done { color: var(--navy); }
-.ub-card.done .ub-face { background: var(--trinity-yellow); border-color: var(--trinity-yellow); }
-.ub-card.done:hover .ub-face { background: color-mix(in srgb, rgb(242,204,7) 88%, white); }
-.ub-card.done .ub-status, .ub-card.done .ub-cap, .ub-card.done .ub-cap b { color: var(--navy); }
-.ub-card.done .ub-segs i { background: var(--navy); }
+.ub-card.done .ub-face { background: none; border-color: rgba(255,255,255,.18); }
+.ub-card.done .ub-status { color: var(--trinity-yellow); }
+.ub-card.done .ub-prize { color: rgba(255,255,255,.75); }
+.ub-card.done .ub-bar i { background: rgba(255,255,255,.45); }
 .ub-card.soon .ub-face { border-style: dashed; background: none; }
 .ub-card.soon .ub-prize { color: rgba(255,255,255,.5); }
 .ub-facts { display: grid; gap: 8px; font-size: 12.5px; color: rgba(255,255,255,.8); }
@@ -568,6 +567,103 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .ab-pane { padding: 18px 16px 18px; }
   .ft { padding: 22px 16px 90px; flex-direction: column; align-items: flex-start; }
 }
+/* Challenges after feedback: a lead card, plain "bonus" wording, no step blocks */
+.ub-note { font-size: 13px; color: rgba(255,255,255,.7); margin: -10px 0 18px; }
+.ub-row { grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+.ub-card.lead { grid-row: span 2; }
+.ub-card.lead .ub-face { background: rgba(255,255,255,.1); border-top: 5px solid var(--trinity-yellow); padding: 24px 24px 20px; gap: 12px; }
+.ub-card.lead .ub-prize { font-size: 50px; }
+.ub-card.lead .ub-rule { font-size: 15px; }
+.ub-card.lead .ub-bar { height: 12px; }
+.ub-card.lead .ub-cap { font-size: 13.5px; }
+.ub-pill { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; background: rgba(255,255,255,.12); color: #fff; }
+.ub-card.lead .ub-pill { background: var(--trinity-yellow); color: var(--navy); }
+.ub-card.soon .ub-pill { background: none; border: 1px dashed rgba(255,255,255,.35); color: rgba(255,255,255,.7); }
+.ub-card.done .ub-pill { background: none; color: var(--trinity-yellow); padding-left: 0; }
+.ub-prize small { font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-left: 4px; }
+.ub-rule { font-size: 13px; color: rgba(255,255,255,.85); line-height: 1.4; margin-top: -4px; }
+.ub-rule b { color: #fff; }
+.ub-bar { height: 7px; background: rgba(255,255,255,.14); }
+.ub-bar i { display: block; height: 100%; background: #fff; }
+.ub-card.lead .ub-bar i { background: var(--trinity-yellow); }
+.ub-card .ub-name { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: rgba(255,255,255,.6); margin-top: -6px; }
+.ub-leaddesc { font-size: 13.5px; line-height: 1.55; color: rgba(255,255,255,.8); border-top: 1px solid rgba(255,255,255,.14); padding-top: 14px; margin-top: 6px; }
+.ub-leaddesc span { display: block; margin-top: 6px; font-size: 12px; font-style: italic; color: rgba(255,255,255,.6); }
+.tap-touch { display: none; }
+@media (hover: none) { .tap-touch { display: inline; } .tap-mouse { display: none; } }
+@container (max-width: 1000px) {
+  .ub-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ub-card.lead { grid-row: auto; grid-column: 1 / -1; }
+}
+@container (max-width: 860px) {
+  .ub-note { margin: -8px 0 14px; font-size: 12.5px; }
+  .ub-card.lead { grid-column: auto; flex-basis: 84%; }
+  .ub-card.lead .ub-prize { font-size: 40px; }
+  .ub-leaddesc { display: none; }
+}
+
+/* Compact challenge cards: one row on desktop, about half the height */
+.ub { padding-top: 32px; padding-bottom: 34px; }
+.ub-head { margin-bottom: 14px; }
+.ub-row { grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ub-card.lead { grid-row: auto; }
+.ub-face { padding: 13px 14px 11px; gap: 6px; }
+.ub-card.lead .ub-face { padding: 13px 16px 11px; gap: 6px; border-top-width: 4px; }
+.ub-prize { font-size: 24px; }
+.ub-prize small { font-size: 10px; }
+.ub-card.lead .ub-prize { font-size: 32px; }
+.ub-rule, .ub-card.lead .ub-rule { font-size: 12px; margin-top: -2px; }
+.ub-card .ub-name { font-size: 10.5px; margin-top: -4px; }
+.ub-bar { height: 5px; }
+.ub-card.lead .ub-bar { height: 7px; }
+.ub-cap, .ub-card.lead .ub-cap { font-size: 11.5px; line-height: 1.35; }
+.ub-more { font-size: 9.5px; }
+.ub-pill { font-size: 9px; padding: 2px 7px; }
+.ub-back { gap: 5px; }
+.ub-bname { font-size: 12px; }
+.ub-bdesc { font-size: 11.5px; line-height: 1.4; }
+.ub-bmeta { font-size: 10.5px; line-height: 1.35; }
+/* Cards can't grow wider than their column (long amounts wrap instead of spilling into the next card) */
+.ub-card { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.ub-face { min-width: 0; overflow-wrap: anywhere; }
+.ub-prize small { white-space: nowrap; }
+/* iPad and small laptops: the lead challenge gets its own row, the other four sit below it */
+@container (max-width: 1240px) {
+  .ub-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ub-card.lead { grid-column: 1 / -1; }
+}
+@container (max-width: 860px) {
+  .ub { padding-top: 26px; padding-bottom: 26px; }
+  .ub-card, .ub-card.lead { flex-basis: 66%; grid-column: auto; }
+  .ub-card.lead .ub-prize { font-size: 30px; }
+}
+
+.ub-tapline { margin-top: auto; padding-top: 4px; text-align: right; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--trinity-yellow); }
+.ub-flip { position: absolute; top: 9px; right: 11px; font-size: 14px; line-height: 1; color: var(--trinity-yellow); }
+.ub-face { position: relative; }
+.ub-face > .ub-bname { padding-right: 16px; }
+.ub-st { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.7); }
+.ub-card.lead .ub-st { color: var(--trinity-yellow); }
+.ub-card.done .ub-st { color: var(--trinity-yellow); }
+.ub-card.soon .ub-st { color: rgba(255,255,255,.6); }
+.ub-bdesc { font-size: 11px; }
+.ub-top { display: flex; justify-content: space-between; align-items: center; gap: 4px 8px; flex-wrap: wrap; }
+.ub-tap { font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--trinity-yellow); white-space: nowrap; }
+.ub-give { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-top: auto; }
+.ub-face { gap: 5px; }
+
+/* Hero progress: label + bar so the seal reads as the meter */
+.prog-cap { text-align: center; font-size: 12px; color: rgba(255,255,255,.7); margin-bottom: -6px; }
+.prog-bar { height: 6px; background: rgba(255,255,255,.18); margin: 10px auto 8px; max-width: 220px; }
+.prog-bar i { display: block; height: 100%; width: 0; background: var(--trinity-yellow); transition: width 1.4s cubic-bezier(.2,.8,.2,1); }
+@container (max-width: 860px) {
+  .prog-cap { display: none; }
+  .prog-fig { height: 112px; }
+  .prog { grid-template-columns: 104px minmax(0, 1fr); }
+  .prog-bar { margin: 6px 0 6px; max-width: none; }
+  .prog-raised { display: none; }
+}
+
 /* Live page: the stage fills the window */
 .stage { max-width: none; margin: 0; box-shadow: none; overflow: visible; }
 .mock-flag { background: var(--trinity-yellow); color: var(--navy); text-align: center; font-size: 12px; line-height: 1.5; padding: 9px 16px; }
@@ -707,11 +803,13 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="video-cap"><b>Why I Give</b>Trinity Giving Days · 2 min</div>
       </div>
       <div class="prog">
-        <div class="prog-day"><span>Day 3 · Wednesday</span><span class="pips"><i class="done"></i><i class="done"></i><i class="live"></i><i></i><i></i></span></div>
+        <div class="prog-day"><span>Day 3 · Wednesday</span><span class="pips"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></span></div>
+        <div class="prog-cap">Every gift helps fill the seal</div>
         <div class="prog-fig"><div class="d-seal" role="img" aria-label="Trinity seal filling toward the donor goal"><div class="d-empty"></div><div class="d-fill" id="seal-fill"></div></div></div>
         <div class="prog-nums">
           <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">212</span> <span>of 350 donors</span></div>
-          <div class="prog-sub"><b id="stat-raised">$84,300</b> raised · <b id="stat-togo">138</b> to go</div>
+          <div class="prog-bar" aria-hidden="true"><i id="prog-bar"></i></div>
+          <div class="prog-sub"><b id="stat-pct">61%</b> of our goal · <b id="stat-togo">138</b> to go<span class="prog-raised"> · <b id="stat-raised">$84,300</b> raised</span></div>
         </div>
         <button class="btn-give" id="hero-give">Make your gift →</button>
       </div>
@@ -816,7 +914,7 @@ const stage = document.getElementById('stage');
 
 
 
-setTimeout(() => renderHero(), 250);
+setTimeout(() => renderHero(), 600);
 
 // ── Challenges (sample data, mocked as Wednesday 12/2) ──
 const C = [
@@ -880,11 +978,12 @@ function wireBand() {
   const dots = [...document.querySelectorAll('.ub-dots i')];
   const mark = () => {
     const x = row.scrollLeft, cards = [...row.children];
-    const i = x + row.clientWidth >= row.scrollWidth - 4 ? cards.length - 1
+    const i = row.scrollWidth <= row.clientWidth + 4 ? 0 : x + row.clientWidth >= row.scrollWidth - 4 ? cards.length - 1
       : cards.reduce((best, c, j) => Math.abs(c.offsetLeft - row.offsetLeft - 16 - x) < Math.abs(cards[best].offsetLeft - row.offsetLeft - 16 - x) ? j : best, 0);
     dots.forEach((d, j) => d.classList.toggle('on', j === i));
   };
   row.addEventListener('scroll', mark, { passive: true });
+  addEventListener('resize', mark);
   mark();
 }
 const pct = c => Math.min(c.cur / c.target, 1);
@@ -893,34 +992,39 @@ const rule = c => c.match
   : `When ${c.target} ${c.unit} give, <b>${$(c.prize)}</b> is unlocked${c.soon ? ' — Friday only' : ''}.`;
 
 const CHAL = {
-  ub: () => `<section class="ub"><div class="ub-inner">
-      <div class="ub-head"><div class="ub-title">Waiting to Be <em>Unlocked</em></div><div class="ub-sub"><b>${$(unlocked)}</b> unlocked so far</div></div>
-      <div class="ub-row">${C.map(c => {
-        const d = isDone(c), on = Math.floor(pct(c) * 10);
-        const status = d ? '✓ Unlocked' : c.soon ? 'Opens Friday 12/4' : c.match ? 'Matching now' : 'Locked · in progress';
-        const cap = c.soon ? `${c.target} gifts on the final day.` : d ? `${c.target} ${c.unit} made it happen. Thank you!`
-          : c.match ? `<b>${$(c.cur)}</b> matched so far, from ${c.who}.` : `<b>${c.target - c.cur} more ${c.unit}</b> to go (${c.cur} of ${c.target}).`;
-        const label = detailMode === 'pop' ? 'Details' : 'Details ↻';
-        return `<div class="ub-card${d ? ' done' : ''}${c.soon ? ' soon' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.name}: show details">
+  ub: () => {
+    const stage = c => c === C[0] ? 0 : isDone(c) ? 3 : c.soon ? 2 : 1;
+    const order = [...C].sort((x, y) => stage(x) - stage(y));
+    const card = c => {
+      const d = isDone(c), lead = c === C[0], w = Math.min(c.cur / c.target, 1) * 100;
+      const pill = d ? '✓ Goal met' : c.soon ? 'Starts Fri 12/4' : c.match ? 'Matching' : 'In progress';
+      const rule = c.match ? `<b>Young alumni</b> gifts doubled`
+        : c.soon ? `When <b>${c.target} donors</b> give on Friday` : `When <b>${c.target} ${c.unit}</b> give`;
+      const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
+        : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
+      return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.name}: show more">
           <div class="ub-face ub-front">
-            <div class="ub-status">${status}</div>
-            <div class="ub-prize">${$(c.match ? c.target : c.prize)}</div>
-            <div class="ub-name">${c.name}</div>
-            <div class="ub-segs">${Array.from({ length: 10 }, (_, i) => `<i class="${i < on ? 'on' : ''}"></i>`).join('')}</div>
-            <div class="ub-cap">${cap}</div>
-            <div class="ub-more"><span>${label}</span></div>
+            <div class="ub-prize">${$(c.match ? c.target : c.prize)}<small>${c.match ? 'match' : 'bonus'}</small></div>
+            <div class="ub-rule">${rule}</div>
+            <div class="ub-bar"><i style="width:${c.soon ? 0 : w}%"></i></div>
+            <div class="ub-cap"><span class="ub-st">${pill}</span>${cap ? ' · ' + cap : ''}</div>
+            <div class="ub-tapline"><span class="tap-mouse">Click for more ↻</span><span class="tap-touch">Tap for more ↻</span></div>
           </div>
           <div class="ub-face ub-back" aria-hidden="true">
-            <div class="ub-status">${status}</div>
+            <span class="ub-flip" aria-hidden="true">↺</span>
             <div class="ub-bname">${c.name}</div>
             <div class="ub-bdesc">${c.desc[0]}</div>
-            <div class="ub-bmeta"><b>Who counts:</b> ${c.counts}<br>${c.when}</div>
-            <div class="ub-more"><span>↺ Back</span>${d || c.soon ? '' : '<a class="ub-give" href="#" onclick="return false">Give →</a>'}</div>
+            ${d || c.soon ? '' : '<a class="ub-give" href="#" onclick="return false">Give toward this →</a>'}
           </div>
         </div>`;
-      }).join('')}</div>
+    };
+    return `<section class="ub"><div class="ub-inner">
+      <div class="ub-head"><div class="ub-title">Help Earn <em>Bonus Gifts</em></div><div class="ub-sub"><b>${$(unlocked)}</b> earned so far</div></div>
+      <p class="ub-note">Each challenge is separate, and one gift can count toward several.</p>
+      <div class="ub-row">${order.map(card).join('')}</div>
       <div class="ub-dots" aria-hidden="true">${C.map(() => '<i></i>').join('')}</div>
-</div></section>`,
+    </div></section>`;
+  },
 
   med: () => `<section class="chal-cream">
       <div class="sec-head"><div class="sec-title">Challenge <em>Gifts</em></div><div class="sec-sub"><b>${$(unlocked)}</b> unlocked so far</div></div>
@@ -1207,7 +1311,10 @@ function renderHero() {
   document.getElementById('donor-count').textContent = heroDonors;
   document.getElementById('stat-raised').textContent = fmt$(heroRaised);
   document.getElementById('stat-togo').textContent = Math.max(GOAL - heroDonors, 0);
-  document.getElementById('seal-fill').style.height = Math.min(heroDonors / GOAL, 1) * 100 + '%';
+  const pctDone = Math.min(heroDonors / GOAL, 1) * 100;
+  document.getElementById('seal-fill').style.height = pctDone + '%';
+  document.getElementById('prog-bar').style.width = pctDone + '%';
+  document.getElementById('stat-pct').textContent = Math.floor(pctDone) + '%';
 }
 
 // ── Gift modal ──────────────────────────────────────────────────────────────
