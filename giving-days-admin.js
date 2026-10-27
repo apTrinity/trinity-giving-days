@@ -1,0 +1,229 @@
+// Giving Days campaign routes: public campaign data + admin management of settings and challenges.
+// Kept in its own file so none of it can touch the parents routes in server.js.
+// Tables: gd_settings (one row), gd_challenges (see sql/gd-02-tables.sql). Server-side access only.
+
+const path = require('path');
+
+const DESC_MAX = 220;
+const TEXT_MAX = { name: 60, unit: 40, who_counts: 120, when_text: 120, sponsor: 120 };
+const KINDS = ['challenge', 'match'];
+
+// ── Validation helpers ───────────────────────────────────────────────────────
+const isBlank = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+const num = v => (typeof v === 'number' ? v : Number(String(v).trim()));
+const toDate = v => {
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+};
+
+// Turns a request body into a clean challenge row, or returns { error }.
+// `partial` allows PUT to send only some fields.
+function cleanChallenge(body, { partial = false } = {}) {
+  const out = {};
+  const b = body || {};
+  const has = k => Object.prototype.hasOwnProperty.call(b, k);
+
+  for (const k of ['name', 'unit', 'who_counts', 'when_text', 'sponsor']) {
+    if (!has(k)) continue;
+    const v = isBlank(b[k]) ? null : String(b[k]).trim();
+    if (v && v.length > TEXT_MAX[k]) return { error: `${k} must be ${TEXT_MAX[k]} characters or fewer.` };
+    out[k] = v;
+  }
+  if (!partial && !out.name) return { error: 'Name is required.' };
+  if (has('name') && !out.name) return { error: 'Name is required.' };
+
+  if (has('kind')) {
+    if (!KINDS.includes(b.kind)) return { error: 'Type must be challenge or match.' };
+    out.kind = b.kind;
+  }
+  if (has('description')) {
+    const d = isBlank(b.description) ? '' : String(b.description).trim();
+    if (d.length > DESC_MAX) return { error: `Description must be ${DESC_MAX} characters or fewer (it is ${d.length}).` };
+    out.description = d;
+  }
+  if (has('target')) {
+    const t = num(b.target);
+    if (!isFinite(t) || t <= 0) return { error: 'Target must be a number greater than 0.' };
+    out.target = t;
+  } else if (!partial) return { error: 'Target is required.' };
+
+  if (has('prize')) {
+    if (isBlank(b.prize)) out.prize = null;
+    else {
+      const p = num(b.prize);
+      if (!isFinite(p) || p < 0) return { error: 'Prize must be 0 or more.' };
+      out.prize = p;
+    }
+  }
+  if (has('current_value')) {
+    const c = isBlank(b.current_value) ? 0 : num(b.current_value);
+    if (!isFinite(c) || c < 0) return { error: 'Current progress must be 0 or more.' };
+    out.current_value = c;
+  }
+  for (const k of ['starts_at', 'ends_at']) {
+    if (!has(k)) continue;
+    if (isBlank(b[k])) out[k] = null;
+    else {
+      const d = toDate(b[k]);
+      if (!d) return { error: `${k} is not a valid date.` };
+      out[k] = d;
+    }
+  }
+  if (out.starts_at && out.ends_at && out.starts_at >= out.ends_at) return { error: 'The window must end after it starts.' };
+  if (has('sort_order')) {
+    const s = parseInt(b.sort_order, 10);
+    if (!Number.isInteger(s)) return { error: 'Sort order must be a whole number.' };
+    out.sort_order = s;
+  }
+  if (has('published')) out.published = b.published === true || b.published === 'true';
+
+  // A challenge unlocks a prize; a match has none.
+  const kind = out.kind || (partial ? null : 'challenge');
+  if (kind === 'match') out.prize = null;
+  if (!partial && kind === 'challenge' && out.prize == null) return { error: 'A challenge needs a prize amount.' };
+  return { row: out };
+}
+
+function cleanSettings(body) {
+  const b = body || {};
+  const out = {};
+  if (Object.prototype.hasOwnProperty.call(b, 'goal_donors')) {
+    const g = parseInt(b.goal_donors, 10);
+    if (!Number.isInteger(g) || g <= 0) return { error: 'Goal must be a whole number greater than 0.' };
+    out.goal_donors = g;
+  }
+  for (const k of ['starts_at', 'ends_at']) {
+    if (!Object.prototype.hasOwnProperty.call(b, k) || isBlank(b[k])) continue;  // blank = leave unchanged
+    const d = toDate(b[k]);
+    if (!d) return { error: `${k} is not a valid date.` };
+    out[k] = d;
+  }
+  if (out.starts_at && out.ends_at && out.starts_at >= out.ends_at) return { error: 'The campaign must end after it starts.' };
+  if (Object.prototype.hasOwnProperty.call(b, 'video_url')) {
+    const v = isBlank(b.video_url) ? null : String(b.video_url).trim();
+    if (v && !/^https:\/\//i.test(v)) return { error: 'Video link must start with https://' };
+    out.video_url = v;
+  }
+  // `mode` is intentionally not editable here: test/live stays locked in server.js (GD_LIVE_ALLOWED).
+  return { row: out };
+}
+
+// ── Routes ───────────────────────────────────────────────────────────────────
+module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) {
+  const fail = (res, err, status = 500) => {
+    console.error('giving-days-admin:', err.message || err);
+    res.status(status).json({ error: status === 500 ? 'Something went wrong. Please try again.' : err.message });
+  };
+
+  // Admin page
+  app.get('/admin/giving-days', (req, res) => {
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+    res.sendFile(path.join(__dirname, 'public', 'admin-giving-days.html'));
+  });
+
+  // Public: what the Giving Days page needs (published challenges only).
+  app.get('/api/gd/campaign', async (req, res) => {
+    try {
+      const [s, c] = await Promise.all([
+        supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
+        supabase.from('gd_challenges')
+          .select('id, name, kind, unit, who_counts, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
+          .eq('published', true).order('sort_order').order('created_at'),
+      ]);
+      if (s.error) throw s.error;
+      if (c.error) throw c.error;
+      res.set('Cache-Control', 'public, max-age=15');
+      res.json({ settings: s.data, challenges: c.data });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Admin: settings
+  app.get('/api/admin/gd/settings', requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabase.from('gd_settings').select('*').eq('id', 1).single();
+      if (error) throw error;
+      res.json({ settings: data, descMax: DESC_MAX });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.put('/api/admin/gd/settings', requireAdmin, async (req, res) => {
+    const { row, error: bad } = cleanSettings(req.body);
+    if (bad) return res.status(400).json({ error: bad });
+    if (!Object.keys(row).length) return res.status(400).json({ error: 'Nothing to update.' });
+    try {
+      // Re-check the window against what is stored when only one end is sent.
+      if (!(row.starts_at && row.ends_at) && (row.starts_at || row.ends_at)) {
+        const { data: cur } = await supabase.from('gd_settings').select('starts_at, ends_at').eq('id', 1).single();
+        const s = row.starts_at || cur.starts_at, e = row.ends_at || cur.ends_at;
+        if (new Date(s) >= new Date(e)) return res.status(400).json({ error: 'The campaign must end after it starts.' });
+      }
+      const { data, error } = await supabase.from('gd_settings')
+        .update({ ...row, updated_at: new Date().toISOString() }).eq('id', 1).select().single();
+      if (error) throw error;
+      res.json({ settings: data });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Admin: challenges
+  app.get('/api/admin/gd/challenges', requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabase.from('gd_challenges').select('*').order('sort_order').order('created_at');
+      if (error) throw error;
+      res.json({ challenges: data, descMax: DESC_MAX });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.post('/api/admin/gd/challenges', requireAdmin, async (req, res) => {
+    const { row, error: bad } = cleanChallenge(req.body);
+    if (bad) return res.status(400).json({ error: bad });
+    try {
+      if (row.sort_order === undefined) {
+        const { data: last } = await supabase.from('gd_challenges').select('sort_order').order('sort_order', { ascending: false }).limit(1);
+        row.sort_order = last && last.length ? last[0].sort_order + 1 : 0;
+      }
+      const { data, error } = await supabase.from('gd_challenges').insert(row).select().single();
+      if (error) throw error;
+      res.status(201).json({ challenge: data });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Reorder: body { ids: [id, id, ...] } in the desired order. Registered before /:id.
+  app.put('/api/admin/gd/challenges/order', requireAdmin, async (req, res) => {
+    const ids = req.body && req.body.ids;
+    if (!Array.isArray(ids) || !ids.length || ids.some(i => typeof i !== 'string')) {
+      return res.status(400).json({ error: 'ids must be a list of challenge ids.' });
+    }
+    try {
+      const results = await Promise.all(ids.map((id, i) =>
+        supabase.from('gd_challenges').update({ sort_order: i, updated_at: new Date().toISOString() }).eq('id', id)));
+      const failed = results.find(r => r.error);
+      if (failed) throw failed.error;
+      res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.put('/api/admin/gd/challenges/:id', requireAdmin, async (req, res) => {
+    const { row, error: bad } = cleanChallenge(req.body, { partial: true });
+    if (bad) return res.status(400).json({ error: bad });
+    if (!Object.keys(row).length) return res.status(400).json({ error: 'Nothing to update.' });
+    try {
+      const { data, error } = await supabase.from('gd_challenges')
+        .update({ ...row, updated_at: new Date().toISOString() }).eq('id', req.params.id).select().single();
+      if (error) {
+        if (error.code === 'PGRST116') return res.status(404).json({ error: 'Challenge not found.' });
+        throw error;
+      }
+      res.json({ challenge: data });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.delete('/api/admin/gd/challenges/:id', requireAdmin, async (req, res) => {
+    try {
+      const { error } = await supabase.from('gd_challenges').delete().eq('id', req.params.id);
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+};
+
+module.exports.DESC_MAX = DESC_MAX;

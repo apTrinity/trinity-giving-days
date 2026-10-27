@@ -2485,6 +2485,13 @@ async function requireAdmin(req, res, next) {
   next();
 }
 
+// Giving Days campaign + admin routes (separate file; a failure here must not stop the parents routes)
+try {
+  require('./giving-days-admin')(app, { supabase, requireAdmin });
+} catch (err) {
+  console.error('Giving Days admin routes failed to load:', err.message);
+}
+
 // GET /api/admin/households — all parent households with members and gift status
 // Fetch all rows from a Supabase table, paginating past the project's max-rows limit.
 async function fetchAll(query, pageSize = 900) {
