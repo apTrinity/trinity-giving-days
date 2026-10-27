@@ -21,6 +21,7 @@ const TAGS = [
   { key: 'alumna',          label: 'Alumnae',          hidden: true },
 ];
 const TAG_KEYS = TAGS.map(t => t.key);
+const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
 // Card-back "Who counts" text built from the rule, unless the admin typed their own.
 function whoCountsText(c) {
@@ -32,7 +33,11 @@ function whoCountsText(c) {
   if (lo != null && hi != null) years = lo === hi ? `Class of ${lo}` : `Classes of ${lo}–${hi}`;
   else if (lo != null) years = `Class of ${lo} or later`;
   else if (hi != null) years = `Class of ${hi} or earlier`;
-  if (list && years) return `${list} (${years})`;
+  const gs = GRADES.filter(g => (c.grades || []).includes(g));
+  const grades = !gs.length ? null : gs.length === 1 ? `Grade ${gs[0]}` : `Grades ${gs.slice(0, -1).join(', ')} and ${gs[gs.length - 1]}`;
+  const extra = [years, grades && list ? grades : null].filter(Boolean).join(', ');
+  if (grades && !list) return years ? `Current parents of ${grades} (${years})` : `Current parents of ${grades}`;
+  if (list && extra) return `${list} (${extra})`;
   return list || years || 'Every donor to the Trinity Fund';
 }
 
@@ -111,6 +116,12 @@ function cleanChallenge(body, { partial = false } = {}) {
     if (bad !== undefined) return { error: `Unknown affiliation "${bad}".` };
     out.tags = [...new Set(b.tags)];
   }
+  if (has('grades')) {
+    if (!Array.isArray(b.grades)) return { error: 'Grades must be a list.' };
+    const bad = b.grades.find(g => !GRADES.includes(String(g)));
+    if (bad !== undefined) return { error: `Unknown grade "${bad}".` };
+    out.grades = GRADES.filter(g => b.grades.map(String).includes(g));
+  }
   for (const k of ['class_year_min', 'class_year_max']) {
     if (!has(k)) continue;
     if (isBlank(b[k])) { out[k] = null; continue; }
@@ -172,7 +183,7 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
       const [s, c] = await Promise.all([
         supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
         supabase.from('gd_challenges')
-          .select('id, name, kind, unit, who_counts, tags, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
+          .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
           .eq('published', true).order('sort_order').order('created_at'),
       ]);
       if (s.error) throw s.error;
@@ -215,7 +226,7 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
     try {
       const { data, error } = await supabase.from('gd_challenges').select('*').order('sort_order').order('created_at');
       if (error) throw error;
-      res.json({ challenges: data, descMax: DESC_MAX, tags: TAGS });
+      res.json({ challenges: data, descMax: DESC_MAX, tags: TAGS, grades: GRADES });
     } catch (err) { fail(res, err); }
   });
 

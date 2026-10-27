@@ -173,6 +173,8 @@
       <div class="field"><label>Who counts</label>
         <p class="hint" style="margin-bottom:8px">A gift counts if the donor has <b>any</b> of the checked affiliations. Check none to count everyone.</p>
         <div class="chips" id="f-tags"></div>
+        <p class="hint" style="margin:10px 0 6px">Optional: limit to current parents of certain grades.</p>
+        <div class="chips" id="f-grades"></div>
         <p class="hint" style="margin:10px 0 6px">Optional: limit to alumni by class year (leave blank for any).</p>
         <div class="grid2">
           <div><label for="f-ymin">First class year</label><input type="number" id="f-ymin" min="1900" max="2100" step="1" placeholder="e.g. 2015"></div>
@@ -213,7 +215,7 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = n => '$' + Math.round(Number(n)).toLocaleString();
-let sb, challenges = [], descMax = 220, editingId = null, TAGS = [];
+let sb, challenges = [], descMax = 220, editingId = null, TAGS = [], GRADES = [];
 
 // Mirrors whoCountsText in giving-days-admin.js (what the public card shows).
 function whoText(c) {
@@ -225,9 +227,14 @@ function whoText(c) {
   if (lo != null && hi != null) years = lo === hi ? `Class of ${lo}` : `Classes of ${lo}–${hi}`;
   else if (lo != null) years = `Class of ${lo} or later`;
   else if (hi != null) years = `Class of ${hi} or earlier`;
-  if (list && years) return `${list} (${years})`;
+  const gs = GRADES.filter(g => (c.grades || []).includes(g));
+  const grades = !gs.length ? null : gs.length === 1 ? `Grade ${gs[0]}` : `Grades ${gs.slice(0, -1).join(', ')} and ${gs[gs.length - 1]}`;
+  const extra = [years, grades && list ? grades : null].filter(Boolean).join(', ');
+  if (grades && !list) return years ? `Current parents of ${grades} (${years})` : `Current parents of ${grades}`;
+  if (list && extra) return `${list} (${extra})`;
   return list || years || 'Every donor to the Trinity Fund';
 }
+const checkedGrades = () => [...document.querySelectorAll('#f-grades input:checked')].map(i => i.value);
 const orNull = v => (String(v).trim() === '' ? null : v);
 const checkedTags = () => [...document.querySelectorAll('#f-tags input:checked')].map(i => i.value);
 
@@ -300,7 +307,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
 
 // ── Challenges list ──
 async function loadChallenges() {
-  try { const j = await api('GET', '/api/admin/gd/challenges'); challenges = j.challenges; descMax = j.descMax; TAGS = j.tags || []; renderList(); }
+  try { const j = await api('GET', '/api/admin/gd/challenges'); challenges = j.challenges; descMax = j.descMax; TAGS = j.tags || []; GRADES = j.grades || []; renderList(); }
   catch (e) { $('ch-list').innerHTML = `<div class="empty">Could not load challenges: ${esc(e.message)}</div>`; }
 }
 function renderList() {
@@ -345,6 +352,7 @@ function openEditor(c) {
   $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('max-label').textContent = descMax;
   $('f-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}" title="${t.hidden ? 'Not on the gift form: set from the RE import or by an admin' : 'Ticked on the gift form'}"><input type="checkbox" value="${t.key}" ${(c?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('')
     + '<p class="hint" style="width:100%;margin-top:2px">* Not a gift-form choice: matched from the RE import or set by an admin.</p>';
+  $('f-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${(c?.grades || []).includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
   $('f-ymin').value = c?.class_year_min ?? ''; $('f-ymax').value = c?.class_year_max ?? '';
   refresh(); dlg.showModal();
 }
@@ -352,7 +360,7 @@ function refresh() {
   const m = kindVal() === 'match', len = $('f-desc').value.trim().length;
   $('prize-field').style.display = m ? 'none' : ''; $('l-target').textContent = m ? 'Match cap ($)' : 'Target (donors)'; $('l-cur').textContent = m ? 'Dollars matched so far' : 'Progress so far';
   const cnt = $('desc-count'); cnt.textContent = `${len} / ${descMax}`; cnt.className = 'count' + (len > descMax ? ' over' : '');
-  const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
+  const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
   $('pv').innerHTML = `<h4>${esc($('f-name').value || 'Challenge name')}</h4><p>${esc(d || 'Description appears here.')}</p><dl>`
     + (who ? `<div><dt>Who counts</dt><dd>${esc(who)}</dd></div>` : '') + (when ? `<div><dt>When</dt><dd>${esc(when)}</dd></div>` : '')
     + (by ? `<div><dt>Made possible by</dt><dd>${esc(by)}</dd></div>` : '') + `</dl><div class="go">Give →</div>`;
@@ -366,7 +374,7 @@ $('f-save').onclick = async () => {
     unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, when_text: $('f-when').value,
     starts_at: etToISO($('f-start').value), ends_at: etToISO($('f-end').value), sponsor: $('f-sponsor').value,
     current_value: $('f-cur').value, published: $('f-pub').checked,
-    tags: checkedTags(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value),
+    tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value),
   };
   const btn = $('f-save'); btn.disabled = true; $('f-error').style.display = 'none';
   try {
