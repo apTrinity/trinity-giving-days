@@ -8,6 +8,34 @@ const DESC_MAX = 220;
 const TEXT_MAX = { name: 60, unit: 40, who_counts: 120, when_text: 120, sponsor: 120 };
 const KINDS = ['challenge', 'match'];
 
+// Tags a gift can carry. `hidden` ones are never ticked on the form: they come from the RE import
+// (or an admin edit). Keys for the form chips match giving-days-v2.html.
+const TAGS = [
+  { key: 'alumni',          label: 'Alumni',           hidden: false },
+  { key: 'current_parent',  label: 'Current parents',  hidden: false },
+  { key: 'parent_of_alumni', label: 'Parents of alumni', hidden: false },
+  { key: 'faculty',         label: 'Faculty & staff',  hidden: false },
+  { key: 'grandparent',     label: 'Grandparents',     hidden: false },
+  { key: 'friend',          label: 'Friends',          hidden: false },
+  { key: 'new_family',      label: 'New families',     hidden: true },
+  { key: 'alumna',          label: 'Alumnae',          hidden: true },
+];
+const TAG_KEYS = TAGS.map(t => t.key);
+
+// Card-back "Who counts" text built from the rule, unless the admin typed their own.
+function whoCountsText(c) {
+  if (c.who_counts) return c.who_counts;
+  const labels = (c.tags || []).map(k => (TAGS.find(t => t.key === k) || {}).label).filter(Boolean);
+  const list = labels.length > 1 ? labels.slice(0, -1).join(', ') + ' or ' + labels[labels.length - 1] : labels[0];
+  const { class_year_min: lo, class_year_max: hi } = c;
+  let years = null;
+  if (lo != null && hi != null) years = lo === hi ? `Class of ${lo}` : `Classes of ${lo}–${hi}`;
+  else if (lo != null) years = `Class of ${lo} or later`;
+  else if (hi != null) years = `Class of ${hi} or earlier`;
+  if (list && years) return `${list} (${years})`;
+  return list || years || 'Every donor to the Trinity Fund';
+}
+
 // ── Validation helpers ───────────────────────────────────────────────────────
 const isBlank = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const num = v => (typeof v === 'number' ? v : Number(String(v).trim()));
@@ -77,6 +105,23 @@ function cleanChallenge(body, { partial = false } = {}) {
   }
   if (has('published')) out.published = b.published === true || b.published === 'true';
 
+  if (has('tags')) {
+    if (!Array.isArray(b.tags)) return { error: 'Who counts must be a list of affiliations.' };
+    const bad = b.tags.find(t => !TAG_KEYS.includes(t));
+    if (bad !== undefined) return { error: `Unknown affiliation "${bad}".` };
+    out.tags = [...new Set(b.tags)];
+  }
+  for (const k of ['class_year_min', 'class_year_max']) {
+    if (!has(k)) continue;
+    if (isBlank(b[k])) { out[k] = null; continue; }
+    const y = Number(String(b[k]).trim());
+    if (!Number.isInteger(y) || y < 1900 || y > 2100) return { error: 'Class years must be four-digit years, like 2015.' };
+    out[k] = y;
+  }
+  if (out.class_year_min != null && out.class_year_max != null && out.class_year_min > out.class_year_max) {
+    return { error: 'The first class year must not be after the last.' };
+  }
+
   // A challenge unlocks a prize; a match has none.
   const kind = out.kind || (partial ? null : 'challenge');
   if (kind === 'match') out.prize = null;
@@ -127,13 +172,14 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
       const [s, c] = await Promise.all([
         supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
         supabase.from('gd_challenges')
-          .select('id, name, kind, unit, who_counts, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
+          .select('id, name, kind, unit, who_counts, tags, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
           .eq('published', true).order('sort_order').order('created_at'),
       ]);
       if (s.error) throw s.error;
       if (c.error) throw c.error;
+      const challenges = c.data.map(x => ({ ...x, who_counts: whoCountsText(x) }));
       res.set('Cache-Control', 'public, max-age=15');
-      res.json({ settings: s.data, challenges: c.data });
+      res.json({ settings: s.data, challenges });
     } catch (err) { fail(res, err); }
   });
 
@@ -169,7 +215,7 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
     try {
       const { data, error } = await supabase.from('gd_challenges').select('*').order('sort_order').order('created_at');
       if (error) throw error;
-      res.json({ challenges: data, descMax: DESC_MAX });
+      res.json({ challenges: data, descMax: DESC_MAX, tags: TAGS });
     } catch (err) { fail(res, err); }
   });
 
@@ -227,3 +273,5 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
 };
 
 module.exports.DESC_MAX = DESC_MAX;
+module.exports.TAGS = TAGS;
+module.exports.whoCountsText = whoCountsText;

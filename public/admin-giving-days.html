@@ -79,6 +79,10 @@
     .dlg-foot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
     .dlg-foot .spacer { flex: 1; }
     .radio-row { display: flex; gap: 18px; } .radio-row label { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); display: flex; gap: 6px; align-items: center; margin: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chips label { display: flex; gap: 6px; align-items: center; margin: 0; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); background: #fff; border: 1px solid #cfcac0; border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+    .chips label:has(input:checked) { background: #e3e8f5; border-color: var(--navy); color: var(--navy); }
+    .chips label.hidden-tag { border-style: dashed; }
     .count { font-size: 12px; color: var(--mute); text-align: right; margin-top: 4px; } .count.over { color: var(--red); font-weight: 700; }
 
     /* Card-back preview */
@@ -166,7 +170,16 @@
       </div>
       <div class="field"><label for="f-unit">Counts (unit)</label><input type="text" id="f-unit" maxlength="40" placeholder="donors, alumnae, new families"></div>
       <div class="field"><label for="f-desc">Description</label><textarea id="f-desc" maxlength="400"></textarea><div class="count" id="desc-count"></div></div>
-      <div class="field"><label for="f-who">Who counts</label><input type="text" id="f-who" maxlength="120" placeholder="Every donor to the Trinity Fund"></div>
+      <div class="field"><label>Who counts</label>
+        <p class="hint" style="margin-bottom:8px">A gift counts if the donor has <b>any</b> of the checked affiliations. Check none to count everyone.</p>
+        <div class="chips" id="f-tags"></div>
+        <p class="hint" style="margin:10px 0 6px">Optional: limit to alumni by class year (leave blank for any).</p>
+        <div class="grid2">
+          <div><label for="f-ymin">First class year</label><input type="number" id="f-ymin" min="1900" max="2100" step="1" placeholder="e.g. 2015"></div>
+          <div><label for="f-ymax">Last class year</label><input type="number" id="f-ymax" min="1900" max="2100" step="1" placeholder="e.g. 2025"></div>
+        </div>
+      </div>
+      <div class="field"><label for="f-who">Card text for "Who counts" (optional)</label><input type="text" id="f-who" maxlength="120"><p class="hint" style="margin-top:4px">Leave blank to write it from the choices above.</p></div>
       <div class="field"><label for="f-when">When (text on the card)</label><input type="text" id="f-when" maxlength="120" placeholder="All week · Mon 11/30 – Fri 12/4"></div>
       <div class="grid2">
         <div class="field"><label for="f-start">Window starts (ET, optional)</label><input type="datetime-local" id="f-start"></div>
@@ -200,7 +213,23 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = n => '$' + Math.round(Number(n)).toLocaleString();
-let sb, challenges = [], descMax = 220, editingId = null;
+let sb, challenges = [], descMax = 220, editingId = null, TAGS = [];
+
+// Mirrors whoCountsText in giving-days-admin.js (what the public card shows).
+function whoText(c) {
+  if (c.who_counts) return c.who_counts;
+  const labels = (c.tags || []).map(k => (TAGS.find(t => t.key === k) || {}).label).filter(Boolean);
+  const list = labels.length > 1 ? labels.slice(0, -1).join(', ') + ' or ' + labels[labels.length - 1] : labels[0];
+  const lo = c.class_year_min, hi = c.class_year_max;
+  let years = null;
+  if (lo != null && hi != null) years = lo === hi ? `Class of ${lo}` : `Classes of ${lo}–${hi}`;
+  else if (lo != null) years = `Class of ${lo} or later`;
+  else if (hi != null) years = `Class of ${hi} or earlier`;
+  if (list && years) return `${list} (${years})`;
+  return list || years || 'Every donor to the Trinity Fund';
+}
+const orNull = v => (String(v).trim() === '' ? null : v);
+const checkedTags = () => [...document.querySelectorAll('#f-tags input:checked')].map(i => i.value);
 
 // ── Eastern-time helpers (inputs are wall-clock ET, stored as UTC) ──
 const ET = 'America/New_York';
@@ -271,7 +300,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
 
 // ── Challenges list ──
 async function loadChallenges() {
-  try { const j = await api('GET', '/api/admin/gd/challenges'); challenges = j.challenges; descMax = j.descMax; renderList(); }
+  try { const j = await api('GET', '/api/admin/gd/challenges'); challenges = j.challenges; descMax = j.descMax; TAGS = j.tags || []; renderList(); }
   catch (e) { $('ch-list').innerHTML = `<div class="empty">Could not load challenges: ${esc(e.message)}</div>`; }
 }
 function renderList() {
@@ -284,7 +313,8 @@ function renderList() {
     return `<div class="ch ${c.published ? '' : 'draft'}" data-id="${c.id}">
       <div class="order"><button data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button data-act="down" ${i === challenges.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button></div>
       <div><h3>${esc(c.name)}</h3>
-        <div class="meta"><span class="pill ${c.published ? 'live' : 'draft'}">${c.published ? 'Published' : 'Draft'}</span><span class="pill kind">${isMatch ? 'Match' : 'Challenge'}</span>${goal} · ${prog}</div></div>
+        <div class="meta"><span class="pill ${c.published ? 'live' : 'draft'}">${c.published ? 'Published' : 'Draft'}</span><span class="pill kind">${isMatch ? 'Match' : 'Challenge'}</span>${goal} · ${prog}</div>
+        <div class="meta">Counts: ${esc(whoText(c))}</div></div>
       <div class="actions"><button class="btn small ghost" data-act="pub">${c.published ? 'Unpublish' : 'Publish'}</button><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
     </div>`;
   }).join('');
@@ -313,13 +343,16 @@ function openEditor(c) {
   $('f-desc').value = c?.description || ''; $('f-who').value = c?.who_counts || ''; $('f-when').value = c?.when_text || '';
   $('f-start').value = isoToET(c?.starts_at); $('f-end').value = isoToET(c?.ends_at); $('f-sponsor').value = c?.sponsor || '';
   $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('max-label').textContent = descMax;
+  $('f-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}" title="${t.hidden ? 'Not on the gift form: set from the RE import or by an admin' : 'Ticked on the gift form'}"><input type="checkbox" value="${t.key}" ${(c?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('')
+    + '<p class="hint" style="width:100%;margin-top:2px">* Not a gift-form choice: matched from the RE import or set by an admin.</p>';
+  $('f-ymin').value = c?.class_year_min ?? ''; $('f-ymax').value = c?.class_year_max ?? '';
   refresh(); dlg.showModal();
 }
 function refresh() {
   const m = kindVal() === 'match', len = $('f-desc').value.trim().length;
   $('prize-field').style.display = m ? 'none' : ''; $('l-target').textContent = m ? 'Match cap ($)' : 'Target (donors)'; $('l-cur').textContent = m ? 'Dollars matched so far' : 'Progress so far';
   const cnt = $('desc-count'); cnt.textContent = `${len} / ${descMax}`; cnt.className = 'count' + (len > descMax ? ' over' : '');
-  const who = $('f-who').value.trim(), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
+  const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
   $('pv').innerHTML = `<h4>${esc($('f-name').value || 'Challenge name')}</h4><p>${esc(d || 'Description appears here.')}</p><dl>`
     + (who ? `<div><dt>Who counts</dt><dd>${esc(who)}</dd></div>` : '') + (when ? `<div><dt>When</dt><dd>${esc(when)}</dd></div>` : '')
     + (by ? `<div><dt>Made possible by</dt><dd>${esc(by)}</dd></div>` : '') + `</dl><div class="go">Give →</div>`;
@@ -333,6 +366,7 @@ $('f-save').onclick = async () => {
     unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, when_text: $('f-when').value,
     starts_at: etToISO($('f-start').value), ends_at: etToISO($('f-end').value), sponsor: $('f-sponsor').value,
     current_value: $('f-cur').value, published: $('f-pub').checked,
+    tags: checkedTags(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value),
   };
   const btn = $('f-save'); btn.disabled = true; $('f-error').style.display = 'none';
   try {
