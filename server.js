@@ -508,6 +508,12 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
+// Retired prototype routes — their tables were removed from the Giving Days database.
+// (Parents routes live under /api/parents/* and are unaffected.)
+app.use(['/api/gift', '/api/lookup', '/api/leaderboard', '/api/sync-offline'], (req, res) => {
+  res.status(410).json({ error: 'This endpoint has been retired.' });
+});
+
 // Redirect root to /parents (the Giving Days page is in progress at /preview).
 app.get('/', (req, res) => res.redirect(301, '/parents'));
 
@@ -1267,11 +1273,9 @@ async function resolveUnmatchedGifts() {
   }
 }
 
-// Run immediately on startup, then every 2 minutes
-loadTokensFromSupabase().then(() => {
-  resolveUnmatchedGifts();
-  setInterval(resolveUnmatchedGifts, 2 * 60 * 1000);
-});
+// Load the stored SKY tokens on startup. The legacy resolveUnmatchedGifts job that used to
+// start here is retired (its gifts tables were removed from the Giving Days database).
+loadTokensFromSupabase();
 
 // Proactively refresh the SKY API access token every 45 minutes.
 // Access tokens expire after ~60 min. Refreshing early means background jobs
@@ -1586,11 +1590,7 @@ async function syncOfflineGifts() {
   }
 }
 
-// Sync offline gifts on startup and every 30 minutes
-setTimeout(() => {
-  syncOfflineGifts();
-  setInterval(syncOfflineGifts, 30 * 60 * 1000);
-}, 5000); // 5s delay so tokens are loaded before first run
+// Legacy syncOfflineGifts job retired (its gifts tables were removed from the Giving Days database).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parents offline gift sync
