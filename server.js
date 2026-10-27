@@ -2432,11 +2432,8 @@ app.get('/preview', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'giving-days-mockup.html'));
 });
 
-// Second design direction (navy + yellow), shown alongside /preview for comparison
-app.get('/preview-v2', (req, res) => {
-  res.set('X-Robots-Tag', 'noindex, nofollow');
-  res.sendFile(path.join(__dirname, 'public', 'giving-days-v2.html'));
-});
+// /preview-v2 (the Giving Days page) and personal links (/<code>) are served from giving-days-donors.js,
+// mounted just before app.listen so every real page above takes priority over a code.
 
 // Giving Days payment mode. GIVING_MODE=live on Render switches the gift form to the
 // live BBMS configuration — but only once GD_LIVE_ALLOWED is true (gift saving is not
@@ -2486,8 +2483,9 @@ async function requireAdmin(req, res, next) {
 }
 
 // Giving Days campaign + admin routes (separate file; a failure here must not stop the parents routes)
+let gdAdmin = null;
 try {
-  require('./giving-days-admin')(app, { supabase, requireAdmin });
+  gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
 } catch (err) {
   console.error('Giving Days admin routes failed to load:', err.message);
 }
@@ -2875,6 +2873,15 @@ app.post('/api/admin/update-ask-amounts', requireAdmin, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Start
 // ─────────────────────────────────────────────────────────────────────────────
+// Personal links: must stay after every other route (see giving-days-donors.js).
+if (gdAdmin) {
+  try {
+    require('./giving-days-donors')(app, { supabase, loadCampaign: gdAdmin.loadCampaign });
+  } catch (err) {
+    console.error('Giving Days donor routes failed to load:', err.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`\nTrinity Giving Days server running at http://localhost:${PORT}`);
   console.log(`\nIf SKY API tokens are not yet in .env, authorize here:`);

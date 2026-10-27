@@ -177,20 +177,24 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
     res.sendFile(path.join(__dirname, 'public', 'admin-giving-days.html'));
   });
 
-  // Public: what the Giving Days page needs (published challenges only).
+  // What the Giving Days page needs (published challenges only); shared by the API and the page itself.
+  async function loadCampaign() {
+    const [s, c] = await Promise.all([
+      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
+      supabase.from('gd_challenges')
+        .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
+        .eq('published', true).order('sort_order').order('created_at'),
+    ]);
+    if (s.error) throw s.error;
+    if (c.error) throw c.error;
+    return { settings: s.data, challenges: c.data.map(x => ({ ...x, who_counts: whoCountsText(x) })) };
+  }
+
   app.get('/api/gd/campaign', async (req, res) => {
     try {
-      const [s, c] = await Promise.all([
-        supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
-        supabase.from('gd_challenges')
-          .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
-          .eq('published', true).order('sort_order').order('created_at'),
-      ]);
-      if (s.error) throw s.error;
-      if (c.error) throw c.error;
-      const challenges = c.data.map(x => ({ ...x, who_counts: whoCountsText(x) }));
+      const data = await loadCampaign();
       res.set('Cache-Control', 'public, max-age=15');
-      res.json({ settings: s.data, challenges });
+      res.json(data);
     } catch (err) { fail(res, err); }
   });
 
@@ -281,6 +285,8 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
       res.json({ ok: true });
     } catch (err) { fail(res, err); }
   });
+
+  return { loadCampaign };
 };
 
 module.exports.DESC_MAX = DESC_MAX;

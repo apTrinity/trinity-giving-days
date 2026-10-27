@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Trinity Giving Days — Preview v2</title>
+<!--GD_DATA-->
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -576,6 +577,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .ub-card.lead .ub-rule { font-size: 15px; }
 .ub-card.lead .ub-bar { height: 12px; }
 .ub-card.lead .ub-cap { font-size: 13.5px; }
+.ub-you { align-self: flex-start; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; background: var(--trinity-yellow); color: var(--navy); }
+.med-you { font-size: 12px; font-weight: 800; color: var(--navy); background: var(--yellow-15); border: 1px solid var(--trinity-yellow); border-radius: 99px; padding: 3px 10px; display: inline-block; margin-top: 6px; }
 .ub-pill { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; background: rgba(255,255,255,.12); color: #fff; }
 .ub-card.lead .ub-pill { background: var(--trinity-yellow); color: var(--navy); }
 .ub-card.soon .ub-pill { background: none; border: 1px dashed rgba(255,255,255,.35); color: rgba(255,255,255,.7); }
@@ -938,7 +941,7 @@ const C = [
 ];
 const $ = n => '$' + Math.round(n).toLocaleString();
 const isDone = c => !c.match && c.cur >= c.target;
-const unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
+let unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
 const TODAY = 2;
 const DAYS = [['Mon', '11/30'], ['Tue', '12/1'], ['Wed', '12/2'], ['Thu', '12/3'], ['Fri', '12/4']];
 const FROM = ['a group of Trinity parents, alumni & friends', 'Trinity alumnae', 'an anonymous family', 'the Trinity Alumni Board', 'the Board of Trustees'];
@@ -952,6 +955,25 @@ const DETAIL = [
   { desc: ['50 gifts on the final day unlock $50,000 in additional money for the Trinity Fund.', 'Only gifts made on Friday, December 4 count toward this challenge.'], counts: 'Every donor, Friday only', when: 'Friday 12/4 · midnight to 11:59 pm' },
 ];
 C.forEach((c, i) => Object.assign(c, DETAIL[i]));
+// Live data from the admin (written into the page by the server). With nothing published, the sample data above stays.
+const GD = window.__GD || {};
+const ME = GD.me || null;
+if (GD.campaign && GD.campaign.challenges && GD.campaign.challenges.length) {
+  const now = Date.now();
+  const paras = (t, fallback) => { const p = String(t || '').split(/\n+/).map(x => x.trim()).filter(Boolean); return p.length ? p : [fallback]; };
+  C.length = 0;
+  GD.campaign.challenges.forEach(x => {
+    const soon = !!x.starts_at && new Date(x.starts_at).getTime() > now;
+    C.push({
+      id: x.id, name: x.name, unit: x.unit || 'donors', target: Number(x.target), cur: Number(x.current_value), prize: Number(x.prize || 0),
+      match: x.kind === 'match', who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
+      desc: paras(x.description, x.name),
+      counts: x.who_counts, when: x.when_text || 'All week', from: x.sponsor || 'Trinity supporters',
+      you: !!(ME && ME.qualifies && ME.qualifies.includes(x.id)),
+    });
+  });
+  unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
+}
 let detailMode = 'flip';
 const factsHTML = c => {
   const d = isDone(c);
@@ -1010,13 +1032,14 @@ const CHAL = {
     const card = c => {
       const d = isDone(c), lead = c === C[0], w = Math.min(c.cur / c.target, 1) * 100;
       const pill = d ? '✓ Goal met' : c.soon ? 'Starts Fri 12/4' : c.match ? 'Matching' : 'In progress';
-      const rule = c.match ? `<b>Young alumni</b> gifts doubled`
+      const rule = c.match ? `Gifts <b>matched</b> dollar for dollar`
         : c.soon ? `When <b>${c.target} donors</b> give on Friday` : `When <b>${c.target} ${c.unit}</b> give`;
       const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
         : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
       return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.name}: show more">
           <div class="ub-face ub-front">
             <div class="ub-prize">${$(c.match ? c.target : c.prize)}<small>${c.match ? 'match' : 'bonus'}</small></div>
+            ${c.you ? '<div class="ub-you">✓ You count toward this</div>' : ''}
             <div class="ub-rule">${rule}</div>
             <div class="ub-bar"><i style="width:${c.soon ? 0 : w}%"></i></div>
             <div class="ub-cap"><span class="ub-st">${pill}</span>${cap ? ' · ' + cap : ''}</div>
@@ -1048,6 +1071,7 @@ const CHAL = {
             <div class="med-center"><div class="med-num${c.match ? ' sm' : ''}">${c.soon ? 'Fri' : c.match ? $(c.cur) : c.cur}</div>
             <div class="med-of">${c.soon ? 'opens 12/4' : 'of ' + (c.match ? $(c.target) : c.target)}</div></div></div>
           <div class="med-name">${c.name}</div>
+          ${c.you ? '<div class="med-you">✓ You count toward this</div>' : ''}
           <div class="med-rule">${rule(c)}</div>
           ${d ? `<div class="med-pill">${$(c.prize)} unlocked</div>` : c.soon ? '<div class="med-pill soon">Coming Friday</div>' : ''}
           <div class="med-foot">Made possible by ${c.from}</div>
@@ -1333,7 +1357,7 @@ vf.addEventListener('click', playVideo);
 vf.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playVideo(); } });
 
 // ── Hero numbers (sample) ──
-const GOAL = 350;
+const GOAL = (GD.campaign && GD.campaign.settings && GD.campaign.settings.goal_donors) || 350;
 let heroDonors = 212, heroRaised = 84300;
 const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
 function renderHero() {
