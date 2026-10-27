@@ -96,6 +96,18 @@
     #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; }
     #toast.show { opacity: 1; } #toast.bad { background: var(--red); }
     .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 22px; max-width: 640px; }
+    label.check { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); cursor: pointer; }
+    label.check input { width: auto; }
+
+    /* Gifts */
+    .gf { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+    .gf.off { background: #faf8f3; border-style: dashed; }
+    .gf .who { font-weight: 700; color: var(--navy); } .gf .amt { font-weight: 700; margin-left: 8px; }
+    .gf .meta { color: var(--mute); font-size: 13px; margin-top: 3px; }
+    .pill.test { background: #fdebd0; color: #8a5a00; } .pill.off { background: #eceae4; color: var(--mute); } .pill.ok { background: #dff3e7; color: var(--green); }
+    .tg { display: inline-block; font-size: 12px; border-radius: 99px; padding: 1px 8px; margin: 4px 4px 0 0; background: #e3e8f5; color: var(--navy); }
+    .tg.record { background: #e6f1ea; color: var(--green); } .tg.admin { background: #fff2c2; color: #6b5800; }
+    .gf-edit { display: grid; gap: 14px; padding: 20px; }
     .locked { background: #f4f2ed; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
   </style>
 </head>
@@ -120,11 +132,12 @@
     <span id="nav-email"></span>
     <button class="link" id="signout">Sign out</button>
   </nav>
-  <div class="banner" id="mode-banner">Test mode — gifts on the Giving Days page do not charge cards. Live mode is locked until gift saving is built.</div>
+  <div class="banner" id="mode-banner">Test mode — gifts on the Giving Days page do not charge cards; they are saved as test gifts. Live mode stays locked until the go-live review.</div>
 
   <main>
     <div class="tabs">
       <button class="tab active" data-tab="challenges">Challenges</button>
+      <button class="tab" data-tab="gifts">Gifts</button>
       <button class="tab" data-tab="settings">Campaign settings</button>
     </div>
 
@@ -136,6 +149,14 @@
       <div id="ch-list"></div>
     </section>
 
+    <section class="panel" id="panel-gifts">
+      <div class="head-row">
+        <div><h2>Gifts</h2><p class="hint" id="g-summary">Loading…</p></div>
+        <button class="btn small danger" id="g-del-test">Delete all test gifts</button>
+      </div>
+      <div id="g-list"></div>
+    </section>
+
     <section class="panel" id="panel-settings">
       <div class="head-row"><h2>Campaign settings</h2></div>
       <div class="card">
@@ -145,12 +166,36 @@
           <div class="field"><label for="s-end">Ends (Eastern time)</label><input type="datetime-local" id="s-end"></div>
         </div>
         <div class="field"><label for="s-video">Vimeo video link</label><input type="url" id="s-video" placeholder="https://vimeo.com/…"></div>
-        <div class="field"><label>Payment mode</label><div class="locked">Test — locked. Live mode will be switched on after gift saving is built and tested.</div></div>
+        <div class="field">
+          <label for="s-from">Count gifts from (Eastern time)</label><input type="datetime-local" id="s-from">
+          <p class="hint" style="margin-top:5px">Leave blank to start counting when the campaign starts. Set an earlier time for an early-bird period; gifts before that time are still recorded, just not counted.</p>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="s-testcount"> Test gifts count toward progress</label>
+          <p class="hint" style="margin-top:5px">While this is on, test gifts move the bars and the donor count (whenever they were made), so you can see everything working. Turn it off before launch.</p>
+        </div>
+        <div class="field"><label>Payment mode</label><div class="locked">Test — locked. Live mode will be switched on after the go-live review.</div></div>
         <button class="btn" id="s-save">Save settings</button>
         <div class="err" id="s-error"></div>
       </div>
     </section>
   </main>
+
+  <dialog id="gdlg" style="width:min(520px, calc(100vw - 24px))">
+    <div class="dlg-head"><h2>Edit gift</h2><button id="gdlg-x" aria-label="Close">×</button></div>
+    <div class="gf-edit">
+      <div class="hint" id="gf-info"></div>
+      <div>
+        <label>Affiliations</label>
+        <div class="chips" id="gf-tags"></div>
+        <p class="hint" style="margin-top:6px">Blue: ticked on the form. Green: from the donor's record (RE import). Yellow: set by hand. Changes here apply to this gift only.</p>
+      </div>
+      <div class="field" style="max-width:200px;margin:0"><label for="gf-year">Class year</label><input type="number" id="gf-year" min="1900" max="2100" step="1"></div>
+      <label class="check"><input type="checkbox" id="gf-excl"> Don't count this gift (it stays recorded)</label>
+      <div class="err" id="gf-error"></div>
+    </div>
+    <div class="dlg-foot"><span class="spacer"></span><button class="btn ghost" id="gf-cancel">Cancel</button><button class="btn" id="gf-save">Save</button></div>
+  </dialog>
 </div>
 
 <dialog id="dlg">
@@ -296,13 +341,15 @@ async function login() {
 }
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
-  loadChallenges(); loadSettings();
+  loadChallenges(); loadSettings(); loadGifts();
 }
 
 // ── Tabs ──
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
+  if (b.dataset.tab === 'gifts') loadGifts();
+  if (b.dataset.tab === 'challenges') loadChallenges();
 });
 
 // ── Challenges list ──
@@ -316,7 +363,8 @@ function renderList() {
   el.innerHTML = challenges.map((c, i) => {
     const isMatch = c.kind === 'match';
     const goal = isMatch ? money(c.target) + ' match cap' : `${Number(c.target).toLocaleString()} ${esc(c.unit || 'donors')} → ${money(c.prize || 0)}`;
-    const prog = isMatch ? `${money(c.current_value)} matched so far` : `${Number(c.current_value).toLocaleString()} so far`;
+    const have = Number(c.counted || 0) + Number(c.current_value || 0);
+    const prog = isMatch ? `${money(have)} matched so far` : `${have.toLocaleString()} so far`;
     return `<div class="ch ${c.published ? '' : 'draft'}" data-id="${c.id}">
       <div class="order"><button data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button data-act="down" ${i === challenges.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button></div>
       <div><h3>${esc(c.name)}</h3>
@@ -358,7 +406,7 @@ function openEditor(c) {
 }
 function refresh() {
   const m = kindVal() === 'match', len = $('f-desc').value.trim().length;
-  $('prize-field').style.display = m ? 'none' : ''; $('l-target').textContent = m ? 'Match cap ($)' : 'Target (donors)'; $('l-cur').textContent = m ? 'Dollars matched so far' : 'Progress so far';
+  $('prize-field').style.display = m ? 'none' : ''; $('l-target').textContent = m ? 'Match cap ($)' : 'Target (donors)'; $('l-cur').textContent = m ? 'Manual adjustment ($, added to gifts)' : 'Manual adjustment (added to gifts)';
   const cnt = $('desc-count'); cnt.textContent = `${len} / ${descMax}`; cnt.className = 'count' + (len > descMax ? ' over' : '');
   const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
   $('pv').innerHTML = `<h4>${esc($('f-name').value || 'Challenge name')}</h4><p>${esc(d || 'Description appears here.')}</p><dl>`
@@ -389,14 +437,80 @@ async function loadSettings() {
   try {
     const { settings: s } = await api('GET', '/api/admin/gd/settings');
     $('s-goal').value = s.goal_donors; $('s-start').value = isoToET(s.starts_at); $('s-end').value = isoToET(s.ends_at); $('s-video').value = s.video_url || '';
+    $('s-from').value = isoToET(s.gifts_count_from); $('s-testcount').checked = !!s.test_gifts_count;
   } catch (e) { toast('Could not load settings: ' + e.message, true); }
 }
 $('s-save').onclick = async () => {
   const btn = $('s-save'), err = $('s-error'); err.style.display = 'none'; btn.disabled = true;
   try {
-    await api('PUT', '/api/admin/gd/settings', { goal_donors: $('s-goal').value, starts_at: etToISO($('s-start').value), ends_at: etToISO($('s-end').value), video_url: $('s-video').value });
+    await api('PUT', '/api/admin/gd/settings', {
+      goal_donors: $('s-goal').value, starts_at: etToISO($('s-start').value), ends_at: etToISO($('s-end').value), video_url: $('s-video').value,
+      gifts_count_from: etToISO($('s-from').value), test_gifts_count: $('s-testcount').checked,
+    });
     toast('Settings saved');
+    loadGifts(); loadChallenges();
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+  btn.disabled = false;
+};
+
+// ── Gifts ──
+let gifts = [], editingGift = null;
+const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
+const when = iso => new Date(iso).toLocaleString('en-US', { timeZone: ET, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+async function loadGifts() {
+  try {
+    const j = await api('GET', '/api/admin/gd/gifts'); gifts = j.gifts; if (j.tags) TAGS = j.tags;
+    const s = j.summary;
+    $('g-summary').textContent = `${s.counted} of ${s.total} gifts counted · ${s.donors} donors · ${money(s.raised)} · ${s.test} test gifts`;
+    $('g-del-test').style.display = s.test ? '' : 'none';
+    renderGifts();
+  } catch (e) { $('g-list').innerHTML = `<div class="empty">Could not load gifts: ${esc(e.message)}</div>`; }
+}
+function renderGifts() {
+  const el = $('g-list');
+  if (!gifts.length) { el.innerHTML = '<div class="empty">No gifts yet. Gifts made on the Giving Days page appear here.</div>'; return; }
+  const label = k => (TAGS.find(t => t.key === k) || {}).label || k;
+  el.innerHTML = gifts.map(g => {
+    const [cls, txt] = STATUS[g.status] || ['off', g.status];
+    const name = [g.first_name, g.last_name].filter(Boolean).join(' ') || '(no name)';
+    const tags = g.tags.map(t => `<span class="tg ${g.tag_sources[t] === 'declared' ? '' : g.tag_sources[t]}">${esc(label(t))}</span>`).join('') || '<span class="hint">No affiliations</span>';
+    const extra = [g.class_year ? 'Class of ' + g.class_year : '', g.grades.length ? 'Grades ' + g.grades.join(', ') : ''].filter(Boolean).join(' · ');
+    return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}">
+      <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
+        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        <div>${tags}</div></div>
+      <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
+    </div>`;
+  }).join('');
+}
+$('g-list').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]'); if (!btn) return;
+  const g = gifts.find(x => x.id === btn.closest('.gf').dataset.id);
+  if (btn.dataset.act === 'edit') return openGift(g);
+  if (!confirm(`Delete this ${money(g.amount)} gift from ${g.first_name || 'this donor'}? It is only removed from this list; any payment in Blackbaud is untouched. This can't be undone.`)) return;
+  try { await api('DELETE', '/api/admin/gd/gifts/' + g.id); toast('Deleted'); loadGifts(); loadChallenges(); } catch (err) { toast(err.message, true); }
+});
+$('g-del-test').onclick = async () => {
+  if (!confirm('Delete every test gift? Real gifts are not touched. This can\'t be undone.')) return;
+  try { const j = await api('DELETE', '/api/admin/gd/test-gifts'); toast(`Deleted ${j.deleted} test gifts`); loadGifts(); loadChallenges(); } catch (err) { toast(err.message, true); }
+};
+function openGift(g) {
+  editingGift = g; $('gf-error').style.display = 'none';
+  $('gf-info').textContent = `${[g.first_name, g.last_name].filter(Boolean).join(' ')} · ${money(g.amount)} · ${when(g.created_at)}`;
+  $('gf-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}"><input type="checkbox" value="${t.key}" ${g.tags.includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('');
+  $('gf-year').value = g.class_year ?? ''; $('gf-excl').checked = g.excluded;
+  $('gdlg').showModal();
+}
+$('gdlg-x').onclick = $('gf-cancel').onclick = () => $('gdlg').close();
+$('gf-save').onclick = async () => {
+  const btn = $('gf-save'); btn.disabled = true; $('gf-error').style.display = 'none';
+  try {
+    await api('PUT', '/api/admin/gd/gifts/' + editingGift.id, {
+      tags: [...document.querySelectorAll('#gf-tags input:checked')].map(i => i.value),
+      class_year: $('gf-year').value === '' ? null : $('gf-year').value, excluded: $('gf-excl').checked,
+    });
+    $('gdlg').close(); toast('Saved'); loadGifts(); loadChallenges();
+  } catch (e) { const el = $('gf-error'); el.textContent = e.message; el.style.display = 'block'; }
   btn.disabled = false;
 };
 

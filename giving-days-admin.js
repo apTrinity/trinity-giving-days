@@ -3,6 +3,7 @@
 // Tables: gd_settings (one row), gd_challenges (see sql/gd-02-tables.sql). Server-side access only.
 
 const path = require('path');
+const { computeProgress } = require('./giving-days-progress');
 
 const DESC_MAX = 220;
 const TEXT_MAX = { name: 60, unit: 40, who_counts: 120, when_text: 120, sponsor: 120 };
@@ -160,6 +161,15 @@ function cleanSettings(body) {
     if (v && !/^https:\/\//i.test(v)) return { error: 'Video link must start with https://' };
     out.video_url = v;
   }
+  if (Object.prototype.hasOwnProperty.call(b, 'test_gifts_count')) out.test_gifts_count = b.test_gifts_count === true || b.test_gifts_count === 'true';
+  if (Object.prototype.hasOwnProperty.call(b, 'gifts_count_from')) {  // blank = the campaign start
+    if (isBlank(b.gifts_count_from)) out.gifts_count_from = null;
+    else {
+      const d = toDate(b.gifts_count_from);
+      if (!d) return { error: 'gifts_count_from is not a valid date.' };
+      out.gifts_count_from = d;
+    }
+  }
   // `mode` is intentionally not editable here: test/live stays locked in server.js (GD_LIVE_ALLOWED).
   return { row: out };
 }
@@ -178,16 +188,22 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
   });
 
   // What the Giving Days page needs (published challenges only); shared by the API and the page itself.
+  // Challenge progress is counted from gifts (see giving-days-progress.js), plus the admin's manual adjustment.
   async function loadCampaign() {
     const [s, c] = await Promise.all([
-      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url').eq('id', 1).single(),
+      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, test_gifts_count, gifts_count_from').eq('id', 1).single(),
       supabase.from('gd_challenges')
         .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
         .eq('published', true).order('sort_order').order('created_at'),
     ]);
     if (s.error) throw s.error;
     if (c.error) throw c.error;
-    return { settings: s.data, challenges: c.data.map(x => ({ ...x, who_counts: whoCountsText(x) })) };
+    const { progress, values, wall } = await computeProgress(supabase, s.data, c.data);
+    const { test_gifts_count, gifts_count_from, ...settings } = s.data;  // switches stay private to the admin
+    return {
+      settings, progress, wall,
+      challenges: c.data.map(x => ({ ...x, who_counts: whoCountsText(x), current_value: Number(x.current_value) + (values[x.id] || 0) })),
+    };
   }
 
   app.get('/api/gd/campaign', async (req, res) => {
@@ -228,9 +244,15 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
   // Admin: challenges
   app.get('/api/admin/gd/challenges', requireAdmin, async (req, res) => {
     try {
-      const { data, error } = await supabase.from('gd_challenges').select('*').order('sort_order').order('created_at');
-      if (error) throw error;
-      res.json({ challenges: data, descMax: DESC_MAX, tags: TAGS, grades: GRADES });
+      const [c, s] = await Promise.all([
+        supabase.from('gd_challenges').select('*').order('sort_order').order('created_at'),
+        supabase.from('gd_settings').select('*').eq('id', 1).single(),
+      ]);
+      if (c.error) throw c.error;
+      if (s.error) throw s.error;
+      // counted = progress from gifts; current_value stays the manual adjustment that is added to it
+      const { values } = await computeProgress(supabase, s.data, c.data);
+      res.json({ challenges: c.data.map(x => ({ ...x, counted: values[x.id] || 0 })), descMax: DESC_MAX, tags: TAGS, grades: GRADES });
     } catch (err) { fail(res, err); }
   });
 

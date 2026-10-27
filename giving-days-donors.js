@@ -79,6 +79,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign })
           const me = { first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year };
           me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
           data.me = me;
+          data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
         }
       } catch (err) { console.error('giving-days page donor:', err.message); }
     }
@@ -88,8 +89,14 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign })
 
   const send = (res, html) => { res.set('X-Robots-Tag', 'noindex, nofollow'); res.set('Cache-Control', 'no-store'); res.type('html').send(html); };
 
-  // Preview of the public page; ?t=<code> previews a personalized visit.
-  app.get('/preview-v2', async (req, res) => {
+  // Old shared address: send it to /preview, keeping a personal-link code if there is one.
+  app.get('/preview-v2', (req, res) => {
+    const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? '?t=' + req.query.t : '';
+    res.redirect(302, '/preview' + t);
+  });
+
+  // The public page; /preview?t=<code> previews a personalized visit.
+  app.get('/preview', async (req, res) => {
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
     send(res, (await renderPage(t)).html);
   });

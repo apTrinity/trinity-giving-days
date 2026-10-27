@@ -799,6 +799,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 @media (max-width: 760px) {
   .gm-input, .gm-select, .lb-search, .lb-toolbar input { font-size: 16px; }
 }
+/* Live updates: bars glide to their new width */
+.ub-bar i, .sx-bar i { transition: width .9s cubic-bezier(.2,.8,.2,1); }
+@media (prefers-reduced-motion: reduce) { .ub-bar i, .sx-bar i, .prog-bar i, .d-fill { transition: none; } }
 </style>
 </head>
 <body>
@@ -958,11 +961,12 @@ C.forEach((c, i) => Object.assign(c, DETAIL[i]));
 // Live data from the admin (written into the page by the server). With nothing published, the sample data above stays.
 const GD = window.__GD || {};
 const ME = GD.me || null;
-if (GD.campaign && GD.campaign.challenges && GD.campaign.challenges.length) {
+function applyChallenges(camp) {
+  if (!(camp && camp.challenges && camp.challenges.length)) return;
   const now = Date.now();
   const paras = (t, fallback) => { const p = String(t || '').split(/\n+/).map(x => x.trim()).filter(Boolean); return p.length ? p : [fallback]; };
   C.length = 0;
-  GD.campaign.challenges.forEach(x => {
+  camp.challenges.forEach(x => {
     const soon = !!x.starts_at && new Date(x.starts_at).getTime() > now;
     C.push({
       id: x.id, name: x.name, unit: x.unit || 'donors', target: Number(x.target), cur: Number(x.current_value), prize: Number(x.prize || 0),
@@ -974,6 +978,7 @@ if (GD.campaign && GD.campaign.challenges && GD.campaign.challenges.length) {
   });
   unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
 }
+applyChallenges(GD.campaign);
 let detailMode = 'flip';
 const factsHTML = c => {
   const d = isDone(c);
@@ -1114,14 +1119,20 @@ const renderChal = v => {
 // ── Leaderboards (sample data; ranked by number of donors) ──
 const REUNION = y => y <= 2021 && (y % 5 === 1);
 const KNOWN = { 1976: 24, 2001: 19, 1986: 17, 1996: 15, 2011: 14, 1991: 12, 2016: 11, 1984: 10, 2006: 10, 1981: 9, 1999: 8, 2021: 8, 1972: 7, 1993: 7, 2008: 6, 1968: 6, 2014: 5, 1989: 5, 2019: 4, 1979: 4, 2003: 4, 1965: 3, 2023: 3, 1997: 3, 1974: 2, 2012: 2, 1958: 1, 2025: 1 };
-const YEARS = Array.from({ length: 2026 - 1950 + 1 }, (_, i) => 1950 + i);
+const YEARS = Array.from({ length: 2026 - 1940 + 1 }, (_, i) => 1940 + i);
 const alumniRows = YEARS.map(y => ({ key: String(y), label: 'Class of ' + y, short: String(y), donors: KNOWN[y] ?? ((y * 7) % 4), reunion: REUNION(y) }));
 const GN = { K: 'Kindergarten', 1: '1st Grade', 2: '2nd Grade', 3: '3rd Grade' };
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const PG = { 12: 21, 9: 18, K: 17, 5: 15, 10: 14, 1: 13, 3: 12, 7: 11, 11: 10, 2: 9, 4: 8, 6: 7, 8: 6 };
 const parentRows = GRADES.map(g => ({ key: g, label: (GN[g] || g + 'th Grade') + ' Parents', short: g === 'K' ? 'K' : g, donors: PG[g] }));
 const ranked = rows => [...rows].sort((a, b) => b.donors - a.donors || b.key.localeCompare(a.key)).map((r, i) => ({ ...r, rank: i + 1 }));
-const RA = ranked(alumniRows), RP = ranked(parentRows);
+let RA, RP;
+// Live counts from gifts when the server provides them; otherwise the sample data above
+function buildBoards(wall) {
+  RA = ranked(wall ? alumniRows.map(r => ({ ...r, donors: wall.classes[r.key] || 0 })) : alumniRows);
+  RP = ranked(wall ? parentRows.map(r => ({ ...r, donors: wall.grades[r.key] || 0 })) : parentRows);
+}
+buildBoards(GD.campaign && GD.campaign.wall);
 const rankOf = (R, key) => R.find(r => r.key === key);
 let lbBoard = 'alumni', lbView = 'pd', lbAll = false;
 
@@ -1156,7 +1167,7 @@ const LB = {
       </div>`;
   },
   sx: () => {
-    const rows = (R, n) => R.slice(0, n).map(r => `<li><span class="sx-rank">${r.rank}</span><span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / R[0].donors * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('');
+    const rows = (R, n) => R.slice(0, n).map(r => `<li><span class="sx-rank">${r.rank}</span><span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / (R[0].donors || 1) * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('');
     return head('Leader<em>boards</em>', 'Ranked by number of donors') + `
       <div class="sx-phonetabs">${boardTabs()}</div>
       <div class="sx">
@@ -1179,7 +1190,7 @@ const LB = {
       <div class="pd-top">${boardTabs()}${lbBoard === 'alumni' ? '<form class="lb-find" id="pd-form" role="search"><input class="lb-search" id="pd-find" type="search" inputmode="numeric" enterkeyhint="search" maxlength="4" placeholder="Find your class (e.g. 1996)" aria-label="Find your class year"><button type="submit">Find</button></form>' : ''}</div>
       <div class="lb-hit" id="lb-hit" aria-live="polite"></div>
       <div class="pd">${step(R[1], '', '2nd')}${step(R[0], 'first', '1st place')}${step(R[2], '', '3rd')}</div>
-      <div class="lb-card"><ol class="pd-list" id="pd-list">${R.slice(3, 10).map(r => `<li><span class="r">${r.rank}</span><span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / R[0].donors * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('')}</ol></div>`;
+      <div class="lb-card"><ol class="pd-list" id="pd-list">${R.slice(3, 10).map(r => `<li><span class="r">${r.rank}</span><span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / (R[0].donors || 1) * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('')}</ol></div>`;
   },
 };
 function renderLB() {
@@ -1217,7 +1228,7 @@ function renderLB() {
     if (lbView === 'cw') { if (q.length === 4) showTile(q); return; }
     const list = el.querySelector(lbView === 'sx' ? '#sx-alumni' : '#pd-list');
     const R = q ? RA.filter(r => r.key.includes(q)) : (lbView === 'sx' ? RA.slice(0, lbAll ? RA.length : 10) : RA.slice(3, 10));
-    list.innerHTML = R.map(r => `<li>${lbView === 'sx' ? `<span class="sx-rank">${r.rank}</span>` : `<span class="r">${r.rank}</span>`}<span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / RA[0].donors * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('');
+    list.innerHTML = R.map(r => `<li>${lbView === 'sx' ? `<span class="sx-rank">${r.rank}</span>` : `<span class="r">${r.rank}</span>`}<span>${r.label}${r.reunion ? '<span class="reu">Reunion</span>' : ''}</span><span class="sx-bar"><i style="width:${r.donors / (RA[0].donors || 1) * 100}%"></i></span><span class="sx-n">${r.donors}</span></li>`).join('');
   });
   const more = document.getElementById('sx-more');
   if (more) more.addEventListener('click', () => { lbAll = !lbAll; renderLB(); });
@@ -1231,7 +1242,7 @@ const GROUPS = [
   { key: 'staff', label: 'Faculty & Staff', n: 14, color: '#8FA3C8' },
   { key: 'friends', label: 'Grandparents & Friends', n: 10, color: '#C9C3B4' },
 ];
-const GTOTAL = 212;
+let GTOTAL = 212;
 const DONORS = [
   ['Jordan Alvarez ’11', 'alumni', 'Just now'], ['The Okafor Family', 'parents', '2 min ago'], ['Daniel Reyes ’96', 'alumni', '6 min ago'], ['Anonymous', 'poa', '9 min ago'],
   ['Priya & Sam Mehta', 'parents', '14 min ago'], ['Ms. Hollis', 'staff', '18 min ago'], ['The Goldberg Family', 'parents', '21 min ago'], ['Caroline Whitfield ’86', 'alumni', '25 min ago'],
@@ -1241,6 +1252,19 @@ const DONORS = [
   ['Grandma Bea', 'friends', '2 hr ago'], ['Ava Thompson ’21', 'alumni', '2 hr ago'], ['The Brennan Family', 'parents', '2 hr ago'], ['David Kwon ’06', 'alumni', '2 hr ago'],
   ['Lena & Paul Fischer', 'poa', '2 hr ago'], ['Ms. Duarte', 'staff', '3 hr ago'], ['Noah Feldman ’11', 'alumni', '3 hr ago'], ['The Achebe Family', 'parents', '3 hr ago'],
 ];
+// Relative time for the donor wall ("Just now", "6 min ago", "2 hr ago", "3 days ago")
+const ago = iso => {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return m < 1 ? 'Just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' hr ago' : Math.round(m / 1440) + ' days ago';
+};
+function applyWall(wall) {
+  if (!wall) return;
+  GROUPS.forEach(g => { g.n = wall.groups[g.key] || 0; });
+  GTOTAL = wall.total;
+  DONORS.length = 0;
+  wall.donors.forEach(d => DONORS.push([d.name, d.group, ago(d.at)]));
+}
+applyWall(GD.campaign && GD.campaign.wall);
 let cmView = 'nw', nwGroup = 'all', nwAll = false, lsTimer;
 const grpBar = () => `<div class="grp-bar">${GROUPS.map(g => `<i style="flex:${g.n};background:${g.color}" title="${g.label}: ${g.n}"></i>`).join('')}</div>`;
 const grpLegend = () => `<div class="grp-legend">${GROUPS.map(g => `<span><i style="background:${g.color}"></i>${g.label} <b>${g.n}</b></span>`).join('')}</div>`;
@@ -1253,13 +1277,13 @@ const CM = {
       <div class="nw-kicker">Who's giving</div>
       <div class="nw-title"><em>${g ? g.n : GTOTAL}</em> ${g ? g.label.replace('Current ', '').toLowerCase() : 'people'} have given so far</div>
       <div class="nw-chipwrap"><div class="nw-chips" id="nw-chips"><button class="nw-chip${nwGroup === 'all' ? ' on' : ''}" data-g="all">Everyone<b>${GTOTAL}</b></button>${GROUPS.map(x => `<button class="nw-chip${nwGroup === x.key ? ' on' : ''}" data-g="${x.key}">${x.label}<b>${x.n}</b></button>`).join('')}</div><button class="nw-next" id="nw-next" aria-label="More groups"><svg viewBox="0 0 34 8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h31M28.5 1 32 4l-3.5 3"/></svg></button></div>
-      <div class="nw-names">${shown.map((d, i) => `<span class="${d[2] === 'Just now' ? 'new' : d[0] === 'Anonymous' ? 'anon' : ''}">${d[0]}</span>`).join(' ')}</div>
+      <div class="nw-names">${shown.length ? '' : '<span>Be the first to give.</span>'}${shown.map((d, i) => `<span class="${d[2] === 'Just now' ? 'new' : d[0] === 'Anonymous' ? 'anon' : ''}">${d[0]}</span>`).join(' ')}</div>
       <div class="nw-foot">${list.length > 18 ? `<button class="nw-more" id="nw-more">${nwAll ? 'Show fewer' : `See all ${g ? g.n : GTOTAL} names`}</button>` : ''}<button class="btn-give">Add your name →</button></div>
     </div>`;
   },
   cb: () => `<div class="cb">
       <div class="cb-card"><h4>Recent donors <span class="live">Live</span></h4><ul class="cb-list">${DONORS.slice(0, 6).map(d => `<li><b>${d[0]}</b><small>${d[2]}</small></li>`).join('')}</ul></div>
-      <div class="cb-card"><h4>Who's giving <span style="font-family:'Open Sans';font-size:12px;color:var(--ink-muted);font-weight:600">${GTOTAL} donors</span></h4><div class="cb-who">${GROUPS.map(g => `<div class="cb-row"><span>${g.label}</span><b>${g.n}</b><span class="sx-bar"><i style="width:${g.n / GROUPS[0].n * 100}%;background:${g.color}"></i></span></div>`).join('')}</div></div>
+      <div class="cb-card"><h4>Who's giving <span style="font-family:'Open Sans';font-size:12px;color:var(--ink-muted);font-weight:600">${GTOTAL} donors</span></h4><div class="cb-who">${GROUPS.map(g => `<div class="cb-row"><span>${g.label}</span><b>${g.n}</b><span class="sx-bar"><i style="width:${g.n / (GROUPS[0].n || 1) * 100}%;background:${g.color}"></i></span></div>`).join('')}</div></div>
       <div class="cb-cta"><h4>Your gift counts <em>twice.</em></h4><p>It fills the seal <i>and</i> moves your class or grade up the leaderboard.</p><button class="btn-give">Make your gift →</button></div>
     </div>`,
   ls: () => `<div class="ls">
@@ -1287,7 +1311,7 @@ function renderCM() {
   if (cmView === 'ls') {
     // Rotate through the latest gifts, one line at a time
     let i = 0; const msg = document.getElementById('ls-msg');
-    const show = () => { const d = DONORS[i % 8]; msg.innerHTML = `<b>${d[0]}</b> just joined ${GROUPS.find(g => g.key === d[1]).label.replace('Current ', '').toLowerCase()} giving<small>${d[2]}</small>`; };
+    const show = () => { const d = DONORS[i % Math.min(8, DONORS.length)]; if (!d) { msg.textContent = 'Be the first to give.'; return; } msg.innerHTML = `<b>${d[0]}</b> just joined ${GROUPS.find(g => g.key === d[1]).label.replace('Current ', '').toLowerCase()} giving<small>${d[2]}</small>`; };
     show();
     lsTimer = setInterval(() => { msg.classList.add('out'); setTimeout(() => { i++; show(); msg.classList.remove('out'); }, 350); }, 3200);
   }
@@ -1359,15 +1383,79 @@ vf.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { 
 // ── Hero numbers (sample) ──
 const GOAL = (GD.campaign && GD.campaign.settings && GD.campaign.settings.goal_donors) || 350;
 let heroDonors = 212, heroRaised = 84300;
+// Real counts from gifts once the server provides them (test gifts count only while the admin switch is on)
+// ── In-place updates: numbers count up, bars glide, nothing else is redrawn ──
+const NUM = /\d[\d,]*/g;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Set a text node. If only the numbers changed, count them up from the old values; otherwise just set it.
+function setText(node, next, animate) {
+  const prev = node.data;
+  if (prev === next) return;
+  const a = prev.match(NUM), b = next.match(NUM);
+  if (!animate || calm || !a || !b || a.length !== b.length || prev.replace(NUM, '#') !== next.replace(NUM, '#')) { node._tw = 0; node.data = next; return; }
+  const from = a.map(x => +x.replace(/,/g, '')), to = b.map(x => +x.replace(/,/g, '')), t0 = performance.now(), id = node._tw = (node._tw || 0) + 1;
+  const step = now => {
+    if (node._tw !== id) return;
+    const p = Math.min((now - t0) / 900, 1), e = 1 - Math.pow(1 - p, 3);
+    let i = 0;
+    node.data = next.replace(NUM, () => { const v = Math.round(from[i] + (to[i] - from[i]) * e), asIs = b[i]; i++; return /,/.test(asIs) ? v.toLocaleString('en-US') : String(v); });
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const heroText = (id, text) => { const el = document.getElementById(id); if (el.firstChild && el.firstChild.nodeType === 3) setText(el.firstChild, text, true); else el.textContent = text; };
+
+// Only these places count up; labels like "Class of 1996" must never animate through other years.
+const COUNTS = '.ub-cap, .ub-sub, .pd-n, .sx-n, .nw-title, .nw-chip b, .cb-row b, .cb-card h4, .sec-sub';
+const KEEP_CLASS = new Set(['flipped', 'sel', 'end', 'out']);   // set by the visitor's own taps, never by data
+const KEEP_ATTR = new Set(['aria-pressed']);
+const LISTS = '.nw-names, .pd-list, .cb-list';
+// Same elements in the same places? (Lists may grow or shrink.) If so a patch is safe and listeners survive.
+function sameShape(a, b) {
+  if (a.nodeType !== b.nodeType) return false;
+  if (a.nodeType === 3) return true;
+  if (a.nodeType !== 1 || a.tagName !== b.tagName) return false;
+  if (a.id === 'lb-hit') return true;
+  const x = a.childNodes, y = b.childNodes;
+  if (x.length !== y.length && !a.matches(LISTS)) return false;
+  for (let i = 0; i < Math.min(x.length, y.length); i++) if (!sameShape(x[i], y[i])) return false;
+  return true;
+}
+function patch(a, b) {
+  if (a.nodeType === 3) { setText(a, b.data, !!(a.parentElement && a.parentElement.closest(COUNTS))); return; }
+  if (a.id === 'lb-hit') return;
+  for (const at of [...a.attributes]) if (!b.hasAttribute(at.name) && at.name !== 'class' && !KEEP_ATTR.has(at.name) && at.name !== 'value') a.removeAttribute(at.name);
+  for (const at of [...b.attributes]) {
+    if (at.name === 'class') {
+      [...a.classList].forEach(c => { if (!b.classList.contains(c) && !KEEP_CLASS.has(c)) a.classList.remove(c); });
+      [...b.classList].forEach(c => { if (!KEEP_CLASS.has(c)) a.classList.add(c); });
+    } else if (!KEEP_ATTR.has(at.name) && at.name !== 'value' && a.getAttribute(at.name) !== at.value) a.setAttribute(at.name, at.value);
+  }
+  const x = a.childNodes, y = b.childNodes, n = Math.min(x.length, y.length);
+  for (let i = 0; i < n; i++) patch(x[i], y[i]);
+  while (a.childNodes.length > y.length) a.removeChild(a.lastChild);
+  for (let i = n; i < y.length; i++) a.appendChild(y[i].cloneNode(true));
+}
+// Update `el` to show `html` in place. Returns false if the layout changed too much (caller redraws instead).
+function softUpdate(el, html, keySel) {
+  const t = document.createElement('div'); t.innerHTML = html;
+  const keys = r => keySel ? [...r.querySelectorAll(keySel)].map(k => k.textContent).join('|') : '';
+  if (!sameShape(el, t) || keys(el) !== keys(t)) return false;
+  patch(el, t);
+  return true;
+}
+
+function applyHero(camp) { if (camp && camp.progress) { heroDonors = camp.progress.donors; heroRaised = camp.progress.raised; } }
+applyHero(GD.campaign);
 const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
 function renderHero() {
-  document.getElementById('donor-count').textContent = heroDonors;
-  document.getElementById('stat-raised').textContent = fmt$(heroRaised);
-  document.getElementById('stat-togo').textContent = Math.max(GOAL - heroDonors, 0);
+  heroText('donor-count', String(heroDonors));
+  heroText('stat-raised', fmt$(heroRaised));
+  heroText('stat-togo', String(Math.max(GOAL - heroDonors, 0)));
   const pctDone = Math.min(heroDonors / GOAL, 1) * 100;
   document.getElementById('seal-fill').style.height = pctDone + '%';
   document.getElementById('prog-bar').style.width = pctDone + '%';
-  document.getElementById('stat-pct').textContent = Math.floor(pctDone) + '%';
+  heroText('stat-pct', Math.floor(pctDone) + '%');
 }
 
 // ── Gift modal ──────────────────────────────────────────────────────────────
@@ -1549,15 +1637,10 @@ function gmThanks(total) {
   const first = $gm('gm-first').value.trim();
   $gm('gm-thanks-title').textContent = `Thank you, ${first}!`;
   $gm('gm-thanks-text').textContent = gm.mode === 'test'
-    ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. In test mode nothing is charged or saved yet.`
+    ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. Nothing is charged; it is saved as a test gift.`
     : `Your ${fmt$(total)} gift has been received. A receipt is on its way to your inbox.`;
   $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
-  // Show it on this page right away (this viewer only, until gifts are saved)
-  heroDonors++; heroRaised += total;
-  renderHero();
-  DONORS.unshift([$gm('gm-anon').checked ? 'Anonymous' : `${first} ${$gm('gm-last').value.trim()}`, 'parents', 'Just now']);
-  DONORS.forEach((d, i) => { if (i > 0 && d[2] === 'Just now') d[2] = '1 min ago'; });
-  renderCM();
+  // Everything on the page refreshes once the gift is saved (see checkoutComplete).
 }
 
 function gmInitCheckout(configId) {
@@ -1566,7 +1649,18 @@ function gmInitCheckout(configId) {
   gm.checkout.checkoutReady.subscribe(() => { gm.ready = true; });
   gm.checkout.checkoutComplete.subscribe(e => {
     if (!e || !e.success) return;
-    gmThanks(e.transaction.amountDetails.total / 100);
+    const total = e.transaction.amountDetails.total / 100;
+    const body = {
+      transaction_id: e.transaction.id, amount: total,
+      first_name: $gm('gm-first').value.trim(), last_name: $gm('gm-last').value.trim(), email: $gm('gm-email').value.trim(),
+      anonymous: $gm('gm-anon').checked, affiliations: gmAffiliations(), token: GD.token || null,
+    };
+    gmThanks(total);
+    // The donor already sees the thank-you; the save runs behind it. Then refresh the hero numbers.
+    fetch('/api/gd/gift', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(r => r.ok ? fetch('/api/gd/campaign').then(c => c.json()) : Promise.reject(new Error('save failed ' + r.status)))
+      .then(d => refreshLive(d))
+      .catch(err => console.warn('Gift could not be saved:', err.message));
   });
 }
 
@@ -1576,6 +1670,29 @@ window.addEventListener('load', () => {
     .catch(() => { gm.mode = 'test'; return GM_TEST_CONFIG_ID; })
     .then(id => gmInitCheckout(id));
 });
+
+// Rebuild every live part of the page from fresh campaign data: hero, challenges, leaderboards, donor wall
+let liveSig = JSON.stringify([GD.campaign && GD.campaign.progress, GD.campaign && GD.campaign.wall, GD.campaign && GD.campaign.challenges]);
+function refreshLive(d) {
+  if (!d || !d.progress) return;
+  const sig = JSON.stringify([d.progress, d.wall, d.challenges]);
+  if (sig === liveSig) return;
+  liveSig = sig;
+  GD.campaign = d;
+  applyHero(d); applyChallenges(d); buildBoards(d.wall); applyWall(d.wall);
+  renderHero();
+  // Challenge band, leaderboard and donor wall: patch in place; redraw only if their layout changed
+  const chal = document.getElementById('chal'), lb = document.getElementById('lb'), cm = document.getElementById('cm');
+  if (chalView !== 'ub' || !softUpdate(chal, CHAL[chalView](), '.ub-bname')) renderChal(chalView);
+  const searching = lb.querySelector('.lb-search') && lb.querySelector('.lb-search').value;
+  if (!searching && (lbView !== 'pd' || !softUpdate(lb, LB[lbView]()))) renderLB();
+  if (cmView !== 'nw' || !softUpdate(cm, CM[cmView]())) renderCM();
+}
+// Pick up other people's gifts too: check every 30 seconds while the page is visible
+setInterval(() => {
+  if (document.hidden || !GD.campaign) return;
+  fetch('/api/gd/campaign').then(r => r.ok ? r.json() : null).then(refreshLive).catch(() => {});
+}, 30000);
 
 // Every Give button on the page opens the gift form
 document.addEventListener('click', e => {

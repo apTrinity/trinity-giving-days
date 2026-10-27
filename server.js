@@ -2426,22 +2426,19 @@ app.get('/parents', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'parents.html'));
 });
 
-// Design preview of the Giving Days page (sample data, not indexed by search engines)
-app.get('/preview', (req, res) => {
-  res.set('X-Robots-Tag', 'noindex, nofollow');
-  res.sendFile(path.join(__dirname, 'public', 'giving-days-mockup.html'));
-});
-
-// /preview-v2 (the Giving Days page) and personal links (/<code>) are served from giving-days-donors.js,
-// mounted just before app.listen so every real page above takes priority over a code.
+// /preview (the Giving Days page; /preview-v2 redirects to it) and personal links (/<code>) are served
+// from giving-days-donors.js, mounted just before app.listen so every real page above takes priority
+// over a code. The first design mockup is archived in archive/giving-days-mockup-v1.html.
 
 // Giving Days payment mode. GIVING_MODE=live on Render switches the gift form to the
-// live BBMS configuration — but only once GD_LIVE_ALLOWED is true (gift saving is not
-// built yet, so live mode stays locked). Anything else means test mode.
+// live BBMS configuration — but only once GD_LIVE_ALLOWED is true. Gift saving is built now
+// (giving-days-gifts.js), but live stays locked until the go-live review (CSC/AVS settings,
+// a full test-mode run). Anything else means test mode, and gifts are saved as test gifts.
 const GD_LIVE_ALLOWED = false;
 const GD_TEST_CONFIG_ID = process.env.PAYMENT_CONFIG_ID_TEST || 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969';
+const gdIsLive = () => GD_LIVE_ALLOWED && process.env.GIVING_MODE === 'live' && !!process.env.PAYMENT_CONFIG_ID_LIVE;
 app.get('/api/gd/config', (req, res) => {
-  const live = GD_LIVE_ALLOWED && process.env.GIVING_MODE === 'live' && !!process.env.PAYMENT_CONFIG_ID_LIVE;
+  const live = gdIsLive();
   res.json({
     mode: live ? 'live' : 'test',
     paymentConfigurationId: live ? process.env.PAYMENT_CONFIG_ID_LIVE : GD_TEST_CONFIG_ID,
@@ -2486,6 +2483,7 @@ async function requireAdmin(req, res, next) {
 let gdAdmin = null;
 try {
   gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
+  require('./giving-days-gifts')(app, { supabase, requireAdmin, skyRequest, isLive: gdIsLive });
 } catch (err) {
   console.error('Giving Days admin routes failed to load:', err.message);
 }
