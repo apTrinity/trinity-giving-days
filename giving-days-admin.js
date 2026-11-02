@@ -161,6 +161,12 @@ function cleanSettings(body) {
     if (v && !/^https:\/\//i.test(v)) return { error: 'Video link must start with https://' };
     out.video_url = v;
   }
+  if (Object.prototype.hasOwnProperty.call(b, 'ask_personalize')) out.ask_personalize = b.ask_personalize === true || b.ask_personalize === 'true';
+  if (Object.prototype.hasOwnProperty.call(b, 'ask_steps')) {
+    const n = parseInt(b.ask_steps, 10);
+    if (!Number.isInteger(n) || n < 1 || n > 5) return { error: 'Levels above and below must be a whole number from 1 to 5.' };
+    out.ask_steps = n;
+  }
   if (Object.prototype.hasOwnProperty.call(b, 'test_gifts_count')) out.test_gifts_count = b.test_gifts_count === true || b.test_gifts_count === 'true';
   if (Object.prototype.hasOwnProperty.call(b, 'gifts_count_from')) {  // blank = the campaign start
     if (isBlank(b.gifts_count_from)) out.gifts_count_from = null;
@@ -191,7 +197,7 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
   // Challenge progress is counted from gifts (see giving-days-progress.js), plus the admin's manual adjustment.
   async function loadCampaign() {
     const [s, c] = await Promise.all([
-      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, test_gifts_count, gifts_count_from').eq('id', 1).single(),
+      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, ask_personalize, ask_steps, test_gifts_count, gifts_count_from').eq('id', 1).single(),
       supabase.from('gd_challenges')
         .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
         .eq('published', true).order('sort_order').order('created_at'),
@@ -313,4 +319,5 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
 
 module.exports.DESC_MAX = DESC_MAX;
 module.exports.TAGS = TAGS;
+module.exports.GRADES = GRADES;
 module.exports.whoCountsText = whoCountsText;

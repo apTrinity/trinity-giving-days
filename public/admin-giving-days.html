@@ -99,6 +99,20 @@
     label.check { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); cursor: pointer; }
     label.check input { width: auto; }
 
+    /* Audiences */
+    main.wide { max-width: 1320px; }
+    .aud-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+    @media (max-width: 960px) { .aud-grid { grid-template-columns: 1fr; } }
+    .aud-right { position: sticky; top: 8px; display: grid; gap: 12px; }
+    #aud-frame { width: 100%; height: 720px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .au { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+    .au.draft { background: #faf8f3; border-style: dashed; }
+    .au h3 { font-size: 15px; color: var(--navy); } .au .meta { color: var(--mute); font-size: 13px; margin-top: 3px; }
+    .au .order { display: flex; flex-direction: column; gap: 2px; }
+    .au .order button { background: none; border: 1px solid var(--line); border-radius: 4px; width: 26px; height: 22px; line-height: 1; color: var(--navy); }
+    .au .order button:disabled { opacity: .25; cursor: default; }
+    .chips.small label { padding: 3px 10px; font-size: 13px; }
+
     /* Gifts */
     .gf { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
     .gf.off { background: #faf8f3; border-style: dashed; }
@@ -137,6 +151,7 @@
   <main>
     <div class="tabs">
       <button class="tab active" data-tab="challenges">Challenges</button>
+      <button class="tab" data-tab="audiences">Audiences</button>
       <button class="tab" data-tab="gifts">Gifts</button>
       <button class="tab" data-tab="settings">Campaign settings</button>
     </div>
@@ -147,6 +162,54 @@
         <button class="btn" id="add-ch">+ Add challenge</button>
       </div>
       <div id="ch-list"></div>
+    </section>
+
+    <section class="panel" id="panel-audiences">
+      <div class="head-row">
+        <div><h2>Audiences &amp; live preview</h2><p class="hint">Each donor sees the text of the <b>first published audience</b> they match, at the top of the gift form. Edit on the left and watch the preview on the right change as you type.</p></div>
+        <button class="btn" id="add-aud">+ Add audience</button>
+      </div>
+      <div class="aud-grid">
+        <div>
+          <div id="aud-list"></div>
+          <div class="card" id="aud-editor" hidden style="max-width:none">
+            <div class="field"><label for="a-name">Audience name (internal)</label><input type="text" id="a-name" maxlength="60"></div>
+            <div class="field"><label for="a-heading">Heading on the form</label><input type="text" id="a-heading" maxlength="80"><div class="count" id="a-hcount"></div></div>
+            <div class="field"><label for="a-body">Text on the form</label><textarea id="a-body" maxlength="500"></textarea><div class="count" id="a-bcount"></div>
+              <p class="hint" style="margin-top:4px">You can use <code>{{first_name}}</code>, <code>{{class_year}}</code> and <code>{{ly_gift}}</code> (last year's gift).</p></div>
+            <div class="field"><label>Who sees it: affiliations (any of)</label><div class="chips" id="a-tags"></div></div>
+            <div class="field"><label>Current parents of grade (any of)</label><div class="chips" id="a-grades"></div></div>
+            <div class="field"><label for="a-years">Specific class years (optional)</label><input type="text" id="a-years" placeholder="2001, 2006, 2011, 2016, 2021"><p class="hint" style="margin-top:4px">For reunion classes. Leave blank for no limit.</p></div>
+            <div class="grid2">
+              <div class="field"><label for="a-ymin">Or: first class year</label><input type="number" id="a-ymin" min="1900" max="2100" placeholder="e.g. 2012"></div>
+              <div class="field"><label for="a-ymax">Last class year</label><input type="number" id="a-ymax" min="1900" max="2100" placeholder="e.g. 2026"></div>
+            </div>
+            <label class="check" style="margin-bottom:12px"><input type="checkbox" id="a-pub"> Published</label>
+            <div class="err" id="a-error"></div>
+            <div style="display:flex;gap:10px"><button class="btn" id="a-save">Save</button><button class="btn ghost" id="a-cancel">Close</button></div>
+          </div>
+        </div>
+        <div class="aud-right">
+          <div class="card" style="max-width:none">
+            <label>Preview as</label>
+            <div class="chips" id="p-quick" style="margin-bottom:12px"></div>
+            <div class="grid2">
+              <div class="field"><label for="p-name">First name</label><input type="text" id="p-name" maxlength="40"></div>
+              <div class="field"><label for="p-year">Class year</label><input type="number" id="p-year" min="1900" max="2100"></div>
+              <div class="field"><label for="p-ly">Last year's gift ($)</label><input type="number" id="p-ly" min="0" step="1"></div>
+              <div class="field"><label>Current parent of grade</label><div class="chips" id="p-grades"></div></div>
+            </div>
+            <div class="field"><label>Affiliations</label><div class="chips" id="p-tags"></div></div>
+            <div class="field" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+              <label class="check"><input type="checkbox" id="p-ask-on"> Show only levels near last year's gift</label>
+              <label class="check">±<input type="number" id="p-ask-steps" min="1" max="5" style="width:60px"> levels</label>
+              <button class="btn small ghost" id="p-ask-save">Save this setting</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn small" id="p-open">Open the gift form</button><a class="btn small ghost" id="p-link" target="_blank" rel="noopener" style="text-decoration:none">Open as its own page ↗</a></div>
+          </div>
+          <iframe id="aud-frame" title="Live preview of the Giving Days page" src="/preview?demo=1"></iframe>
+        </div>
+      </div>
     </section>
 
     <section class="panel" id="panel-gifts">
@@ -341,7 +404,7 @@ async function login() {
 }
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
-  loadChallenges(); loadSettings(); loadGifts();
+  loadChallenges(); loadSettings(); loadGifts(); loadAudiences();
 }
 
 // ── Tabs ──
@@ -350,6 +413,8 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
   if (b.dataset.tab === 'challenges') loadChallenges();
+  document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences');
+  if (b.dataset.tab === 'audiences') queuePreview();
 });
 
 // ── Challenges list ──
@@ -438,6 +503,7 @@ async function loadSettings() {
     const { settings: s } = await api('GET', '/api/admin/gd/settings');
     $('s-goal').value = s.goal_donors; $('s-start').value = isoToET(s.starts_at); $('s-end').value = isoToET(s.ends_at); $('s-video').value = s.video_url || '';
     $('s-from').value = isoToET(s.gifts_count_from); $('s-testcount').checked = !!s.test_gifts_count;
+    $('p-ask-on').checked = s.ask_personalize !== false; $('p-ask-steps').value = s.ask_steps || 2; queuePreview();
   } catch (e) { toast('Could not load settings: ' + e.message, true); }
 }
 $('s-save').onclick = async () => {
@@ -451,6 +517,140 @@ $('s-save').onclick = async () => {
     loadGifts(); loadChallenges();
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
   btn.disabled = false;
+};
+
+// ── Audiences and live preview ──
+let auds = [], editingAud = null, audLimits = { heading: 80, body: 500 }, frameReady = false, sendTimer;
+const PERSONAS = [
+  { label: 'Reunion alum', p: { first_name: 'Daisy', class_year: 2001, ly: 250, tags: ['alumni'], grades: [] } },
+  { label: 'Senior parent', p: { first_name: 'Sam', class_year: null, ly: 1709, tags: ['current_parent'], grades: ['12'] } },
+  { label: 'Alum, $100 last year', p: { first_name: 'Priya', class_year: 2015, ly: 100, tags: ['alumni'], grades: [] } },
+  { label: 'Parent, $5,000 last year', p: { first_name: 'Marcus', class_year: null, ly: 5000, tags: ['current_parent'], grades: ['3'] } },
+  { label: 'Unknown visitor', p: null },
+];
+let persona = PERSONAS[0].p;
+const yearsOf = t => String(t || '').split(/[\s,;]+/).filter(Boolean).map(Number).filter(n => Number.isInteger(n));
+function audWho(a) {
+  const yrs = (a.class_years || []).length ? 'Classes ' + a.class_years.join(', ') : '';
+  const any = (a.tags || []).length || (a.grades || []).length || yrs || a.class_year_min != null || a.class_year_max != null;
+  if (!any) return 'Everyone';
+  const base = whoText({ tags: a.tags, grades: a.grades, class_year_min: a.class_year_min, class_year_max: a.class_year_max });
+  const generic = !(a.tags || []).length && !(a.grades || []).length && a.class_year_min == null && a.class_year_max == null;
+  return [generic ? '' : base, yrs].filter(Boolean).join(' · ');
+}
+async function loadAudiences() {
+  try {
+    const j = await api('GET', '/api/admin/gd/audiences');
+    auds = j.audiences; audLimits = j.limits || audLimits; if (j.tags) TAGS = j.tags; if (j.grades) GRADES = j.grades;
+    renderAuds(); buildPersonaControls(); queuePreview();
+  } catch (e) { $('aud-list').innerHTML = `<div class="empty">Could not load audiences: ${esc(e.message)}. Have you run the gd-07 SQL?</div>`; }
+}
+function renderAuds() {
+  const el = $('aud-list');
+  if (!auds.length) { el.innerHTML = '<div class="empty">No audiences yet. Click <b>+ Add audience</b>.</div>'; return; }
+  el.innerHTML = auds.map((a, i) => `<div class="au ${a.published ? '' : 'draft'}" data-id="${a.id}">
+    <div class="order"><button data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button data-act="down" ${i === auds.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button></div>
+    <div><h3>${esc(a.name)} <span class="pill ${a.published ? 'live' : 'draft'}">${a.published ? 'Published' : 'Draft'}</span></h3>
+      <div class="meta">Who: ${esc(audWho(a))}</div><div class="meta">${esc(a.heading || '(no heading)')}</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn small ghost" data-act="pub">${a.published ? 'Unpublish' : 'Publish'}</button><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
+  </div>`).join('');
+}
+$('aud-list').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]'); if (!btn) return;
+  const id = btn.closest('.au').dataset.id, i = auds.findIndex(a => a.id === id), a = auds[i], act = btn.dataset.act;
+  try {
+    if (act === 'edit') return openAud(a);
+    if (act === 'pub') await api('PUT', '/api/admin/gd/audiences/' + id, { published: !a.published });
+    if (act === 'del') { if (!confirm(`Delete "${a.name}"? This can't be undone.`)) return; await api('DELETE', '/api/admin/gd/audiences/' + id); if (editingAud === id) closeAud(); }
+    if (act === 'up' || act === 'down') {
+      const j = act === 'up' ? i - 1 : i + 1, ids = auds.map(x => x.id); [ids[i], ids[j]] = [ids[j], ids[i]];
+      await api('PUT', '/api/admin/gd/audiences/order', { ids });
+    }
+    loadAudiences();
+  } catch (err) { toast(err.message, true); }
+});
+const audForm = () => ({
+  name: $('a-name').value, heading: $('a-heading').value, body: $('a-body').value,
+  tags: [...document.querySelectorAll('#a-tags input:checked')].map(i => i.value), grades: [...document.querySelectorAll('#a-grades input:checked')].map(i => i.value),
+  class_years: yearsOf($('a-years').value), class_year_min: orNull($('a-ymin').value), class_year_max: orNull($('a-ymax').value), published: $('a-pub').checked,
+});
+function openAud(a) {
+  editingAud = a ? a.id : 'new'; $('a-error').style.display = 'none'; $('aud-editor').hidden = false;
+  $('a-name').value = a?.name || ''; $('a-heading').value = a?.heading || ''; $('a-body').value = a?.body || ''; $('a-pub').checked = a ? a.published : true;
+  $('a-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}"><input type="checkbox" value="${t.key}" ${(a?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}</label>`).join('');
+  $('a-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${(a?.grades || []).includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
+  $('a-years').value = (a?.class_years || []).join(', '); $('a-ymin').value = a?.class_year_min ?? ''; $('a-ymax').value = a?.class_year_max ?? '';
+  audCounts(); queuePreview(); $('aud-editor').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function closeAud() { editingAud = null; $('aud-editor').hidden = true; queuePreview(); }
+function audCounts() {
+  const h = $('a-heading').value.length, b = $('a-body').value.length;
+  $('a-hcount').textContent = `${h} / ${audLimits.heading}`; $('a-hcount').className = 'count' + (h > audLimits.heading ? ' over' : '');
+  $('a-bcount').textContent = `${b} / ${audLimits.body}`; $('a-bcount').className = 'count' + (b > audLimits.body ? ' over' : '');
+}
+$('aud-editor').addEventListener('input', () => { audCounts(); queuePreview(); });
+$('aud-editor').addEventListener('change', queuePreview);
+$('add-aud').onclick = () => openAud(null);
+$('a-cancel').onclick = closeAud;
+$('a-save').onclick = async () => {
+  const btn = $('a-save'); btn.disabled = true; $('a-error').style.display = 'none';
+  try {
+    const body = audForm();
+    if (editingAud && editingAud !== 'new') await api('PUT', '/api/admin/gd/audiences/' + editingAud, body); else await api('POST', '/api/admin/gd/audiences', body);
+    toast('Saved'); closeAud(); loadAudiences();
+  } catch (e) { const el = $('a-error'); el.textContent = e.message; el.style.display = 'block'; }
+  btn.disabled = false;
+};
+
+// Preview as a donor: the page in the frame is sent the donor, the audiences (including the one being edited) and the ask setting
+const chipRow = (id, items, on, onChange) => { $(id).innerHTML = items.map(([v, label]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''}> ${esc(label)}</label>`).join(''); };
+function buildPersonaControls() {
+  $('p-quick').innerHTML = PERSONAS.map((x, i) => `<button class="btn small ghost" data-i="${i}">${esc(x.label)}</button>`).join('');
+  setPersonaFields(persona);
+}
+function setPersonaFields(p) {
+  persona = p;
+  $('p-name').value = p?.first_name || ''; $('p-year').value = p?.class_year ?? ''; $('p-ly').value = p?.ly ?? '';
+  chipRow('p-grades', GRADES.map(g => [g, g === 'K' ? 'K' : 'Gr ' + g]), p?.grades || []);
+  chipRow('p-tags', TAGS.map(t => [t.key, t.label]), p?.tags || []);
+  queuePreview();
+}
+$('p-quick').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) setPersonaFields(PERSONAS[b.dataset.i].p); });
+function readPersona() {
+  const any = $('p-name').value || $('p-year').value || $('p-ly').value || document.querySelector('#p-tags input:checked') || document.querySelector('#p-grades input:checked');
+  if (!any) return null;
+  return {
+    first_name: $('p-name').value.trim(), class_year: $('p-year').value ? parseInt($('p-year').value, 10) : null, ly: $('p-ly').value ? Math.round(Number($('p-ly').value)) : null,
+    tags: [...document.querySelectorAll('#p-tags input:checked')].map(i => i.value), grades: [...document.querySelectorAll('#p-grades input:checked')].map(i => i.value),
+  };
+}
+function previewAudiences() {
+  const list = auds.filter(a => a.published).map(a => ({ id: a.id, ...pick(a) }));
+  if (editingAud) {
+    const d = { id: editingAud, ...pick({ ...audForm(), class_years: yearsOf($('a-years').value) }), draft: true };
+    const k = list.findIndex(x => x.id === editingAud);
+    if (k >= 0) list[k] = d; else if (editingAud === 'new') list.push(d);
+    else { const at = auds.findIndex(a => a.id === editingAud); list.splice(Math.min(at, list.length), 0, d); }   // an unpublished audience being edited still shows
+  }
+  return list;
+}
+const pick = a => ({ tags: a.tags || [], grades: a.grades || [], class_years: a.class_years || [], class_year_min: a.class_year_min == null || a.class_year_min === '' ? null : Number(a.class_year_min), class_year_max: a.class_year_max == null || a.class_year_max === '' ? null : Number(a.class_year_max), heading: a.heading || '', body: a.body || '' });
+function sendPreview(open) {
+  const f = $('aud-frame');
+  if (!frameReady) { try { frameReady = f.contentDocument.readyState === 'complete' && typeof f.contentWindow.applyDemo === 'function'; } catch {} }   // frame may have loaded before the ready message
+  if (!frameReady || !f.contentWindow) return;
+  f.contentWindow.postMessage({ gd: 'demo', persona: readPersona(), audiences: previewAudiences(), ask: { on: $('p-ask-on').checked, steps: $('p-ask-steps').value || 2 }, open: !!open }, location.origin);
+  const p = readPersona(), b64 = btoa(unescape(encodeURIComponent(JSON.stringify(p || {})))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  $('p-link').href = p ? '/preview?p=' + b64 : '/preview';
+}
+function queuePreview() { clearTimeout(sendTimer); sendTimer = setTimeout(() => sendPreview(false), 120); }
+$('aud-frame').addEventListener('load', () => { frameReady = true; sendPreview(false); });
+addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.gd === 'ready') { frameReady = true; sendPreview(false); } });
+['p-name', 'p-year', 'p-ly', 'p-ask-on', 'p-ask-steps'].forEach(id => { $(id).addEventListener('input', queuePreview); $(id).addEventListener('change', queuePreview); });
+$('p-grades').addEventListener('change', queuePreview); $('p-tags').addEventListener('change', queuePreview);
+$('p-open').onclick = () => sendPreview(true);
+$('p-ask-save').onclick = async () => {
+  try { await api('PUT', '/api/admin/gd/settings', { ask_personalize: $('p-ask-on').checked, ask_steps: $('p-ask-steps').value }); toast('Saved'); } catch (e) { toast(e.message, true); }
 };
 
 // ── Gifts ──

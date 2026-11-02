@@ -799,6 +799,14 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 @media (max-width: 760px) {
   .gm-input, .gm-select, .lb-search, .lb-toolbar input { font-size: 16px; }
 }
+/* Personalization */
+.gm-aud { background: var(--navy-10); border-left: 4px solid var(--trinity-yellow); padding: 12px 14px; }
+.gm-aud-h { font-weight: 800; color: var(--navy); font-size: 14px; margin-bottom: 3px; }
+.gm-aud p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-mid); }
+.gm-lyhint { margin-top: 8px; font-size: 12.5px; color: var(--ink-muted); }
+.gm-counts { font-size: 12.5px; font-weight: 600; color: var(--navy); background: var(--paper-2); padding: 8px 12px; line-height: 1.45; }
+.ub-card.you .ub-front { box-shadow: inset 0 0 0 2px var(--trinity-yellow); }
+.demo-ribbon { position: fixed; left: 12px; bottom: 12px; z-index: 300; background: var(--navy); color: #fff; font-size: 12px; padding: 7px 12px; border-left: 4px solid var(--trinity-yellow); max-width: calc(100vw - 24px); }
 /* Live updates: bars glide to their new width */
 .ub-bar i, .sx-bar i { transition: width .9s cubic-bezier(.2,.8,.2,1); }
 @media (prefers-reduced-motion: reduce) { .ub-bar i, .sx-bar i, .prog-bar i, .d-fill { transition: none; } }
@@ -825,9 +833,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="prog-cap">Every gift helps fill the seal</div>
         <div class="prog-fig"><div class="d-seal" role="img" aria-label="Trinity seal filling toward the donor goal"><div class="d-empty"></div><div class="d-fill" id="seal-fill"></div></div></div>
         <div class="prog-nums">
-          <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">212</span> <span>of 350 donors</span></div>
+          <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">0</span> <span>of 350 donors</span></div>
           <div class="prog-bar" aria-hidden="true"><i id="prog-bar"></i></div>
-          <div class="prog-sub"><b id="stat-pct">61%</b> of our goal · <b id="stat-togo">138</b> to go<span class="prog-raised"> · <b id="stat-raised">$84,300</b> raised</span></div>
+          <div class="prog-sub"><b id="stat-pct">0%</b> of our goal · <b id="stat-togo">350</b> to go<span class="prog-raised"> · <b id="stat-raised">$0</b> raised</span></div>
         </div>
         <button class="btn-give" id="hero-give">Make your gift →</button>
       </div>
@@ -855,9 +863,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
     </div>
     <div class="gm-body" id="gm-body">
       <div class="gm-form">
+        <div class="gm-aud" id="gm-aud" hidden><div class="gm-aud-h" id="gm-aud-h"></div><p id="gm-aud-p"></p></div>
         <div>
           <span class="gm-label">Gift amount</span>
           <div class="gm-amts" id="gm-amts"></div>
+          <div class="gm-lyhint" id="gm-lyhint" hidden></div>
           <div class="gm-levelline" id="gm-levelline"></div>
           <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="1" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
         </div>
@@ -883,6 +893,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           </div>
           <div class="gm-subfield" data-sub="alumni" hidden><label for="gm-class-year">Class year</label><select class="gm-select" id="gm-class-year"></select></div>
           <div class="gm-subfield" data-sub="current_parent" hidden><span class="gm-sublabel">Child's grade (select all that apply)</span><div class="gm-grades" id="gm-grades"></div></div>
+          <div class="gm-counts" id="gm-counts" hidden></div>
         </div>
         <div class="gm-matchbox">
           <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift at no cost to you.</small></span></label>
@@ -960,7 +971,19 @@ const DETAIL = [
 C.forEach((c, i) => Object.assign(c, DETAIL[i]));
 // Live data from the admin (written into the page by the server). With nothing published, the sample data above stays.
 const GD = window.__GD || {};
-const ME = GD.me || null;
+let ME = GD.me || null;
+// Who-counts rule, same as the server's (giving-days-donors.js): any tag AND any grade AND class years. Empty = no limit.
+function qual(c, d) {
+  const tags = d.tags || [], grades = d.grades || [], y = d.class_year;
+  if ((c.tags || []).length && !c.tags.some(t => tags.includes(t))) return false;
+  if ((c.grades || []).length && !c.grades.some(g => grades.includes(g))) return false;
+  if ((c.class_years || []).length && (y == null || !c.class_years.includes(y))) return false;
+  const lo = c.class_year_min, hi = c.class_year_max;
+  if (lo != null || hi != null) { if (y == null) return false; if (lo != null && y < lo) return false; if (hi != null && y > hi) return false; }
+  return true;
+}
+const S0 = (GD.campaign && GD.campaign.settings) || {};
+let ASK = { on: S0.ask_personalize !== false, steps: S0.ask_steps || 2 };   // show only levels near last year's gift
 function applyChallenges(camp) {
   if (!(camp && camp.challenges && camp.challenges.length)) return;
   const now = Date.now();
@@ -973,7 +996,8 @@ function applyChallenges(camp) {
       match: x.kind === 'match', who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
       desc: paras(x.description, x.name),
       counts: x.who_counts, when: x.when_text || 'All week', from: x.sponsor || 'Trinity supporters',
-      you: !!(ME && ME.qualifies && ME.qualifies.includes(x.id)),
+      you: !!(ME && qual(x, ME)),
+      rule: { tags: x.tags, grades: x.grades, class_year_min: x.class_year_min, class_year_max: x.class_year_max },
     });
   });
   unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
@@ -1041,7 +1065,7 @@ const CHAL = {
         : c.soon ? `When <b>${c.target} donors</b> give on Friday` : `When <b>${c.target} ${c.unit}</b> give`;
       const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
         : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
-      return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.name}: show more">
+      return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}${c.you ? ' you' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.name}: show more">
           <div class="ub-face ub-front">
             <div class="ub-prize">${$(c.match ? c.target : c.prize)}<small>${c.match ? 'match' : 'bonus'}</small></div>
             ${c.you ? '<div class="ub-you">✓ You count toward this</div>' : ''}
@@ -1492,9 +1516,27 @@ const GM_BLUEGOLD = [
 const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
 const $gm = id => document.getElementById(id);
 
-(function buildGiftForm() {
-  $gm('gm-amts').innerHTML = GM_AMOUNTS.map(a => `<button type="button" class="gm-amt${a === gm.amount ? ' on' : ''}" data-amt="${a}">${fmt$(a)}</button>`).join('') +
+// Amount buttons. With a last-year gift they are that gift plus the nearest levels above and below it.
+function gmAmountList() {
+  const ly = ME && ME.ly;
+  if (!ASK.on || !ly) return GM_AMOUNTS;
+  const all = new Set([...GM_AMOUNTS, 25, 50]);
+  [GM_SOCIETY, GM_FRIENDS, GM_BLUEGOLD].forEach(L => L.forEach(t => { if (t[1] % 25 === 0 || t[1] === 1709) all.add(t[1]); }));   // round level starts only (not $101)
+  const near = [...all].filter(v => Math.abs(v - ly) / ly > 0.05).sort((a, b) => a - b);   // skip amounts almost the same as last year's
+  return [...near.filter(v => v < ly).slice(-ASK.steps), ly, ...near.filter(v => v > ly).slice(0, ASK.steps)];
+}
+function gmBuildAmounts() {
+  const ly = ME && ME.ly, list = gmAmountList();
+  gm.amount = ASK.on && ly ? ly : 2500;
+  $gm('gm-amts').innerHTML = list.map(a => `<button type="button" class="gm-amt${a === gm.amount ? ' on' : ''}" data-amt="${a}">${fmt$(a)}</button>`).join('') +
     '<button type="button" class="gm-amt" data-amt="other">Other</button>';
+  $gm('gm-custom').hidden = true;
+  const h = $gm('gm-lyhint');
+  h.hidden = !(ASK.on && ly);
+  h.textContent = ly ? `Your gift last year: ${fmt$(ly)}` : '';
+}
+(function buildGiftForm() {
+  gmBuildAmounts();
   let years = '<option value="">Select class year</option>';
   for (let y = 2026; y >= 1940; y--) years += `<option>${y}</option>`;
   $gm('gm-class-year').innerHTML = years;
@@ -1530,7 +1572,34 @@ function gmLevels(amount) {
   return { cy, young, sections, hit };
 }
 
+// Audience text for this visitor, with {{first_name}}, {{class_year}} and {{ly_gift}} filled in
+function gmFill(t) {
+  const out = String(t || '').replace(/\{\{\s*(first_name|class_year|ly_gift)\s*\}\}/g, (m, k) =>
+    k === 'first_name' ? (ME && ME.first_name) || '' : k === 'class_year' ? (ME && ME.class_year) || '' : ME && ME.ly ? fmt$(ME.ly) : '')
+    .replace(/^\s*[,;:]\s*/, '').replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+function gmAudience() {
+  const a = ME && ME.audience, box = $gm('gm-aud');
+  box.hidden = !(a && (a.heading || a.body));
+  if (!box.hidden) { $gm('gm-aud-h').textContent = gmFill(a.heading); $gm('gm-aud-p').textContent = gmFill(a.body); }
+}
+// "Your gift counts toward ...": challenges this donor qualifies for, from who they are plus what they have ticked
+function gmCounts() {
+  const el = $gm('gm-counts');
+  const ticked = [...document.querySelectorAll('#gm-affs .gm-chip.on')].map(c => c.dataset.aff);
+  const who = {
+    tags: [...new Set([...(ME ? ME.tags : []), ...ticked])],
+    grades: [...new Set([...(ME ? ME.grades : []), ...[...document.querySelectorAll('#gm-grades .gm-chip.on')].map(g => g.dataset.grade)])],
+    class_year: (ME && ME.class_year) || (ticked.includes('alumni') ? parseInt($gm('gm-class-year').value) || null : null),
+  };
+  const hits = C.filter(c => c.rule && !c.soon && qual(c.rule, who));
+  el.hidden = !hits.length;
+  if (hits.length) el.innerHTML = 'Your gift counts toward: ' + hits.map(c => `<b>${c.name}</b>`).join(' · ');
+}
+
 function gmUpdate() {
+  gmCounts();
   const a = gm.amount, L = gmLevels(a);
   // Phone-only line under the amounts: every level this gift earns (young alumni at $1,709+ earn two)
   const earned = L.sections.filter(sec => L.hit[sec.key] !== undefined)
@@ -1542,9 +1611,19 @@ function gmUpdate() {
     : 'Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.';
 
   // Ladder: every level for this donor, with the level(s) their gift earns highlighted
+  // With a last-year gift, show only the levels near it (and the level this gift reaches)
+  const near = (tiers, cur) => {
+    const ly = ME && ME.ly;
+    if (!ASK.on || !ly) return [0, tiers.length - 1];
+    const i = tiers.findIndex(t => ly >= t[1]), k = i === -1 ? tiers.length : i;
+    let lo = Math.max(0, k - ASK.steps), hi = Math.min(tiers.length - 1, k + ASK.steps);
+    if (cur !== undefined) { lo = Math.min(lo, cur); hi = Math.max(hi, cur); }
+    return [lo, hi];
+  };
   const html = L.sections.map(sec => {
-    const cur = L.hit[sec.key];
+    const cur = L.hit[sec.key], [lo, hi] = near(sec.tiers, cur);
     const rows = sec.tiers.map((t, i) => {
+      if (i < lo || i > hi) return '';
       const cls = i === cur ? ' on' : cur !== undefined && i > cur ? ' reached' : '';
       return `<div class="gm-rung${cls}"><span>${t[0]}</span><span>${t[2]}</span></div>`;
     }).join('');
@@ -1573,9 +1652,9 @@ $gm('gm-affs').addEventListener('click', e => {
   c.classList.toggle('on');
   const sub = document.querySelector(`.gm-subfield[data-sub="${c.dataset.aff}"]`);
   if (sub) sub.hidden = !c.classList.contains('on');
-  if (c.dataset.aff === 'alumni') gmUpdate();
+  gmUpdate();
 });
-$gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) c.classList.toggle('on'); });
+$gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) { c.classList.toggle('on'); gmUpdate(); } });
 $gm('gm-class-year').addEventListener('change', gmUpdate);
 document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('click', () => {
   const open = tab.getAttribute('aria-expanded') !== 'true';
@@ -1607,7 +1686,8 @@ function openGift() {
   $gm('gm-body').hidden = false; $gm('gm-done').hidden = true; gmError('');
   $gm('gm-overlay').hidden = false;
   document.body.style.overflow = 'hidden';
-  gmUpdate();
+  if (ME && ME.first_name && !$gm('gm-first').value) $gm('gm-first').value = ME.first_name;
+  gmAudience(); gmUpdate();
   setTimeout(() => $gm('gm-first').focus(), 30);
 }
 function closeGift() {
@@ -1693,6 +1773,33 @@ setInterval(() => {
   if (document.hidden || !GD.campaign) return;
   fetch('/api/gd/campaign').then(r => r.ok ? r.json() : null).then(refreshLive).catch(() => {});
 }, 30000);
+
+// ── Demo / preview: a made-up visitor (?p= link) and the admin's live preview (?demo=1) ──
+function demoLabel() {
+  if (!ME) return 'Previewing as: visitor we know nothing about';
+  return 'Previewing as: ' + [ME.first_name || 'visitor', ME.class_year ? 'Class of ' + ME.class_year : '', ME.grades && ME.grades.length ? 'Grade ' + ME.grades.join(', ') : '', ME.ly ? 'last year ' + fmt$(ME.ly) : ''].filter(Boolean).join(' · ');
+}
+function demoRibbon() {
+  let r = document.getElementById('demo-ribbon');
+  if (!r) { r = document.createElement('div'); r.id = 'demo-ribbon'; r.className = 'demo-ribbon'; document.body.appendChild(r); }
+  r.textContent = demoLabel();
+}
+function applyDemo(m) {
+  const p = m.persona;
+  ME = p ? { first_name: p.first_name || '', tags: p.tags || [], grades: p.grades || [], class_year: p.class_year || null, ly: p.ly || null } : null;
+  if (ME) ME.audience = (m.audiences || []).find(a => qual(a, ME)) || null;
+  if (m.ask) ASK = { on: !!m.ask.on, steps: Math.min(5, Math.max(1, parseInt(m.ask.steps, 10) || 2)) };
+  applyChallenges(GD.campaign);
+  renderChal(chalView);
+  gmBuildAmounts(); gmAudience(); gmUpdate();
+  demoRibbon();
+  if (m.open) openGift();
+}
+if (GD.demo) demoRibbon();
+if (new URLSearchParams(location.search).has('demo')) {
+  addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.gd === 'demo') applyDemo(e.data); });
+  if (parent !== window) parent.postMessage({ gd: 'ready' }, location.origin);
+}
 
 // Every Give button on the page opens the gift form
 document.addEventListener('click', e => {

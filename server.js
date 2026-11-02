@@ -2480,10 +2480,11 @@ async function requireAdmin(req, res, next) {
 }
 
 // Giving Days campaign + admin routes (separate file; a failure here must not stop the parents routes)
-let gdAdmin = null;
+let gdAdmin = null, gdAudiences = null;
 try {
   gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
   require('./giving-days-gifts')(app, { supabase, requireAdmin, skyRequest, isLive: gdIsLive });
+  gdAudiences = require('./giving-days-audiences')(app, { supabase, requireAdmin });
 } catch (err) {
   console.error('Giving Days admin routes failed to load:', err.message);
 }
@@ -2874,7 +2875,10 @@ app.post('/api/admin/update-ask-amounts', requireAdmin, async (req, res) => {
 // Personal links: must stay after every other route (see giving-days-donors.js).
 if (gdAdmin) {
   try {
-    require('./giving-days-donors')(app, { supabase, loadCampaign: gdAdmin.loadCampaign });
+    require('./giving-days-donors')(app, {
+      supabase, loadCampaign: gdAdmin.loadCampaign,
+      audiences: gdAudiences && { loadPublished: gdAudiences.loadPublished, audienceFor: require('./giving-days-audiences').audienceFor },
+    });
   } catch (err) {
     console.error('Giving Days donor routes failed to load:', err.message);
   }

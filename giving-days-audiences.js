@@ -1,0 +1,148 @@
+// Giving Days audiences: groups of donors who see their own text on the gift form (reunion alumni,
+// senior parents, ...). Same who-counts rule as a challenge, plus an optional list of specific class years.
+// Tables: gd_audiences (see sql/gd-07-audiences.sql). Server-side access only.
+// The text may use {{first_name}}, {{class_year}} and {{ly_gift}}; the page fills them in.
+
+const { TAGS, GRADES } = require('./giving-days-admin');
+
+const TAG_KEYS = TAGS.map(t => t.key);
+const HEADING_MAX = 80, BODY_MAX = 500, NAME_MAX = 60;
+const isBlank = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+
+// The first audience, in order, whose rule the donor meets. `qualifies` is the shared who-counts rule.
+function audienceFor(audiences, donor, qualifies) {
+  const a = (audiences || []).find(x => qualifies(x, donor));
+  return a ? { id: a.id, name: a.name, heading: a.heading, body: a.body } : null;
+}
+
+// Turns a request body into a clean audience row, or returns { error }.
+function cleanAudience(body, { partial = false } = {}) {
+  const b = body || {}, out = {};
+  const has = k => Object.prototype.hasOwnProperty.call(b, k);
+  if (has('name')) {
+    const n = isBlank(b.name) ? '' : String(b.name).trim();
+    if (!n) return { error: 'Name is required.' };
+    if (n.length > NAME_MAX) return { error: `Name must be ${NAME_MAX} characters or fewer.` };
+    out.name = n;
+  } else if (!partial) return { error: 'Name is required.' };
+  for (const [k, max] of [['heading', HEADING_MAX], ['body', BODY_MAX]]) {
+    if (!has(k)) continue;
+    const v = isBlank(b[k]) ? '' : String(b[k]).trim();
+    if (v.length > max) return { error: `${k === 'body' ? 'Text' : 'Heading'} must be ${max} characters or fewer (it is ${v.length}).` };
+    out[k] = v;
+  }
+  if (has('tags')) {
+    if (!Array.isArray(b.tags)) return { error: 'Affiliations must be a list.' };
+    const bad = b.tags.find(t => !TAG_KEYS.includes(t));
+    if (bad !== undefined) return { error: `Unknown affiliation "${bad}".` };
+    out.tags = [...new Set(b.tags)];
+  }
+  if (has('grades')) {
+    if (!Array.isArray(b.grades)) return { error: 'Grades must be a list.' };
+    const bad = b.grades.find(g => !GRADES.includes(String(g)));
+    if (bad !== undefined) return { error: `Unknown grade "${bad}".` };
+    out.grades = GRADES.filter(g => b.grades.map(String).includes(g));
+  }
+  for (const k of ['class_year_min', 'class_year_max']) {
+    if (!has(k)) continue;
+    if (isBlank(b[k])) { out[k] = null; continue; }
+    const y = Number(String(b[k]).trim());
+    if (!Number.isInteger(y) || y < 1900 || y > 2100) return { error: 'Class years must be four-digit years, like 2015.' };
+    out[k] = y;
+  }
+  if (out.class_year_min != null && out.class_year_max != null && out.class_year_min > out.class_year_max) {
+    return { error: 'The first class year must not be after the last.' };
+  }
+  if (has('class_years')) {
+    // accepts a list or text like "2001, 2006 2011"
+    const raw = Array.isArray(b.class_years) ? b.class_years : String(b.class_years || '').split(/[\s,;]+/).filter(Boolean);
+    const years = raw.map(v => Number(v));
+    if (years.some(y => !Number.isInteger(y) || y < 1900 || y > 2100)) return { error: 'Specific class years must be four-digit years, like 2001.' };
+    out.class_years = [...new Set(years)].sort((x, y) => x - y);
+  }
+  if (has('sort_order')) {
+    const s = parseInt(b.sort_order, 10);
+    if (!Number.isInteger(s)) return { error: 'Sort order must be a whole number.' };
+    out.sort_order = s;
+  }
+  if (has('published')) out.published = b.published === true || b.published === 'true';
+  return { row: out };
+}
+
+module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin }) {
+  const fail = (res, err, status = 500) => {
+    console.error('giving-days-audiences:', err.message || err);
+    res.status(status).json({ error: status === 500 ? 'Something went wrong. Please try again.' : err.message });
+  };
+
+  app.get('/api/admin/gd/audiences', requireAdmin, async (req, res) => {
+    try {
+      const { data, error } = await supabase.from('gd_audiences').select('*').order('sort_order').order('created_at');
+      if (error) throw error;
+      res.json({ audiences: data, limits: { heading: HEADING_MAX, body: BODY_MAX }, tags: TAGS, grades: GRADES });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.post('/api/admin/gd/audiences', requireAdmin, async (req, res) => {
+    const { row, error: bad } = cleanAudience(req.body);
+    if (bad) return res.status(400).json({ error: bad });
+    try {
+      if (row.sort_order === undefined) {
+        const { data: last } = await supabase.from('gd_audiences').select('sort_order').order('sort_order', { ascending: false }).limit(1);
+        row.sort_order = last && last.length ? last[0].sort_order + 1 : 0;
+      }
+      const { data, error } = await supabase.from('gd_audiences').insert(row).select().single();
+      if (error) throw error;
+      res.status(201).json({ audience: data });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Reorder (first match wins): body { ids: [...] } in the desired order. Registered before /:id.
+  app.put('/api/admin/gd/audiences/order', requireAdmin, async (req, res) => {
+    const ids = req.body && req.body.ids;
+    if (!Array.isArray(ids) || !ids.length || ids.some(i => typeof i !== 'string')) return res.status(400).json({ error: 'ids must be a list of audience ids.' });
+    try {
+      const results = await Promise.all(ids.map((id, i) =>
+        supabase.from('gd_audiences').update({ sort_order: i, updated_at: new Date().toISOString() }).eq('id', id)));
+      const failed = results.find(r => r.error);
+      if (failed) throw failed.error;
+      res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.put('/api/admin/gd/audiences/:id', requireAdmin, async (req, res) => {
+    const { row, error: bad } = cleanAudience(req.body, { partial: true });
+    if (bad) return res.status(400).json({ error: bad });
+    if (!Object.keys(row).length) return res.status(400).json({ error: 'Nothing to update.' });
+    try {
+      const { data, error } = await supabase.from('gd_audiences')
+        .update({ ...row, updated_at: new Date().toISOString() }).eq('id', req.params.id).select().single();
+      if (error) {
+        if (error.code === 'PGRST116') return res.status(404).json({ error: 'Audience not found.' });
+        throw error;
+      }
+      res.json({ audience: data });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.delete('/api/admin/gd/audiences/:id', requireAdmin, async (req, res) => {
+    try {
+      const { error } = await supabase.from('gd_audiences').delete().eq('id', req.params.id);
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Published audiences in order, for the page.
+  async function loadPublished() {
+    const { data, error } = await supabase.from('gd_audiences')
+      .select('id, name, tags, grades, class_year_min, class_year_max, class_years, heading, body')
+      .eq('published', true).order('sort_order').order('created_at');
+    if (error) throw error;
+    return data;
+  }
+  return { loadPublished };
+};
+
+module.exports.audienceFor = audienceFor;
+module.exports.cleanAudience = cleanAudience;

@@ -27,11 +27,13 @@ function effectiveTags(d) {
   return [...new Set([...(d.import_tags || []), ...(d.tags_added || [])])].filter(t => !removed.has(t));
 }
 
-// Challenge rule (see sql/gd-03, gd-04): any tag AND any grade AND class-year range. Empty = no limit.
+// Who-counts rule for challenges and audiences (see sql/gd-03, gd-04, gd-07): any tag AND any grade AND
+// class-year range AND (if given) one of the specific class years. Empty = no limit.
 function qualifies(c, donor) {
   const tags = donor.tags || [], grades = donor.grades || [], year = donor.class_year;
   if ((c.tags || []).length && !c.tags.some(t => tags.includes(t))) return false;
   if ((c.grades || []).length && !c.grades.some(g => grades.includes(g))) return false;
+  if ((c.class_years || []).length && (year == null || !c.class_years.includes(year))) return false;
   const lo = c.class_year_min, hi = c.class_year_max;
   if (lo != null || hi != null) {
     if (year == null) return false;
@@ -59,26 +61,53 @@ function recordMiss(id) {
 
 const safeJson = o => JSON.stringify(o).replace(/</g, '\\u003c');
 
-module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign }) {
+const TAG_KEYS = ['alumni', 'current_parent', 'parent_of_alumni', 'faculty', 'grandparent', 'friend', 'new_family', 'alumna'];
+const GRADE_KEYS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+
+// A made-up visitor for demos, from /preview?p=<base64url JSON>. Validated field by field; never touches real data.
+function demoPersona(raw) {
+  if (typeof raw !== 'string' || raw.length > 2000) return null;
+  let p;
+  try { p = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')); } catch { return null; }
+  if (!p || typeof p !== 'object') return null;
+  const year = Number(p.class_year), ly = Number(p.ly);
+  return {
+    first_name: typeof p.first_name === 'string' ? p.first_name.trim().slice(0, 40) : '',
+    tags: (Array.isArray(p.tags) ? p.tags : []).filter(t => TAG_KEYS.includes(t)),
+    grades: (Array.isArray(p.grades) ? p.grades.map(String) : []).filter(g => GRADE_KEYS.includes(g)),
+    class_year: Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null,
+    ly: isFinite(ly) && ly > 0 && ly <= 10000000 ? Math.round(ly) : null,
+  };
+}
+
+module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, audiences }) {
   const pageFile = path.join(__dirname, 'public', 'giving-days-v2.html');
 
   // The page file with the campaign (and, for a personal link, the visitor) written into it, so
   // the page needs no extra round trip. Nothing private goes in: first name, tags, grades, class year.
-  async function renderPage(token) {
+  async function renderPage(token, persona) {
     let html = fs.readFileSync(pageFile, 'utf8');
     const data = {};
     try { data.campaign = await loadCampaign(); } catch (err) { console.error('giving-days page campaign:', err.message); }
     let known = false;
-    if (token) {
+    let auds = [];
+    if (audiences) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
+    const finish = me => {
+      me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
+      me.audience = audiences ? audiences.audienceFor(auds, me, qualifies) : null;
+      data.me = me;
+    };
+    if (persona) {
+      finish({ ...persona, demo: true });
+      data.demo = true;
+    } else if (token) {
       try {
         const { data: d, error } = await supabase.from('gd_donors')
-          .select('first_name, class_year, grades, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
+          .select('first_name, class_year, grades, ly_gift, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
         if (error) throw error;
         if (d) {
           known = true;
-          const me = { first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year };
-          me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
-          data.me = me;
+          finish({ first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null });
           data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
         }
       } catch (err) { console.error('giving-days page donor:', err.message); }
@@ -91,14 +120,16 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign })
 
   // Old shared address: send it to /preview, keeping a personal-link code if there is one.
   app.get('/preview-v2', (req, res) => {
-    const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? '?t=' + req.query.t : '';
-    res.redirect(302, '/preview' + t);
+    const q = new URLSearchParams();
+    if (typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t)) q.set('t', req.query.t);
+    if (typeof req.query.p === 'string') q.set('p', req.query.p);
+    res.redirect(302, '/preview' + (q.toString() ? '?' + q : ''));
   });
 
   // The public page; /preview?t=<code> previews a personalized visit.
   app.get('/preview', async (req, res) => {
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
-    send(res, (await renderPage(t)).html);
+    send(res, (await renderPage(t, demoPersona(req.query.p))).html);
   });
 
   // Personal link: /<code>. Registered after every real page, so real pages win.
@@ -116,3 +147,4 @@ module.exports.makeToken = makeToken;
 module.exports.effectiveTags = effectiveTags;
 module.exports.qualifies = qualifies;
 module.exports.TOKEN_RE = TOKEN_RE;
+module.exports.demoPersona = demoPersona;
