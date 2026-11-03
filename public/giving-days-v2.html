@@ -1674,6 +1674,24 @@ $gm('gm-affs').addEventListener('click', e => {
 });
 $gm('gm-grades').addEventListener('click', e => { const c = e.target.closest('.gm-chip'); if (c) { c.classList.toggle('on'); gmUpdate(); } });
 $gm('gm-class-year').addEventListener('change', gmUpdate);
+
+// A visitor on their personal link (or a previewed constituent) starts with their affiliations, grades and class year ticked.
+function gmPreselect() {
+  document.querySelectorAll('#gm-affs .gm-chip, #gm-grades .gm-chip').forEach(c => c.classList.remove('on'));
+  document.querySelectorAll('.gm-subfield').forEach(f => f.hidden = true);
+  $gm('gm-class-year').value = '';
+  gm.preFor = ME;
+  if (!ME) return;
+  (ME.tags || []).forEach(t => {
+    const c = document.querySelector(`#gm-affs [data-aff="${t}"]`); if (!c) return;
+    c.classList.add('on');
+    const sub = document.querySelector(`.gm-subfield[data-sub="${t}"]`); if (sub) sub.hidden = false;
+  });
+  (ME.grades || []).forEach(g => {
+    const c = document.querySelector(`#gm-grades [data-grade="${g}"]`); if (c) c.classList.add('on');
+  });
+  if (ME.class_year && (ME.tags || []).includes('alumni')) $gm('gm-class-year').value = String(ME.class_year);
+}
 document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('click', () => {
   const open = tab.getAttribute('aria-expanded') !== 'true';
   document.querySelectorAll('.gm-waytab').forEach(t => {
@@ -1725,6 +1743,7 @@ function openGift() {
   $gm('gm-overlay').hidden = false;
   document.body.style.overflow = 'hidden';
   gmIdentity();
+  if (gm.preFor !== ME) gmPreselect();
   gmAudience(); gmUpdate();
   setTimeout(() => { const f = [$gm('gm-first'), $gm('gm-email')].find(x => x.offsetParent); if (f) f.focus(); }, 30);
 }
@@ -1829,7 +1848,7 @@ function applyDemo(m) {
   if (m.ask) ASK = { on: !!m.ask.on, steps: Math.min(5, Math.max(1, parseInt(m.ask.steps, 10) || 2)) };
   applyChallenges(GD.campaign);
   renderChal(chalView);
-  gmBuildAmounts(); gmAudience(); gmUpdate();
+  gmBuildAmounts(); gmPreselect(); gmAudience(); gmUpdate();
   demoRibbon();
   if (m.open) openGift();
 }
