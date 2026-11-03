@@ -84,7 +84,8 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   const pageFile = path.join(__dirname, 'public', 'giving-days-v2.html');
 
   // The page file with the campaign (and, for a personal link, the visitor) written into it, so
-  // the page needs no extra round trip. Nothing private goes in: first name, tags, grades, class year.
+  // the page needs no extra round trip. For a personal link this includes the name and email, so the gift form can
+  // skip those fields (it shows the email masked), as the parents page does. Made-up demo donors have none.
   async function renderPage(token, persona) {
     let html = fs.readFileSync(pageFile, 'utf8');
     const data = {};
@@ -103,11 +104,11 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     } else if (token) {
       try {
         const { data: d, error } = await supabase.from('gd_donors')
-          .select('first_name, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
+          .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
         if (error) throw error;
         if (d) {
           known = true;
-          finish({ first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
+          finish({ first_name: d.first_name, last_name: d.last_name || '', email: d.email || '', tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
             ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null });
           data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
         }
