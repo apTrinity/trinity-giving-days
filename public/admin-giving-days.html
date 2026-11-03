@@ -69,7 +69,7 @@
     .empty { background: #fff; border: 1px dashed #cfcac0; border-radius: 10px; padding: 36px; text-align: center; color: var(--mute); }
 
     /* Editor dialog */
-    dialog { border: 0; border-radius: 12px; padding: 0; width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 24px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+    dialog { margin: auto; border: 0; border-radius: 12px; padding: 0; width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 24px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
     dialog::backdrop { background: rgba(23,40,83,.55); }
     .dlg-head { background: var(--navy); color: #fff; padding: 14px 20px; border-bottom: 3px solid var(--yellow); display: flex; justify-content: space-between; align-items: center; }
     .dlg-head h2 { color: #fff; font-size: 16px; }
@@ -152,6 +152,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="challenges">Challenges</button>
       <button class="tab" data-tab="audiences">Audiences</button>
+      <button class="tab" data-tab="donors">Donors</button>
       <button class="tab" data-tab="gifts">Gifts</button>
       <button class="tab" data-tab="settings">Campaign settings</button>
     </div>
@@ -166,7 +167,7 @@
 
     <section class="panel" id="panel-audiences">
       <div class="head-row">
-        <div><h2>Audiences &amp; live preview</h2><p class="hint">Each donor sees the text of the <b>first published audience</b> they match, at the top of the gift form. Edit on the left and watch the preview on the right change as you type.</p></div>
+        <div><h2>Audiences</h2><p class="hint">Each donor sees the text of the <b>first published audience</b> they match, in place of the giving levels on the gift form. Edit on the left and watch the preview change as you type.</p></div>
         <button class="btn" id="add-aud">+ Add audience</button>
       </div>
       <div class="aud-grid">
@@ -191,38 +192,28 @@
         </div>
         <div class="aud-right">
           <div class="card" style="max-width:none">
-            <label>Preview as</label>
-            <div class="chips" id="p-quick" style="margin-bottom:12px"></div>
-            <div class="field" id="dn-row" style="background:var(--bg,#f6f7f9);border-radius:8px;padding:10px 12px">
-              <label for="dn-q">Donor record</label>
-              <div style="display:flex;gap:8px"><input type="text" id="dn-q" placeholder="Search by name, email or RE ID" autocomplete="off"><button class="btn small ghost" id="dn-find">Find</button></div>
-              <div class="chips" id="dn-results" style="margin-top:8px"></div>
-              <div id="dn-picked" hidden style="margin-top:8px;font-size:13px">
-                <b id="dn-name"></b> · <a id="dn-link" target="_blank" rel="noopener" style="word-break:break-all"></a>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-                  <button class="btn small" id="dn-save">Save changes to this donor</button>
-                  <button class="btn small ghost" id="dn-copy">Copy link</button>
-                  <a class="btn small ghost" id="dn-re" target="_blank" rel="noopener" style="text-decoration:none">Open in Raiser's Edge ↗</a>
-                </div>
-              </div>
+            <label for="dn-q">Preview as</label>
+            <div style="display:flex;gap:8px"><input type="text" id="dn-q" placeholder="Search a donor by name, email or RE ID" autocomplete="off"><button class="btn small ghost" id="dn-find">Find</button></div>
+            <div class="chips" id="dn-results" style="margin-top:8px"></div>
+            <p class="hint" id="dn-none" style="margin-top:8px">Showing the page as a visitor we don't know. Pick a donor to see it as they will.</p>
+            <div id="dn-picked" hidden style="margin-top:10px">
+              <div><b id="dn-name"></b> <button class="btn small ghost" id="dn-clear" style="margin-left:6px">Clear</button></div>
+              <div class="hint" id="dn-sum" style="margin-top:4px"></div>
             </div>
-            <div class="grid2">
-              <div class="field"><label for="p-name">First name</label><input type="text" id="p-name" maxlength="40"></div>
-              <div class="field"><label for="p-year">Class year</label><input type="number" id="p-year" min="1900" max="2100"></div>
-              <div class="field"><label for="p-ly">Last year's gift ($)</label><input type="number" id="p-ly" min="0" step="1"></div>
-              <div class="field"><label>Current parent of grade</label><div class="chips" id="p-grades"></div></div>
-            </div>
-            <div class="field"><label>Affiliations</label><div class="chips" id="p-tags"></div></div>
-            <div class="field" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-              <label class="check"><input type="checkbox" id="p-ask-on"> Show only levels near last year's gift</label>
-              <label class="check">±<input type="number" id="p-ask-steps" min="1" max="5" style="width:60px"> levels</label>
-              <button class="btn small ghost" id="p-ask-save">Save this setting</button>
-            </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn small" id="p-open">Open the gift form</button><a class="btn small ghost" id="p-link" target="_blank" rel="noopener" style="text-decoration:none">Open as its own page ↗</a></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn small" id="p-open">Open the gift form</button><a class="btn small ghost" id="p-link" target="_blank" rel="noopener" style="text-decoration:none">Open as its own page ↗</a></div>
           </div>
           <iframe id="aud-frame" title="Live preview of the Giving Days page" src="/preview?demo=1"></iframe>
         </div>
       </div>
+    </section>
+
+    <section class="panel" id="panel-donors">
+      <div class="head-row">
+        <div><h2>Donors</h2><p class="hint" id="d-summary">Loading…</p></div>
+        <input type="text" id="d-q" placeholder="Search name, email or RE ID" autocomplete="off" style="max-width:280px">
+      </div>
+      <div id="d-list"></div>
+      <div class="head-row" style="margin-top:12px"><span class="hint" id="d-range"></span><div style="display:flex;gap:8px"><button class="btn small ghost" id="d-prev">← Previous</button><button class="btn small ghost" id="d-next">Next →</button></div></div>
     </section>
 
     <section class="panel" id="panel-gifts">
@@ -250,6 +241,13 @@
           <label class="check"><input type="checkbox" id="s-testcount"> Test gifts count toward progress</label>
           <p class="hint" style="margin-top:5px">While this is on, test gifts move the bars and the donor count (whenever they were made), so you can see everything working. Turn it off before launch.</p>
         </div>
+        <div class="field">
+          <label>Gift form amounts</label>
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <label class="check"><input type="checkbox" id="s-ask-on"> Show only levels near the donor's last gift</label>
+            <label class="check">±<input type="number" id="s-ask-steps" min="1" max="5" style="width:64px"> levels</label>
+          </div>
+        </div>
         <div class="field"><label>Payment mode</label><div class="locked">Test — locked. Live mode will be switched on after the go-live review.</div></div>
         <button class="btn" id="s-save">Save settings</button>
         <div class="err" id="s-error"></div>
@@ -273,6 +271,24 @@
     <div class="dlg-foot"><span class="spacer"></span><button class="btn ghost" id="gf-cancel">Cancel</button><button class="btn" id="gf-save">Save</button></div>
   </dialog>
 </div>
+
+<dialog id="ddlg" style="width:min(520px, calc(100vw - 24px))">
+  <div class="dlg-head"><h2 id="dd-title">Donor</h2><button id="ddlg-x" aria-label="Close">×</button></div>
+  <div class="gf-edit">
+    <div class="hint" id="dd-info"></div>
+    <div class="grid2">
+      <div class="field" style="margin:0"><label for="dd-first">First name</label><input type="text" id="dd-first" maxlength="40"></div>
+      <div class="field" style="margin:0"><label for="dd-year">Class year</label><input type="number" id="dd-year" min="1900" max="2100" step="1"></div>
+      <div class="field" style="margin:0"><label for="dd-ly">Last year's gift ($)</label><input type="number" id="dd-ly" min="0" step="1"></div>
+    </div>
+    <div><label>Current parent of grade</label><div class="chips" id="dd-grades"></div></div>
+    <div><label>Affiliations</label><div class="chips" id="dd-tags"></div>
+      <p class="hint" style="margin-top:6px">Changes here are kept when the Raiser's Edge data is re-imported, except the class year, grades and last year's gift, which a re-import resets.</p></div>
+    <div><label>Personal link</label><a id="dd-link" target="_blank" rel="noopener" style="font-size:14px;word-break:break-all"></a></div>
+    <div class="err" id="dd-error"></div>
+  </div>
+  <div class="dlg-foot"><a class="btn small ghost" id="dd-re" target="_blank" rel="noopener" style="text-decoration:none">Raiser's Edge ↗</a><button class="btn small ghost" id="dd-copy">Copy link</button><span class="spacer"></span><button class="btn ghost" id="dd-cancel">Cancel</button><button class="btn" id="dd-save">Save</button></div>
+</dialog>
 
 <dialog id="dlg">
   <div class="dlg-head"><h2 id="dlg-title">Challenge</h2><button id="dlg-x" aria-label="Close">×</button></div>
@@ -417,7 +433,7 @@ async function login() {
 }
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
-  loadChallenges(); loadSettings(); loadGifts(); loadAudiences();
+  loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor();
 }
 
 // ── Tabs ──
@@ -425,6 +441,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
+  if (b.dataset.tab === 'donors') loadDonors();
   if (b.dataset.tab === 'challenges') loadChallenges();
   document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences');
   if (b.dataset.tab === 'audiences') queuePreview();
@@ -516,7 +533,7 @@ async function loadSettings() {
     const { settings: s } = await api('GET', '/api/admin/gd/settings');
     $('s-goal').value = s.goal_donors; $('s-start').value = isoToET(s.starts_at); $('s-end').value = isoToET(s.ends_at); $('s-video').value = s.video_url || '';
     $('s-from').value = isoToET(s.gifts_count_from); $('s-testcount').checked = !!s.test_gifts_count;
-    $('p-ask-on').checked = s.ask_personalize !== false; $('p-ask-steps').value = s.ask_steps || 2; queuePreview();
+    $('s-ask-on').checked = s.ask_personalize !== false; $('s-ask-steps').value = s.ask_steps || 2; queuePreview();
   } catch (e) { toast('Could not load settings: ' + e.message, true); }
 }
 $('s-save').onclick = async () => {
@@ -525,6 +542,7 @@ $('s-save').onclick = async () => {
     await api('PUT', '/api/admin/gd/settings', {
       goal_donors: $('s-goal').value, starts_at: etToISO($('s-start').value), ends_at: etToISO($('s-end').value), video_url: $('s-video').value,
       gifts_count_from: etToISO($('s-from').value), test_gifts_count: $('s-testcount').checked,
+      ask_personalize: $('s-ask-on').checked, ask_steps: $('s-ask-steps').value,
     });
     toast('Settings saved');
     loadGifts(); loadChallenges();
@@ -534,14 +552,6 @@ $('s-save').onclick = async () => {
 
 // ── Audiences and live preview ──
 let auds = [], editingAud = null, audLimits = { heading: 80, body: 500 }, frameReady = false, sendTimer;
-const PERSONAS = [
-  { label: 'Reunion alum', p: { first_name: 'Daisy', class_year: 2001, ly: 250, tags: ['alumni'], grades: [] } },
-  { label: 'Senior parent', p: { first_name: 'Sam', class_year: null, ly: 1709, tags: ['current_parent'], grades: ['12'] } },
-  { label: 'Alum, $100 last year', p: { first_name: 'Priya', class_year: 2015, ly: 100, tags: ['alumni'], grades: [] } },
-  { label: 'Parent, $5,000 last year', p: { first_name: 'Marcus', class_year: null, ly: 5000, tags: ['current_parent'], grades: ['3'] } },
-  { label: 'Unknown visitor', p: null },
-];
-let persona = PERSONAS[0].p;
 const yearsOf = t => String(t || '').split(/[\s,;]+/).filter(Boolean).map(Number).filter(n => Number.isInteger(n));
 function audWho(a) {
   const yrs = (a.class_years || []).length ? 'Classes ' + a.class_years.join(', ') : '';
@@ -555,7 +565,7 @@ async function loadAudiences() {
   try {
     const j = await api('GET', '/api/admin/gd/audiences');
     auds = j.audiences; audLimits = j.limits || audLimits; if (j.tags) TAGS = j.tags; if (j.grades) GRADES = j.grades;
-    renderAuds(); buildPersonaControls(); queuePreview();
+    renderAuds(); queuePreview();
   } catch (e) { $('aud-list').innerHTML = `<div class="empty">Could not load audiences: ${esc(e.message)}. Have you run the gd-07 SQL?</div>`; }
 }
 function renderAuds() {
@@ -615,28 +625,13 @@ $('a-save').onclick = async () => {
   btn.disabled = false;
 };
 
-// Preview as a donor: the page in the frame is sent the donor, the audiences (including the one being edited) and the ask setting
-const chipRow = (id, items, on, onChange) => { $(id).innerHTML = items.map(([v, label]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''}> ${esc(label)}</label>`).join(''); };
-function buildPersonaControls() {
-  $('p-quick').innerHTML = PERSONAS.map((x, i) => `<button class="btn small ghost" data-i="${i}">${esc(x.label)}</button>`).join('');
-  setPersonaFields(typeof donor !== 'undefined' && donor ? { first_name: donor.first_name, class_year: donor.class_year, ly: donor.ly, tags: donor.tags, grades: donor.grades } : persona);
-}
-function setPersonaFields(p) {
-  persona = p;
-  $('p-name').value = p?.first_name || ''; $('p-year').value = p?.class_year ?? ''; $('p-ly').value = p?.ly ?? '';
-  chipRow('p-grades', GRADES.map(g => [g, g === 'K' ? 'K' : 'Gr ' + g]), p?.grades || []);
-  chipRow('p-tags', TAGS.map(t => [t.key, t.label]), p?.tags || []);
-  queuePreview();
-}
-$('p-quick').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) setPersonaFields(PERSONAS[b.dataset.i].p); });
-function readPersona() {
-  const any = $('p-name').value || $('p-year').value || $('p-ly').value || document.querySelector('#p-tags input:checked') || document.querySelector('#p-grades input:checked');
-  if (!any) return null;
-  return {
-    first_name: $('p-name').value.trim(), class_year: $('p-year').value ? parseInt($('p-year').value, 10) : null, ly: $('p-ly').value ? Math.round(Number($('p-ly').value)) : null,
-    tags: [...document.querySelectorAll('#p-tags input:checked')].map(i => i.value), grades: [...document.querySelectorAll('#p-grades input:checked')].map(i => i.value),
-  };
-}
+// Preview: the page in the frame is sent the chosen donor, the audiences (including the one being edited) and the ask setting
+const RE_URL = 'https://app.blackbaud.com/constituent/records/';
+const reLink = d => RE_URL + encodeURIComponent(d.re_id) + '?envid=p-De4NWbbqzUeno2SrGlrLIQ&svcid=renxt';
+const donorName = d => [d.first_name, d.last_name].filter(Boolean).join(' ') || '(no name)';
+const tagLabel = k => (TAGS.find(t => t.key === k) || {}).label || k;
+let donor = null;
+const readPersona = () => donor ? { first_name: donor.first_name, class_year: donor.class_year, ly: donor.ly, tags: donor.tags, grades: donor.grades } : null;
 function previewAudiences() {
   const list = auds.filter(a => a.published).map(a => ({ id: a.id, ...pick(a) }));
   if (editingAud) {
@@ -652,50 +647,106 @@ function sendPreview(open) {
   const f = $('aud-frame');
   if (!frameReady) { try { frameReady = f.contentDocument.readyState === 'complete' && typeof f.contentWindow.applyDemo === 'function'; } catch {} }   // frame may have loaded before the ready message
   if (!frameReady || !f.contentWindow) return;
-  f.contentWindow.postMessage({ gd: 'demo', persona: readPersona(), audiences: previewAudiences(), ask: { on: $('p-ask-on').checked, steps: $('p-ask-steps').value || 2 }, open: !!open }, location.origin);
-  const p = readPersona(), b64 = btoa(unescape(encodeURIComponent(JSON.stringify(p || {})))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  $('p-link').href = p ? '/preview?p=' + b64 : '/preview';
+  f.contentWindow.postMessage({ gd: 'demo', persona: readPersona(), audiences: previewAudiences(), ask: { on: $('s-ask-on').checked, steps: $('s-ask-steps').value || 2 }, open: !!open }, location.origin);
+  $('p-link').href = donor ? '/' + donor.token : '/preview';
 }
 function queuePreview() { clearTimeout(sendTimer); sendTimer = setTimeout(() => sendPreview(false), 120); }
 $('aud-frame').addEventListener('load', () => { frameReady = true; sendPreview(false); });
 addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.gd === 'ready') { frameReady = true; sendPreview(false); } });
-['p-name', 'p-year', 'p-ly', 'p-ask-on', 'p-ask-steps'].forEach(id => { $(id).addEventListener('input', queuePreview); $(id).addEventListener('change', queuePreview); });
-$('p-grades').addEventListener('change', queuePreview); $('p-tags').addEventListener('change', queuePreview);
 $('p-open').onclick = () => sendPreview(true);
+['s-ask-on', 's-ask-steps'].forEach(id => { $(id).addEventListener('input', queuePreview); $(id).addEventListener('change', queuePreview); });
 
-// Donor record: find a real donor, load them into the fields above, save changes back to their record
-const RE_URL = 'https://app.blackbaud.com/constituent/records/';
-let donor = null;
-function pickDonor(d) {
-  donor = d; const u = location.origin + '/' + d.token;
-  $('dn-picked').hidden = false; $('dn-results').innerHTML = '';
-  $('dn-name').textContent = [d.first_name, d.last_name].filter(Boolean).join(' ') + ' (RE ' + d.re_id + ')';
-  $('dn-link').href = u; $('dn-link').textContent = u; $('dn-re').href = RE_URL + encodeURIComponent(d.re_id) + '?envid=p-De4NWbbqzUeno2SrGlrLIQ&svcid=renxt';
-  setPersonaFields({ first_name: d.first_name, class_year: d.class_year, ly: d.ly, tags: d.tags, grades: d.grades });
-  try { localStorage.setItem('gd-donor', JSON.stringify(d)); } catch {}
+function showDonor(d) {
+  donor = d; $('dn-results').innerHTML = '';
+  $('dn-none').hidden = !!d; $('dn-picked').hidden = !d;
+  if (d) {
+    $('dn-name').textContent = donorName(d);
+    $('dn-sum').textContent = [d.tags.map(tagLabel).join(', ') || 'No affiliations', d.class_year ? 'Class of ' + d.class_year : '', d.grades.length ? 'Gr ' + d.grades.join(', ') : '', d.ly != null ? 'Last gift ' + money(d.ly) : 'No last gift'].filter(Boolean).join(' · ');
+  }
+  try { if (d) localStorage.setItem('gd-donor', JSON.stringify({ id: d.id })); else localStorage.removeItem('gd-donor'); } catch {}
+  queuePreview();
 }
 async function findDonors() {
-  const q = $('dn-q').value.trim(); if (q.length < 2) return;
+  const q = $('dn-q').value.trim(); if (!q) return;
   try {
     const { donors } = await api('GET', '/api/admin/gd/donors?q=' + encodeURIComponent(q));
     const el = $('dn-results'); el.innerHTML = donors.length ? '' : '<span class="hint">No donor found.</span>';
-    donors.forEach(d => { const b = document.createElement('button'); b.className = 'btn small ghost'; b.textContent = [d.first_name, d.last_name].filter(Boolean).join(' ') + (d.email ? ' · ' + d.email : ''); b.onclick = () => pickDonor(d); el.appendChild(b); });
+    donors.forEach(d => { const b = document.createElement('button'); b.className = 'btn small ghost'; b.textContent = donorName(d) + (d.email ? ' · ' + d.email : ''); b.onclick = () => showDonor(d); el.appendChild(b); });
   } catch (e) { toast(e.message, true); }
 }
 $('dn-find').onclick = findDonors;
 $('dn-q').addEventListener('keydown', e => { if (e.key === 'Enter') findDonors(); });
-$('dn-copy').onclick = () => navigator.clipboard.writeText($('dn-link').href).then(() => toast('Link copied'), () => toast('Could not copy', true));
-$('dn-save').onclick = async () => {
-  if (!donor) return;
-  const btn = $('dn-save'); btn.disabled = true;
+$('dn-clear').onclick = () => showDonor(null);
+async function restoreDonor() {   // the donor previewed last time, if any
   try {
-    const p = readPersona() || { first_name: '', class_year: null, ly: null, tags: [], grades: [] };
-    const { donor: d } = await api('PUT', '/api/admin/gd/donors/' + donor.id, p);
-    donor = d; toast('Saved. Reload their link to see it.');
-  } catch (e) { toast(e.message, true); }
+    const id = (JSON.parse(localStorage.getItem('gd-donor') || 'null') || {}).id; if (!id) return;
+    const { donors } = await api('GET', '/api/admin/gd/donors?id=' + encodeURIComponent(id));
+    if (donors[0]) showDonor(donors[0]);
+  } catch {}
+}
+
+// ── Donors ──
+const DN = { q: '', page: 0, total: 0, size: 50, rows: [] };
+let editingDonor = null, dnTimer;
+async function loadDonors() {
+  try {
+    const j = await api('GET', `/api/admin/gd/donors?q=${encodeURIComponent(DN.q)}&page=${DN.page}`);
+    DN.rows = j.donors; DN.total = j.total; DN.size = j.page_size || DN.size; renderDonors();
+  } catch (e) { $('d-list').innerHTML = `<div class="empty">Could not load donors: ${esc(e.message)}</div>`; $('d-summary').textContent = ''; }
+}
+function renderDonors() {
+  const el = $('d-list'), from = DN.page * DN.size + 1, to = DN.page * DN.size + DN.rows.length;
+  $('d-summary').textContent = DN.q ? `${DN.total} matching` : `${DN.total} donor records. Each has a personal link; the details come from Raiser's Edge.`;
+  $('d-range').textContent = DN.rows.length ? `${from}–${to} of ${DN.total}` : '';
+  $('d-prev').disabled = DN.page === 0; $('d-next').disabled = to >= DN.total;
+  if (!DN.rows.length) { el.innerHTML = `<div class="empty">${DN.q ? 'No donors match that search.' : 'No donor records yet. They appear here after the Raiser\'s Edge import.'}</div>`; return; }
+  el.innerHTML = DN.rows.map(d => `<div class="gf" data-id="${d.id}">
+    <div><span class="who">${esc(donorName(d))}</span><span class="amt">${d.ly != null ? 'Last gift ' + money(d.ly) : ''}</span>
+      <div class="meta">${[d.email, 'RE ' + d.re_id, d.class_year ? 'Class of ' + d.class_year : '', d.grades.length ? 'Gr ' + d.grades.join(', ') : ''].filter(Boolean).map(esc).join(' · ')}</div>
+      <div>${d.tags.map(t => `<span class="tg">${esc(tagLabel(t))}</span>`).join('')}</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn small" data-act="edit">Edit</button><button class="btn small ghost" data-act="copy">Copy link</button>
+      <a class="btn small ghost" href="/${d.token}" target="_blank" rel="noopener" style="text-decoration:none">Their page ↗</a>
+      <a class="btn small ghost" href="${esc(reLink(d))}" target="_blank" rel="noopener" style="text-decoration:none">Raiser's Edge ↗</a></div>
+  </div>`).join('');
+}
+$('d-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const d = DN.rows.find(x => x.id === b.closest('.gf').dataset.id); if (!d) return;
+  if (b.dataset.act === 'edit') openDonor(d);
+  if (b.dataset.act === 'copy') navigator.clipboard.writeText(location.origin + '/' + d.token).then(() => toast('Link copied'), () => toast('Could not copy', true));
+});
+$('d-q').addEventListener('input', () => { clearTimeout(dnTimer); dnTimer = setTimeout(() => { DN.q = $('d-q').value.trim(); DN.page = 0; loadDonors(); }, 250); });
+$('d-prev').onclick = () => { if (DN.page > 0) { DN.page--; loadDonors(); } };
+$('d-next').onclick = () => { DN.page++; loadDonors(); };
+
+const ddlg = $('ddlg');
+function openDonor(d) {
+  editingDonor = d; $('dd-error').style.display = 'none';
+  $('dd-title').textContent = donorName(d);
+  $('dd-info').textContent = [d.email, 'RE ' + d.re_id].filter(Boolean).join(' · ');
+  $('dd-first').value = d.first_name || ''; $('dd-year').value = d.class_year ?? ''; $('dd-ly').value = d.ly ?? '';
+  $('dd-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${d.grades.includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
+  $('dd-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}"><input type="checkbox" value="${t.key}" ${d.tags.includes(t.key) ? 'checked' : ''}> ${esc(t.label)}</label>`).join('');
+  $('dd-link').href = location.origin + '/' + d.token; $('dd-link').textContent = location.origin + '/' + d.token; $('dd-re').href = reLink(d);
+  ddlg.showModal();
+}
+$('ddlg-x').onclick = $('dd-cancel').onclick = () => ddlg.close();
+$('dd-copy').onclick = () => navigator.clipboard.writeText($('dd-link').href).then(() => toast('Link copied'), () => toast('Could not copy', true));
+$('dd-save').onclick = async () => {
+  const btn = $('dd-save'); btn.disabled = true; $('dd-error').style.display = 'none';
+  try {
+    const { donor: d } = await api('PUT', '/api/admin/gd/donors/' + editingDonor.id, {
+      first_name: $('dd-first').value, class_year: $('dd-year').value, ly: $('dd-ly').value,
+      grades: [...document.querySelectorAll('#dd-grades input:checked')].map(i => i.value),
+      tags: [...document.querySelectorAll('#dd-tags input:checked')].map(i => i.value),
+    });
+    ddlg.close(); toast('Saved');
+    if (donor && donor.id === d.id) showDonor(d);
+    loadDonors();
+  } catch (e) { const el = $('dd-error'); el.textContent = e.message; el.style.display = 'block'; }
   btn.disabled = false;
 };
-try { const d = JSON.parse(localStorage.getItem('gd-donor') || 'null'); if (d && d.id) setTimeout(() => pickDonor(d), 0); } catch {}
 
 // ── Gifts ──
 let gifts = [], editingGift = null;
