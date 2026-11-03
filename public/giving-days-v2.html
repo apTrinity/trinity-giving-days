@@ -1518,9 +1518,15 @@ const GM_BLUEGOLD = [
 const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
 const $gm = id => document.getElementById(id);
 
-// Amount buttons. With a last-year gift they are that gift plus the nearest levels above and below it.
+// Amount buttons. With an Ask A or Ask B they are last year's gift, Ask A and Ask B (as on the parents page).
+// With only a last-year gift they are that gift plus the nearest levels above and below it.
+function gmAsks() {
+  if (!ASK.on || !ME) return [];
+  return [...new Set([ME.ly, ME.ask_a, ME.ask_b].map(Number).filter(n => n > 0))].sort((a, b) => a - b);
+}
 function gmAmountList() {
   const ly = ME && ME.ly;
+  if (gmAsks().length && (ME.ask_a || ME.ask_b)) return gmAsks();
   if (!ASK.on || !ly) return GM_AMOUNTS;
   const all = new Set([...GM_AMOUNTS, 25, 50]);
   [GM_SOCIETY, GM_FRIENDS, GM_BLUEGOLD].forEach(L => L.forEach(t => { if (t[1] % 25 === 0 || t[1] === 1709) all.add(t[1]); }));   // round level starts only (not $101)
@@ -1529,7 +1535,8 @@ function gmAmountList() {
 }
 function gmBuildAmounts() {
   const ly = ME && ME.ly, list = gmAmountList();
-  gm.amount = ASK.on && ly ? ly : 2500;
+  const asks = (ME && (ME.ask_a || ME.ask_b)) ? gmAsks() : [];
+  gm.amount = asks.length ? asks[Math.floor((asks.length - 1) / 2)] : ASK.on && ly ? ly : 2500;   // the middle ask is pre-selected
   $gm('gm-amts').innerHTML = list.map(a => `<button type="button" class="gm-amt${a === gm.amount ? ' on' : ''}" data-amt="${a}">${fmt$(a)}</button>`).join('') +
     '<button type="button" class="gm-amt" data-amt="other">Other</button>';
   $gm('gm-custom').hidden = true;
@@ -1789,7 +1796,7 @@ function demoRibbon() {
 }
 function applyDemo(m) {
   const p = m.persona;
-  ME = p ? { first_name: p.first_name || '', tags: p.tags || [], grades: p.grades || [], class_year: p.class_year || null, ly: p.ly || null } : null;
+  ME = p ? { first_name: p.first_name || '', tags: p.tags || [], grades: p.grades || [], class_year: p.class_year || null, ly: p.ly || null, ask_a: p.ask_a || null, ask_b: p.ask_b || null } : null;
   if (ME) ME.audience = (m.audiences || []).find(a => qual(a, ME)) || null;
   if (m.ask) ASK = { on: !!m.ask.on, steps: Math.min(5, Math.max(1, parseInt(m.ask.steps, 10) || 2)) };
   applyChallenges(GD.campaign);

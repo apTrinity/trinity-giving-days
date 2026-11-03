@@ -103,11 +103,12 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     } else if (token) {
       try {
         const { data: d, error } = await supabase.from('gd_donors')
-          .select('first_name, class_year, grades, ly_gift, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
+          .select('first_name, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
         if (error) throw error;
         if (d) {
           known = true;
-          finish({ first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null });
+          finish({ first_name: d.first_name, tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
+            ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null });
           data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
         }
       } catch (err) { console.error('giving-days page donor:', err.message); }

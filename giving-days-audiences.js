@@ -138,10 +138,11 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
   // Affiliations are edited as the wanted list: the difference from the import's tags is stored as admin
   // additions/removals, so a re-import never undoes the edit. Class year, grades and last-year gift are
   // overwritten (a re-import rewrites them).
-  const COLS = 'id, token, re_id, first_name, last_name, email, class_year, grades, ly_gift, import_tags, tags_added, tags_removed';
+  const COLS = 'id, token, re_id, first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed';
   const donorOut = d => ({
     id: d.id, token: d.token, re_id: d.re_id, first_name: d.first_name || '', last_name: d.last_name || '', email: d.email || '',
-    class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null, tags: effectiveTags(d), grades: d.grades || [],
+    class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
+    ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null, tags: effectiveTags(d), grades: d.grades || [],
   });
 
   // Donor list, 50 a page, sorted by last name; q filters by name, email or RE ID.
@@ -178,6 +179,13 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
     if ('ly' in b) {
       if (isBlank(b.ly)) row.ly_gift = null;
       else { const v = Number(b.ly); if (!isFinite(v) || v < 0 || v > 10000000) return res.status(400).json({ error: "Last year's gift must be a dollar amount." }); row.ly_gift = Math.round(v); }
+    }
+    for (const [k, col, label] of [['ask_a', 'ask_a', 'Ask A'], ['ask_b', 'ask_b', 'Ask B']]) {
+      if (!(k in b)) continue;
+      if (isBlank(b[k])) { row[col] = null; continue; }
+      const v = Number(b[k]);
+      if (!isFinite(v) || v < 0 || v > 10000000) return res.status(400).json({ error: `${label} must be a dollar amount.` });
+      row[col] = Math.round(v);
     }
     if ('grades' in b) {
       if (!Array.isArray(b.grades)) return res.status(400).json({ error: 'Grades must be a list.' });
