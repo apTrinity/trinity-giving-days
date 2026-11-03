@@ -4,6 +4,7 @@
 // The text may use {{first_name}}, {{class_year}} and {{ly_gift}}; the page fills them in.
 
 const { TAGS, GRADES } = require('./giving-days-admin');
+const { effectiveTags } = require('./giving-days-donors');
 
 const TAG_KEYS = TAGS.map(t => t.key);
 const HEADING_MAX = 80, BODY_MAX = 500, NAME_MAX = 60;
@@ -130,6 +131,73 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
       const { error } = await supabase.from('gd_audiences').delete().eq('id', req.params.id);
       if (error) throw error;
       res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Donor records (gd_donors): find one, see its personal link, change what the page knows about it.
+  // Affiliations are edited as the wanted list: the difference from the import's tags is stored as admin
+  // additions/removals, so a re-import never undoes the edit. Class year, grades and last-year gift are
+  // overwritten (a re-import rewrites them).
+  const COLS = 'id, token, re_id, first_name, last_name, email, class_year, grades, ly_gift, import_tags, tags_added, tags_removed';
+  const donorOut = d => ({
+    id: d.id, token: d.token, re_id: d.re_id, first_name: d.first_name || '', last_name: d.last_name || '', email: d.email || '',
+    class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null, tags: effectiveTags(d), grades: d.grades || [],
+  });
+
+  app.get('/api/admin/gd/donors', requireAdmin, async (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 60);
+    if (q.length < 2) return res.json({ donors: [] });
+    const like = '%' + q.replace(/[\\%_,()]/g, ' ').trim() + '%';
+    try {
+      const { data, error } = await supabase.from('gd_donors').select(COLS)
+        .or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},re_id.ilike.${like}`).order('last_name').limit(10);
+      if (error) throw error;
+      res.json({ donors: data.map(donorOut) });
+    } catch (err) { fail(res, err); }
+  });
+
+  app.put('/api/admin/gd/donors/:id', requireAdmin, async (req, res) => {
+    const b = req.body || {}, row = {};
+    if ('first_name' in b) {
+      const n = isBlank(b.first_name) ? '' : String(b.first_name).trim();
+      if (n.length > 40) return res.status(400).json({ error: 'First name must be 40 characters or fewer.' });
+      row.first_name = n || null;
+    }
+    if ('class_year' in b) {
+      if (isBlank(b.class_year)) row.class_year = null;
+      else { const y = Number(b.class_year); if (!Number.isInteger(y) || y < 1900 || y > 2100) return res.status(400).json({ error: 'Class year must be a four-digit year, like 2015.' }); row.class_year = y; }
+    }
+    if ('ly' in b) {
+      if (isBlank(b.ly)) row.ly_gift = null;
+      else { const v = Number(b.ly); if (!isFinite(v) || v < 0 || v > 10000000) return res.status(400).json({ error: "Last year's gift must be a dollar amount." }); row.ly_gift = Math.round(v); }
+    }
+    if ('grades' in b) {
+      if (!Array.isArray(b.grades)) return res.status(400).json({ error: 'Grades must be a list.' });
+      const bad = b.grades.find(g => !GRADES.includes(String(g)));
+      if (bad !== undefined) return res.status(400).json({ error: `Unknown grade "${bad}".` });
+      row.grades = GRADES.filter(g => b.grades.map(String).includes(g));
+    }
+    if ('tags' in b && !Array.isArray(b.tags)) return res.status(400).json({ error: 'Affiliations must be a list.' });
+    if ('tags' in b) {
+      const bad = b.tags.find(t => !TAG_KEYS.includes(t));
+      if (bad !== undefined) return res.status(400).json({ error: `Unknown affiliation "${bad}".` });
+    }
+    try {
+      const cur = await supabase.from('gd_donors').select(COLS).eq('id', req.params.id).maybeSingle();
+      if (cur.error) throw cur.error;
+      if (!cur.data) return res.status(404).json({ error: 'Donor not found.' });
+      if ('tags' in b) {
+        const want = new Set(b.tags), imp = new Set(cur.data.import_tags || []);
+        row.tags_added = [...want].filter(t => !imp.has(t));
+        row.tags_removed = [...imp].filter(t => !want.has(t));
+      }
+      if (Object.keys(row).length) {
+        const { error } = await supabase.from('gd_donors').update({ ...row, updated_at: new Date().toISOString() }).eq('id', cur.data.id);
+        if (error) throw error;
+      }
+      const after = await supabase.from('gd_donors').select(COLS).eq('id', cur.data.id).single();
+      if (after.error) throw after.error;
+      res.json({ donor: donorOut(after.data) });
     } catch (err) { fail(res, err); }
   });
 

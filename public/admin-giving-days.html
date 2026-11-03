@@ -193,6 +193,19 @@
           <div class="card" style="max-width:none">
             <label>Preview as</label>
             <div class="chips" id="p-quick" style="margin-bottom:12px"></div>
+            <div class="field" id="dn-row" style="background:var(--bg,#f6f7f9);border-radius:8px;padding:10px 12px">
+              <label for="dn-q">Donor record</label>
+              <div style="display:flex;gap:8px"><input type="text" id="dn-q" placeholder="Search by name, email or RE ID" autocomplete="off"><button class="btn small ghost" id="dn-find">Find</button></div>
+              <div class="chips" id="dn-results" style="margin-top:8px"></div>
+              <div id="dn-picked" hidden style="margin-top:8px;font-size:13px">
+                <b id="dn-name"></b> · <a id="dn-link" target="_blank" rel="noopener" style="word-break:break-all"></a>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                  <button class="btn small" id="dn-save">Save changes to this donor</button>
+                  <button class="btn small ghost" id="dn-copy">Copy link</button>
+                  <a class="btn small ghost" id="dn-re" target="_blank" rel="noopener" style="text-decoration:none">Open in Raiser's Edge ↗</a>
+                </div>
+              </div>
+            </div>
             <div class="grid2">
               <div class="field"><label for="p-name">First name</label><input type="text" id="p-name" maxlength="40"></div>
               <div class="field"><label for="p-year">Class year</label><input type="number" id="p-year" min="1900" max="2100"></div>
@@ -606,7 +619,7 @@ $('a-save').onclick = async () => {
 const chipRow = (id, items, on, onChange) => { $(id).innerHTML = items.map(([v, label]) => `<label><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''}> ${esc(label)}</label>`).join(''); };
 function buildPersonaControls() {
   $('p-quick').innerHTML = PERSONAS.map((x, i) => `<button class="btn small ghost" data-i="${i}">${esc(x.label)}</button>`).join('');
-  setPersonaFields(persona);
+  setPersonaFields(typeof donor !== 'undefined' && donor ? { first_name: donor.first_name, class_year: donor.class_year, ly: donor.ly, tags: donor.tags, grades: donor.grades } : persona);
 }
 function setPersonaFields(p) {
   persona = p;
@@ -649,9 +662,40 @@ addEventListener('message', e => { if (e.origin === location.origin && e.data &&
 ['p-name', 'p-year', 'p-ly', 'p-ask-on', 'p-ask-steps'].forEach(id => { $(id).addEventListener('input', queuePreview); $(id).addEventListener('change', queuePreview); });
 $('p-grades').addEventListener('change', queuePreview); $('p-tags').addEventListener('change', queuePreview);
 $('p-open').onclick = () => sendPreview(true);
-$('p-ask-save').onclick = async () => {
-  try { await api('PUT', '/api/admin/gd/settings', { ask_personalize: $('p-ask-on').checked, ask_steps: $('p-ask-steps').value }); toast('Saved'); } catch (e) { toast(e.message, true); }
+
+// Donor record: find a real donor, load them into the fields above, save changes back to their record
+const RE_URL = 'https://app.blackbaud.com/constituent/records/';
+let donor = null;
+function pickDonor(d) {
+  donor = d; const u = location.origin + '/' + d.token;
+  $('dn-picked').hidden = false; $('dn-results').innerHTML = '';
+  $('dn-name').textContent = [d.first_name, d.last_name].filter(Boolean).join(' ') + ' (RE ' + d.re_id + ')';
+  $('dn-link').href = u; $('dn-link').textContent = u; $('dn-re').href = RE_URL + encodeURIComponent(d.re_id) + '?envid=p-De4NWbbqzUeno2SrGlrLIQ&svcid=renxt';
+  setPersonaFields({ first_name: d.first_name, class_year: d.class_year, ly: d.ly, tags: d.tags, grades: d.grades });
+  try { localStorage.setItem('gd-donor', JSON.stringify(d)); } catch {}
+}
+async function findDonors() {
+  const q = $('dn-q').value.trim(); if (q.length < 2) return;
+  try {
+    const { donors } = await api('GET', '/api/admin/gd/donors?q=' + encodeURIComponent(q));
+    const el = $('dn-results'); el.innerHTML = donors.length ? '' : '<span class="hint">No donor found.</span>';
+    donors.forEach(d => { const b = document.createElement('button'); b.className = 'btn small ghost'; b.textContent = [d.first_name, d.last_name].filter(Boolean).join(' ') + (d.email ? ' · ' + d.email : ''); b.onclick = () => pickDonor(d); el.appendChild(b); });
+  } catch (e) { toast(e.message, true); }
+}
+$('dn-find').onclick = findDonors;
+$('dn-q').addEventListener('keydown', e => { if (e.key === 'Enter') findDonors(); });
+$('dn-copy').onclick = () => navigator.clipboard.writeText($('dn-link').href).then(() => toast('Link copied'), () => toast('Could not copy', true));
+$('dn-save').onclick = async () => {
+  if (!donor) return;
+  const btn = $('dn-save'); btn.disabled = true;
+  try {
+    const p = readPersona() || { first_name: '', class_year: null, ly: null, tags: [], grades: [] };
+    const { donor: d } = await api('PUT', '/api/admin/gd/donors/' + donor.id, p);
+    donor = d; toast('Saved. Reload their link to see it.');
+  } catch (e) { toast(e.message, true); }
+  btn.disabled = false;
 };
+try { const d = JSON.parse(localStorage.getItem('gd-donor') || 'null'); if (d && d.id) setTimeout(() => pickDonor(d), 0); } catch {}
 
 // ── Gifts ──
 let gifts = [], editingGift = null;
