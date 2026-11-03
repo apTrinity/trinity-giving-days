@@ -800,9 +800,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .gm-input, .gm-select, .lb-search, .lb-toolbar input { font-size: 16px; }
 }
 /* Personalization */
-.gm-aud { background: var(--navy-10); border-left: 4px solid var(--trinity-yellow); padding: 12px 14px; }
-.gm-aud-h { font-weight: 800; color: var(--navy); font-size: 14px; margin-bottom: 3px; }
-.gm-aud p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-mid); }
+.gm-card[hidden] { display: none; }
+.gm-aud { border-left: 4px solid var(--trinity-yellow); }
+.gm-aud p { line-height: 1.6; }
 .gm-lyhint { margin-top: 8px; font-size: 12.5px; color: var(--ink-muted); }
 .gm-counts { font-size: 12.5px; font-weight: 600; color: var(--navy); background: var(--paper-2); padding: 8px 12px; line-height: 1.45; }
 .ub-card.you .ub-front { box-shadow: inset 0 0 0 2px var(--trinity-yellow); }
@@ -863,7 +863,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
     </div>
     <div class="gm-body" id="gm-body">
       <div class="gm-form">
-        <div class="gm-aud" id="gm-aud" hidden><div class="gm-aud-h" id="gm-aud-h"></div><p id="gm-aud-p"></p></div>
         <div>
           <span class="gm-label">Gift amount</span>
           <div class="gm-amts" id="gm-amts"></div>
@@ -906,7 +905,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="gm-secure">Secure payment processed by Blackbaud Merchant Services</div>
       </div>
       <div class="gm-side">
-        <div class="gm-card">
+        <div class="gm-card gm-aud" id="gm-aud" hidden>
+          <div><h3 id="gm-aud-h"></h3><p id="gm-aud-p"></p></div>
+        </div>
+        <div class="gm-card" id="gm-levels-card">
           <div>
             <h3>Giving levels</h3>
             <p id="gm-levels-intro">Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.</p>
@@ -1582,6 +1584,7 @@ function gmFill(t) {
 function gmAudience() {
   const a = ME && ME.audience, box = $gm('gm-aud');
   box.hidden = !(a && (a.heading || a.body));
+  $gm('gm-levels-card').hidden = !box.hidden;   // a personal message takes the place of the giving levels
   if (!box.hidden) { $gm('gm-aud-h').textContent = gmFill(a.heading); $gm('gm-aud-p').textContent = gmFill(a.body); }
 }
 // "Your gift counts toward ...": challenges this donor qualifies for, from who they are plus what they have ticked
