@@ -35,7 +35,7 @@ grant select, insert, update, delete on public.gd_audiences to service_role;
 -- Starter audiences (placeholder wording: edit in the admin)
 insert into public.gd_audiences (name, tags, grades, class_years, heading, body, sort_order, published)
 select 'Reunion alumni', '{alumni,alumna}', '{}',
-       (select array_agg(y order by y) from generate_series(1946, 2021) y where y % 5 = 1),
+       (select array_agg(y order by y) from generate_series(1947, 2022) y where y % 5 = 2),
        'Happy reunion, Class of {{class_year}}',
        '{{first_name}}, this year Trinity celebrates the 10th anniversary of the Reunion Giving Initiative. In honor of reunion and in gratitude for the Trinity experience, your gift today helps ensure that all qualified students, regardless of financial background, have access to a Trinity education.',
        0, true

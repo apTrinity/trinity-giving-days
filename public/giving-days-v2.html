@@ -1150,7 +1150,7 @@ const renderChal = v => {
   if (v === 'ub') wireBand();
 };
 // ── Leaderboards (sample data; ranked by number of donors) ──
-const REUNION = y => y <= 2021 && (y % 5 === 1);
+const REUNION = y => y <= 2022 && (y % 5 === 2);
 const KNOWN = { 1976: 24, 2001: 19, 1986: 17, 1996: 15, 2011: 14, 1991: 12, 2016: 11, 1984: 10, 2006: 10, 1981: 9, 1999: 8, 2021: 8, 1972: 7, 1993: 7, 2008: 6, 1968: 6, 2014: 5, 1989: 5, 2019: 4, 1979: 4, 2003: 4, 1965: 3, 2023: 3, 1997: 3, 1974: 2, 2012: 2, 1958: 1, 2025: 1 };
 const YEARS = Array.from({ length: 2026 - 1940 + 1 }, (_, i) => 1940 + i);
 const alumniRows = YEARS.map(y => ({ key: String(y), label: 'Class of ' + y, short: String(y), donors: KNOWN[y] ?? ((y * 7) % 4), reunion: REUNION(y) }));
