@@ -11,8 +11,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --trinity-blue:   rgb(0, 72, 178);
-  --trinity-yellow: rgb(242, 204, 7);
-  --navy:           #172853;
+  --trinity-yellow: #FCB104;      /* the Let's Be Real logo's gold */
+  --navy:           #02193B;      /* the Let's Be Real logo's navy */
   --cream:          #FAFAF7;
   --paper-2:        #F4F2ED;
   --ink:            #1A1A1A;
@@ -20,9 +20,9 @@
   --ink-muted:      #787878;
   --border:         #E4E2DC;
   --border-lt:      #F0EEE8;
-  --navy-10:        color-mix(in srgb, #172853 9%, white);
+  --navy-10:        color-mix(in srgb, var(--navy) 9%, white);
   --trinity-orange: rgb(239, 177, 30);
-  --yellow-15:      color-mix(in srgb, rgb(242,204,7) 15%, white);
+  --yellow-15:      color-mix(in srgb, var(--trinity-yellow) 15%, white);
   --blue-10:        color-mix(in srgb, rgb(0,72,178) 10%, white);
   --blue-25:        color-mix(in srgb, rgb(0,72,178) 25%, white);
   --shadow-card:    0 1px 2px rgba(0,30,80,.04), 0 4px 12px rgba(0,30,80,.06);
@@ -45,10 +45,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .stage { position: relative; }
 
 /* ── Page header (as on /preview) ────────────── */
-.site-header { background: var(--navy); padding: 20px 24px; text-align: center; }
-.wordmark { font-family: 'Lora', serif; color: #fff; font-size: 26px; font-weight: 600; }
-.wordmark em { color: var(--trinity-yellow); font-style: italic; }
-.wordmark-sub { color: rgba(255,255,255,.6); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin-top: 6px; }
+.site-header { background: var(--navy); padding: 28px 24px 24px; text-align: center; }
+.masthead-logo { display: block; margin: 0 auto; width: min(380px, 70%); height: auto; }
+.wordmark-sub { color: rgba(255,255,255,.6); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin-top: 12px; }
 .stage.on-cream .site-header { border-bottom: 0; }
 
 /* ── Hero band ───────────────────────────────── */
@@ -98,7 +97,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .prog-sub { font-size: 13px; color: rgba(255,255,255,.72); margin-top: 3px; }
 .prog-sub b { color: #fff; }
 .btn-give { display: block; width: 100%; background: var(--trinity-yellow); color: var(--navy); border: none; cursor: pointer; font: 800 13px 'Open Sans', sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 15px; }
-.btn-give:hover { background: color-mix(in srgb, rgb(242,204,7) 85%, white); }
+.btn-give:hover { background: color-mix(in srgb, var(--trinity-yellow) 88%, black); }
 
 /* Below-the-hero hint so the panel reads in context */
 .next { max-width: 1180px; margin: 0 auto; padding: 34px 32px 40px; }
@@ -109,9 +108,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 /* ── Phone: video on top, compact seal row under it ── */
 @container (max-width: 860px) {
-  .site-header { padding: 16px; }
-  .wordmark { font-size: 21px; }
-  .wordmark-sub { font-size: 10px; margin-top: 4px; }
+  .site-header { padding: 22px 16px 18px; }
+  .wordmark-sub { font-size: 10px; margin-top: 10px; letter-spacing: .12em; }
+  .masthead-logo { width: min(290px, 78%); }
   .hero { padding: 0; }
   .stage.on-cream .hero, .stage.on-blue .hero { padding: 0; }
   .frame { grid-template-columns: 1fr; box-shadow: none; }
@@ -312,10 +311,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .cw-t:hover, .cw-t.sel { transform: scale(1.12); z-index: 2; box-shadow: 0 0 0 2px var(--navy); }
 .cw-t.none { background: transparent; cursor: default; }
 .cw-t.l0 { background: var(--paper-2); color: var(--ink-muted); }
-.cw-t.l1 { background: color-mix(in srgb, #172853 18%, white); color: var(--navy); }
-.cw-t.l2 { background: color-mix(in srgb, #172853 38%, white); color: var(--navy); }
-.cw-t.l3 { background: color-mix(in srgb, #172853 62%, white); color: #fff; }
-.cw-t.l4 { background: color-mix(in srgb, #172853 82%, white); color: #fff; }
+.cw-t.l1 { background: color-mix(in srgb, var(--navy) 18%, white); color: var(--navy); }
+.cw-t.l2 { background: color-mix(in srgb, var(--navy) 38%, white); color: var(--navy); }
+.cw-t.l3 { background: color-mix(in srgb, var(--navy) 62%, white); color: #fff; }
+.cw-t.l4 { background: color-mix(in srgb, var(--navy) 82%, white); color: #fff; }
 .cw-t.l5 { background: var(--navy); color: #fff; }
 .cw-t.top { background: var(--trinity-yellow); color: var(--navy); }
 .cw-t.reu::after { content: ''; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--trinity-yellow); }
@@ -728,7 +727,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-check input { margin-top: 2px; accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; }
 .gm-error { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; font-size: 13px; padding: 10px 12px; }
 .gm-pay { background: var(--trinity-yellow); color: var(--navy); border: none; padding: 15px; font-family: inherit; font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; width: 100%; }
-.gm-pay:hover { background: color-mix(in srgb, rgb(242,204,7) 85%, white); }
+.gm-pay:hover { background: color-mix(in srgb, var(--trinity-yellow) 88%, black); }
 .gm-pay:disabled { opacity: .5; cursor: not-allowed; }
 .gm-secure { font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: -8px; }
 .gm-link { font-size: 12px; font-weight: 700; color: var(--navy); text-decoration: none; letter-spacing: .04em; }
@@ -760,7 +759,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-rung.reached { color: var(--ink-mid); }
 .gm-rung.reached::before { background: var(--navy); border-color: var(--navy); }
 .gm-rung.on { color: var(--navy); font-weight: 700; }
-.gm-rung.on::before { background: var(--trinity-yellow); border-color: var(--navy); width: 14px; height: 14px; left: -21px; box-shadow: 0 0 0 3px rgba(242,204,7,.35); }
+.gm-rung.on::before { background: var(--trinity-yellow); border-color: var(--navy); width: 14px; height: 14px; left: -21px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--trinity-yellow) 35%, transparent); }
 
 .gm-thanks { grid-column: 1 / -1; padding: 48px 32px 52px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .gm-thanks h2 { font-family: 'Lora', serif; font-size: 28px; font-weight: 600; color: var(--navy); }
@@ -818,12 +817,12 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 </head>
 <body>
 
-<div class="mock-flag"><b>Design preview · v2</b>Sample data only, and the gift form is in test mode: use card 4242 4242 4242 4242 with any future date and any CVC. Nothing is charged.</div>
+<div class="mock-flag" id="test-flag" hidden><b>Test mode</b>Gifts use Blackbaud's test system: use card 4242 4242 4242 4242 with any future date and any CVC. Nothing is charged.</div>
 
 <div class="stage on-cream" id="stage">
   <header class="site-header">
-    <div class="wordmark">Trinity <em>Giving Days</em></div>
-    <div class="wordmark-sub">November 30 – December 4, 2026</div>
+    <img class="masthead-logo" src="/lets-be-real-reverse.svg" alt="Let’s Be Real." width="380" height="227">
+    <div class="wordmark-sub">Trinity Giving Days · November 30 – December 4, 2026</div>
   </header>
 
   <section class="hero">
@@ -1805,7 +1804,7 @@ window.addEventListener('load', () => {
   fetch('/api/gd/config').then(r => r.ok ? r.json() : Promise.reject())
     .then(cfg => { gm.mode = cfg.mode; return cfg.paymentConfigurationId; })
     .catch(() => { gm.mode = 'test'; return GM_TEST_CONFIG_ID; })
-    .then(id => gmInitCheckout(id));
+    .then(id => { $gm('test-flag').hidden = gm.mode !== 'test'; gmInitCheckout(id); });
 });
 
 // Rebuild every live part of the page from fresh campaign data: hero, challenges, leaderboards, donor wall
