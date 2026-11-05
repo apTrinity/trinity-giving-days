@@ -38,7 +38,7 @@ body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: col
   for (var j = 0; j < 30; j++) {   // ring centred on the middle of the logo's yellow line, just outside its arch
     var b = Math.PI * (1 - (0.03 + 0.94 * j / 29)), c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('cx', (216.24 + 163 * Math.cos(b)).toFixed(1)); c.setAttribute('cy', (150.3 - 163 * Math.sin(b)).toFixed(1));
-    c.setAttribute('r', '4.6'); c.setAttribute('fill', '#E4E2DC'); svg.appendChild(c); dots.push(c);
+    c.setAttribute('r', '4.3'); c.setAttribute('stroke', '#E4E2DC'); c.setAttribute('stroke-width', '1.2'); c.setAttribute('fill', '#F7F6F2'); svg.appendChild(c); dots.push(c);
   }
   var z = function (n) { return (n < 10 ? '0' : '') + n; }, pl = function (n, w) { return '<b>' + n + '</b> ' + w + (n === 1 ? '' : 's'); };
   function tick() {
@@ -50,7 +50,7 @@ body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: col
     var sec = Math.floor(ms / 1000), m = Math.floor(sec / 60), D = Math.floor(m / 1440);
     line.innerHTML = '<span class="lead">Starts in</span> ' + [pl(D, 'day'), pl(Math.floor(m % 1440 / 60), 'hour'), pl(m % 60, 'minute'), pl(sec % 60, 'second')].join('<i class="d"></i>');
     var left = Math.min(30, D + 1);   // the day in progress counts as a day still to come
-    for (var k = 0; k < dots.length; k++) dots[k].setAttribute('fill', k < 30 - left ? '#FCB104' : '#E4E2DC');
+    for (var k = 0; k < dots.length; k++) dots[k].setAttribute('fill', k < 30 - left ? '#FCB104' : '#F7F6F2');
   }
   tick(); setInterval(tick, 1000);
 })();
