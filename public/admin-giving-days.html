@@ -436,6 +436,8 @@ async function login() {
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
   loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor();
+  // Before launch the public page is a teaser; this pass lets the preview below (and /preview) show the real page.
+  api('POST', '/api/admin/gd/preview-pass').then(() => { frameReady = false; $('aud-frame').src = '/preview?demo=1'; }).catch(() => {});
 }
 
 // ── Tabs ──

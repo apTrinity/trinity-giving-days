@@ -1,0 +1,45 @@
+<!-- Pre-launch teaser. giving-days-donors.js swaps this in for the page content until the campaign starts.
+     {{STARTS_ISO}} = launch time, {{STARTS_LABEL}} = e.g. "Monday, November 30". Nothing about the goal, challenges,
+     leaderboards or donors belongs here. -->
+<style>
+.sh { background: #fff; color: var(--navy); text-align: center; padding: 56px 24px 64px; border-top: 5px solid var(--trinity-yellow); }
+.sh-logo { display: block; width: min(340px, 72%); height: auto; margin: 0 auto 28px; }
+.sh h1 { font: 600 34px/1.2 'Lora', serif; margin: 10px 0 8px; color: var(--navy); }
+.sh h1 em { color: var(--navy); font-style: italic; background: linear-gradient(transparent 62%, var(--trinity-yellow) 62%, var(--trinity-yellow) 92%, transparent 92%); padding: 0 4px; }
+.sh-sub { font-size: 16px; color: var(--ink-mid); max-width: 520px; margin: 0 auto; line-height: 1.55; }
+.sh-count { display: flex; justify-content: center; gap: 12px; margin: 30px 0 34px; }
+.sh-count div { min-width: 74px; padding: 12px 8px 10px; background: var(--navy); color: #fff; border-top: 3px solid var(--trinity-yellow); }
+.sh-count b { display: block; font: 600 30px/1 'Lora', serif; }
+.sh-count span { display: block; margin-top: 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.8); }
+.sh .btn-give { width: auto; display: inline-block; padding: 16px 38px; }
+.sh-note { margin-top: 14px; font-size: 13px; color: var(--ink-muted); }
+@media (max-width: 560px) { .sh { padding: 40px 18px 48px; } .sh h1 { font-size: 27px; } .sh-count div { min-width: 64px; } .sh .btn-give { width: 100%; } }
+</style>
+<section class="sh" id="shield">
+  <img class="sh-logo" src="/giving-days-logo-on-white.svg" alt="Trinity School Giving Days">
+  <h1>Giving Days begin <em>{{STARTS_LABEL}}</em></h1>
+  <p class="sh-sub">Join the Trinity community in supporting the Trinity Fund. You are welcome to make your gift now.</p>
+  <div class="sh-count" id="sh-count" aria-label="Time until Giving Days begin" hidden>
+    <div><b id="sh-d">0</b><span>Days</span></div><div><b id="sh-h">0</b><span>Hours</span></div><div><b id="sh-m">0</b><span>Minutes</span></div>
+  </div>
+  <button class="btn-give" id="hero-give" type="button">Make your gift →</button>
+  <p class="sh-note">Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:inherit">trinityfund@trinityschoolnyc.org</a></p>
+</section>
+<script>
+(function () {
+  var t = new Date('{{STARTS_ISO}}').getTime(), box = document.getElementById('sh-count');
+  function tick() {
+    var ms = t - Date.now();
+    if (ms <= 0) {   // launch time: the real page replaces the teaser (reload at most once per 10s, in case this device's clock runs fast)
+      try { var last = +sessionStorage.getItem('gdShieldReload') || 0; if (Date.now() - last < 10000) return; sessionStorage.setItem('gdShieldReload', Date.now()); } catch (e) {}
+      setTimeout(function () { location.reload(); }, 1000 + Math.random() * 2000); return;
+    }
+    var m = Math.floor(ms / 60000);
+    document.getElementById('sh-d').textContent = Math.floor(m / 1440);
+    document.getElementById('sh-h').textContent = Math.floor(m % 1440 / 60);
+    document.getElementById('sh-m').textContent = m % 60;
+    box.hidden = false;
+  }
+  tick(); setInterval(tick, 30000);
+})();
+</script>

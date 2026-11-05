@@ -831,6 +831,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
     <div class="wordmark-sub">November 30 – December 4, 2026</div></div>
   </header>
 
+<!--SHIELD:BODY-->
   <section class="hero">
     <div class="frame">
       <div class="video-frame" id="video-frame" data-vimeo="816728351" role="button" tabindex="0" aria-label="Play video: Why I Give">
@@ -858,6 +859,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   <div id="lb"></div>
   <div id="cm" class="cm"></div>
   <div id="ab" class="ab"></div>
+<!--/SHIELD:BODY-->
   <footer class="ft"><div class="ft-id"><img class="ft-seal" src="/seal-reverse.png" alt="" width="42" height="44"><div><b>Trinity School</b>139 West 91st Street · New York, NY 10024</div></div><div>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> · (212) 932-6860</div></footer>
 </div>
 
@@ -955,9 +957,28 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 
 <script>
 const stage = document.getElementById('stage');
+const $ = n => '$' + Math.round(n).toLocaleString();
+const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
+// Live data from the admin (written into the page by the server). With nothing published, the sample data below stays.
+const GD = window.__GD || {};
+let ME = GD.me || null;
+// Who-counts rule, same as the server's (giving-days-donors.js): any tag AND any grade AND class years. Empty = no limit.
+function qual(c, d) {
+  const tags = d.tags || [], grades = d.grades || [], y = d.class_year;
+  if ((c.tags || []).length && !c.tags.some(t => tags.includes(t))) return false;
+  if ((c.grades || []).length && !c.grades.some(g => grades.includes(g))) return false;
+  if ((c.class_years || []).length && (y == null || !c.class_years.includes(y))) return false;
+  const lo = c.class_year_min, hi = c.class_year_max;
+  if (lo != null || hi != null) { if (y == null) return false; if (lo != null && y < lo) return false; if (hi != null && y > hi) return false; }
+  return true;
+}
+const S0 = (GD.campaign && GD.campaign.settings) || {};
+let ASK = { on: S0.ask_personalize !== false, steps: S0.ask_steps || 2 };   // show only levels near last year's gift
 
-
-
+// Everything between SHIELD:CUT markers is the campaign content (sample data, challenges, leaderboards, donor wall,
+// hero numbers). Before launch the server replaces it with a stub, so none of it is sent to the visitor
+// (see giving-days-donors.js, "shield"). Keep the gift form code OUTSIDE the markers.
+/*SHIELD:CUT*/
 setTimeout(() => renderHero(), 600);
 
 // ── Challenges (sample data, mocked as Wednesday 12/2) ──
@@ -968,7 +989,6 @@ const C = [
   { name: 'Young Alumni Match', who: 'Classes of 2012–2026', match: true, target: 25000, cur: 8450 },
   { name: 'Final Day 50 for 50', unit: 'donors', target: 50, cur: 0, prize: 50000, soon: true },
 ];
-const $ = n => '$' + Math.round(n).toLocaleString();
 const isDone = c => !c.match && c.cur >= c.target;
 let unlocked = C.reduce((t, c) => t + (c.match ? c.cur : isDone(c) ? c.prize : 0), 0);
 const TODAY = 2;
@@ -984,21 +1004,6 @@ const DETAIL = [
   { desc: ['50 gifts on the final day unlock $50,000 in additional money for the Trinity Fund.', 'Only gifts made on Friday, December 4 count toward this challenge.'], counts: 'Every donor, Friday only', when: 'Friday 12/4 · midnight to 11:59 pm' },
 ];
 C.forEach((c, i) => Object.assign(c, DETAIL[i]));
-// Live data from the admin (written into the page by the server). With nothing published, the sample data above stays.
-const GD = window.__GD || {};
-let ME = GD.me || null;
-// Who-counts rule, same as the server's (giving-days-donors.js): any tag AND any grade AND class years. Empty = no limit.
-function qual(c, d) {
-  const tags = d.tags || [], grades = d.grades || [], y = d.class_year;
-  if ((c.tags || []).length && !c.tags.some(t => tags.includes(t))) return false;
-  if ((c.grades || []).length && !c.grades.some(g => grades.includes(g))) return false;
-  if ((c.class_years || []).length && (y == null || !c.class_years.includes(y))) return false;
-  const lo = c.class_year_min, hi = c.class_year_max;
-  if (lo != null || hi != null) { if (y == null) return false; if (lo != null && y < lo) return false; if (hi != null && y > hi) return false; }
-  return true;
-}
-const S0 = (GD.campaign && GD.campaign.settings) || {};
-let ASK = { on: S0.ask_personalize !== false, steps: S0.ask_steps || 2 };   // show only levels near last year's gift
 function applyChallenges(camp) {
   if (!(camp && camp.challenges && camp.challenges.length)) return;
   const now = Date.now();
@@ -1486,7 +1491,6 @@ function softUpdate(el, html, keySel) {
 
 function applyHero(camp) { if (camp && camp.progress) { heroDonors = camp.progress.donors; heroRaised = camp.progress.raised; } }
 applyHero(GD.campaign);
-const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
 function renderHero() {
   heroText('donor-count', String(heroDonors));
   heroText('stat-raised', fmt$(heroRaised));
@@ -1496,6 +1500,7 @@ function renderHero() {
   document.getElementById('prog-bar').style.width = pctDone + '%';
   heroText('stat-pct', Math.floor(pctDone) + '%');
 }
+/*/SHIELD:CUT*/
 
 // ── Gift modal ──────────────────────────────────────────────────────────────
 // Payment mode comes from the server (/api/gd/config) so one setting on Render

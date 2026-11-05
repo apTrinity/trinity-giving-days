@@ -81,18 +81,22 @@ function demoPersona(raw) {
 }
 
 module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, audiences }) {
+  const shield = require('./giving-days-shield')(supabase);
   const pageFile = path.join(__dirname, 'public', 'giving-days-v2.html');
 
   // The page file with the campaign (and, for a personal link, the visitor) written into it, so
   // the page needs no extra round trip. For a personal link this includes the name and email, so the gift form can
   // skip those fields (it shows the email masked), as the parents page does. Made-up demo donors have none.
-  async function renderPage(token, persona) {
+  // Before launch (the shield, see giving-days-shield.js) the page is a teaser: no campaign data, no audience copy.
+  async function renderPage(req, token, persona, opts) {
     let html = fs.readFileSync(pageFile, 'utf8');
+    const shieldAt = await shield.activeFor(req, opts);
+    if (shieldAt) persona = null;
     const data = {};
-    try { data.campaign = await loadCampaign(); } catch (err) { console.error('giving-days page campaign:', err.message); }
+    if (!shieldAt) { try { data.campaign = await loadCampaign(); } catch (err) { console.error('giving-days page campaign:', err.message); } }
     let known = false;
     let auds = [];
-    if (audiences) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
+    if (audiences && !shieldAt) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
     const finish = me => {
       me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
       me.audience = audiences ? audiences.audienceFor(auds, me, qualifies) : null;
@@ -115,6 +119,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
       } catch (err) { console.error('giving-days page donor:', err.message); }
     }
     html = html.replace('<!--GD_DATA-->', `<script>window.__GD = ${safeJson(data)};</script>`);
+    if (shieldAt) html = shield.apply(html, shieldAt);
     return { html, known };
   }
 
@@ -131,7 +136,12 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   // The public page; /preview?t=<code> previews a personalized visit.
   app.get('/preview', async (req, res) => {
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
-    send(res, (await renderPage(t, demoPersona(req.query.p))).html);
+    send(res, (await renderPage(req, t, demoPersona(req.query.p))).html);
+  });
+
+  // Demo of the pre-launch teaser, shown whether or not the shield is switched on.
+  app.get('/prelaunch', async (req, res) => {
+    send(res, (await renderPage(req, null, null, { force: true })).html);
   });
 
   // Personal link: /<code>. Registered after every real page, so real pages win.
@@ -139,7 +149,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (!TOKEN_RE.test(req.params.code)) return next();
     const id = visitorId(req);
     if (blocked(id)) return res.status(429).type('text').send('Too many attempts. Please try again in a few minutes.');
-    const { html, known } = await renderPage(req.params.code);
+    const { html, known } = await renderPage(req, req.params.code);
     if (!known) recordMiss(id);
     send(res, html);
   });

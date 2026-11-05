@@ -213,11 +213,19 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
   }
 
   app.get('/api/gd/campaign', async (req, res) => {
+    // Before launch the campaign is not public (see giving-days-shield.js); the admin's pass cookie still works.
+    if (await require('./giving-days-shield')(supabase).activeFor(req)) return res.status(404).json({ error: 'Not available yet.' });
     try {
       const data = await loadCampaign();
       res.set('Cache-Control', 'public, max-age=15');
       res.json(data);
     } catch (err) { fail(res, err); }
+  });
+
+  // Admin: lets the signed-in admin see the real page (and the live preview) while the pre-launch shield is up.
+  app.post('/api/admin/gd/preview-pass', requireAdmin, (req, res) => {
+    require('./giving-days-shield')(supabase).givePass(res);
+    res.json({ ok: true });
   });
 
   // Admin: settings
