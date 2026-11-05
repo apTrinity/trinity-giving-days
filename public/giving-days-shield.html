@@ -2,6 +2,10 @@
      {{STARTS_ISO}} = launch time, {{STARTS_LABEL}} = e.g. "Monday, November 30". Nothing about the goal, challenges,
      leaderboards or donors belongs here. -->
 <style>
+/* Footer stays at the bottom of the window on tall screens; the teaser centres in the space above it */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.stage { flex: 1 0 auto; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+.sh { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .sh { background: #fff; color: var(--navy); text-align: center; padding: 56px 24px 64px; border-top: 5px solid var(--trinity-yellow); }
 /* The logo with a ring of 30 dots around its arch: one per day of the last 30 before launch; days already gone are yellow */
 .sh-logo { width: 440px; max-width: 100%; margin: -6px auto 0; }
