@@ -66,8 +66,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .frame > * { min-width: 0; }
 /* The panel is as tall as whichever half needs more room; the video always fills its half (cover-cropped if the seal side is taller) */
 .video-frame { position: relative; cursor: pointer; overflow: hidden;
-  background: #0d1a3d url("https://i.vimeocdn.com/video/1654293112-f174dd169250d5644700ff79b8c41cd193172eb4bc510bc4045bd8319c19dc4e-d_1280?region=us") center / cover no-repeat; }
-.video-frame::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.45)); }
+  background: #0d1a3d url("/video-title-card.png") center / cover no-repeat; }
+.video-frame::before { content: ''; position: absolute; inset: 0; }
 .video-frame::after { content: ''; display: block; padding-top: 56.25%; } /* 16:9 minimum height */
 .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-frame.playing { background: #000; cursor: default; }
@@ -75,7 +75,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .video-play { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--trinity-yellow); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 30px rgba(0,0,0,.35); transition: transform .15s; }
 .video-frame:hover .video-play { transform: translate(-50%, -50%) scale(1.06); }
 .video-play::after { content: ''; border-left: 20px solid var(--navy); border-top: 12px solid transparent; border-bottom: 12px solid transparent; margin-left: 5px; }
-.video-cap { position: absolute; left: 20px; bottom: 16px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.9); letter-spacing: .02em; }
+.video-cap { position: absolute; left: 20px; bottom: 16px; font-size: 12px; font-weight: 600; color: var(--navy); letter-spacing: .02em; }
 .video-cap b { display: block; font-family: 'Lora', serif; font-size: 19px; font-weight: 600; letter-spacing: 0; margin-bottom: 2px; }
 
 /* Progress side — no box, just the right half of the frame */
@@ -118,7 +118,6 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   .hero { padding: 0; }
   .stage.on-cream .hero, .stage.on-blue .hero { padding: 0; }
   .frame { grid-template-columns: 1fr; box-shadow: none; }
-  .video-frame::before { background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,.5)); }
   .video-play { width: 58px; height: 58px; }
   .video-play::after { border-left-width: 16px; border-top-width: 10px; border-bottom-width: 10px; }
   .video-cap { left: 14px; bottom: 11px; font-size: 11px; }
