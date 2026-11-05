@@ -3,42 +3,40 @@
      leaderboards or donors belongs here. -->
 <style>
 .sh { background: #fff; color: var(--navy); text-align: center; padding: 56px 24px 64px; border-top: 5px solid var(--trinity-yellow); }
-.sh-logo { display: block; width: min(340px, 72%); height: auto; margin: 0 auto 28px; }
-.sh h1 { font: 600 34px/1.2 'Lora', serif; margin: 10px 0 8px; color: var(--navy); }
+/* The logo with a ring of 30 dots around its arch: one per day of the last 30 before launch; days already gone are yellow */
+.sh-logo { width: 440px; max-width: 100%; margin: -6px auto 0; }
+.sh-logo svg { display: block; width: 100%; height: auto; }
+.sh-line { margin: 4px auto 34px; font: 700 12.5px/1.6 'Open Sans', sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.sh-line b { color: var(--navy); font-size: 15px; letter-spacing: .06em; }
+.sh-line .d { display: inline-block; width: 5px; height: 5px; margin: 0 .9em; border-radius: 50%; background: var(--trinity-yellow); vertical-align: middle; }
+.sh-line .lead { margin-right: .5em; }
+.sh h1 { font: 600 34px/1.2 'Lora', serif; margin: 0 0 8px; color: var(--navy); }
 .sh h1 em { color: var(--navy); font-style: italic; background: linear-gradient(transparent 62%, var(--trinity-yellow) 62%, var(--trinity-yellow) 92%, transparent 92%); padding: 0 4px; }
-.sh-sub { font-size: 16px; color: var(--ink-mid); max-width: 520px; margin: 0 auto; line-height: 1.55; }
-/* Countdown: an arch of 30 dots, one per day of the last 30 before launch; days already gone are yellow */
-.sh-arc { width: 300px; max-width: 100%; margin: 28px auto 32px; }
-.sh-arch { position: relative; }
-.sh-arch svg { display: block; width: 100%; height: auto; }
-.sh-mid { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; }
-.sh-mid b { display: block; font: 600 64px/1 'Lora', serif; color: var(--navy); }
-.sh-mid span { display: block; margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-muted); }
-.sh-rest { margin-top: 10px; font: 600 17px 'Lora', serif; color: var(--navy); text-align: center; font-variant-numeric: tabular-nums; }
+.sh-sub { font-size: 16px; color: var(--ink-mid); max-width: 520px; margin: 0 auto 30px; line-height: 1.55; }
 .sh .btn-give { width: auto; display: inline-block; padding: 16px 38px; }
 .sh-note { margin-top: 14px; font-size: 13px; color: var(--ink-muted); }
-@media (max-width: 560px) { .sh { padding: 40px 18px 48px; } .sh h1 { font-size: 27px; } .sh .btn-give { width: 100%; } }
+@media (max-width: 560px) {
+  .sh { padding: 40px 18px 48px; } .sh h1 { font-size: 27px; } .sh .btn-give { width: 100%; }
+  .sh-line { font-size: 10.5px; letter-spacing: .1em; } .sh-line b { font-size: 13px; } .sh-line .d { margin: 0 .55em; } .sh-line .lead { display: none; }
+}
 </style>
 <section class="sh" id="shield">
-  <img class="sh-logo" src="/giving-days-logo-on-white.svg" alt="Trinity School Giving Days">
+  <div class="sh-logo"><svg viewBox="-24 -38 480.5 250" role="img" aria-label="Trinity School Giving Days" id="sh-svg"><image href="/giving-days-logo-on-white.svg" x="0" y="0" width="432.48" height="230.64"/></svg></div>
+  <p class="sh-line" id="sh-line" role="timer" aria-live="off"></p>
   <h1>Giving Days begin <em>{{STARTS_LABEL}}</em></h1>
   <p class="sh-sub">Join the Trinity community in supporting the Trinity Fund. You are welcome to make your gift now.</p>
-  <div class="sh-arc" id="sh-arc" role="timer" aria-label="Time until Giving Days begin" hidden>
-    <div class="sh-arch"><svg viewBox="0 0 300 160" aria-hidden="true" id="sh-svg"></svg><div class="sh-mid"><b id="sh-d">0</b><span>days to go</span></div></div>
-    <div class="sh-rest" id="sh-rest"></div>
-  </div>
   <button class="btn-give" id="hero-give" type="button">Make your gift →</button>
   <p class="sh-note">Questions? <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:inherit">trinityfund@trinityschoolnyc.org</a></p>
 </section>
 <script>
 (function () {
-  var t = new Date('{{STARTS_ISO}}').getTime(), box = document.getElementById('sh-arc'), svg = document.getElementById('sh-svg'), h = '';
-  for (var i = 0; i < 30; i++) {
-    var a = Math.PI * (1 - i / 29);
-    h += '<circle cx="' + (150 + 130 * Math.cos(a)).toFixed(1) + '" cy="' + (150 - 130 * Math.sin(a)).toFixed(1) + '" r="6" fill="#E4E2DC"/>';
+  var t = new Date('{{STARTS_ISO}}').getTime(), svg = document.getElementById('sh-svg'), line = document.getElementById('sh-line'), dots = [];
+  for (var j = 0; j < 30; j++) {   // ring centred on the middle of the logo's yellow line, just outside its arch
+    var b = Math.PI * (1 - (0.03 + 0.94 * j / 29)), c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', (216.24 + 163 * Math.cos(b)).toFixed(1)); c.setAttribute('cy', (150.3 - 163 * Math.sin(b)).toFixed(1));
+    c.setAttribute('r', '4.6'); c.setAttribute('fill', '#E4E2DC'); svg.appendChild(c); dots.push(c);
   }
-  svg.innerHTML = h;
-  var dots = svg.querySelectorAll('circle'), z = function (n) { return (n < 10 ? '0' : '') + n; };
+  var z = function (n) { return (n < 10 ? '0' : '') + n; }, pl = function (n, w) { return '<b>' + n + '</b> ' + w + (n === 1 ? '' : 's'); };
   function tick() {
     var ms = t - Date.now();
     if (ms <= 0) {   // launch time: the real page replaces the teaser (reload at most once per 10s, in case this device's clock runs fast)
@@ -46,11 +44,9 @@
       setTimeout(function () { location.reload(); }, 1000 + Math.random() * 2000); return;
     }
     var sec = Math.floor(ms / 1000), m = Math.floor(sec / 60), D = Math.floor(m / 1440);
-    document.getElementById('sh-d').textContent = D;
-    document.getElementById('sh-rest').textContent = z(Math.floor(m % 1440 / 60)) + ' : ' + z(m % 60) + ' : ' + z(sec % 60);
+    line.innerHTML = '<span class="lead">Starts in</span> ' + [pl(D, 'day'), pl(Math.floor(m % 1440 / 60), 'hour'), pl(m % 60, 'minute'), pl(sec % 60, 'second')].join('<i class="d"></i>');
     var left = Math.min(30, D + 1);   // the day in progress counts as a day still to come
     for (var k = 0; k < dots.length; k++) dots[k].setAttribute('fill', k < 30 - left ? '#FCB104' : '#E4E2DC');
-    box.hidden = false;
   }
   tick(); setInterval(tick, 1000);
 })();
