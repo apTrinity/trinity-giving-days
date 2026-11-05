@@ -58,7 +58,7 @@ module.exports = function getShield(supabase) {
   const fragment = fs.readFileSync(path.join(__dirname, 'public', 'giving-days-shield.html'), 'utf8');
   function teaser(startsAt) {
     const label = startsAt.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' });
-    return fragment.replace(/^<!--[\s\S]*?-->\s*/, '').replace(/\{\{STARTS_ISO\}\}/g, startsAt.toISOString()).replace(/\{\{STARTS_LABEL\}\}/g, label);
+    return fragment.replace(/^<!--[\s\S]*?-->\s*/, '').replace(/\{\{STARTS_ISO\}\}/g, startsAt.toISOString()).replace(/\{\{STARTS_LABEL\}\}/g, label).replace(/\{\{STARTS_SHORT\}\}/g, startsAt.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' }));
   }
 
   // The full page file turned into the teaser page: campaign markup and script swapped out.
