@@ -61,6 +61,11 @@ function recordMiss(id) {
 
 const safeJson = o => JSON.stringify(o).replace(/</g, '\\u003c');
 
+// A link tag from ?src=, for telling QR codes, emails and posts apart. Letters, digits, dash and underscore only.
+const SRC_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+const cleanSource = v => { const s = typeof v === 'string' ? v.trim().toLowerCase() : ''; return SRC_RE.test(s) ? s : null; };
+const BOT_RE = /bot|crawl|spider|slurp|preview|scan|monitor|facebookexternalhit|curl|wget|python|headless/i;
+
 const TAG_KEYS = ['alumni', 'current_parent', 'parent_of_alumni', 'faculty', 'grandparent', 'friend', 'new_family', 'alumna'];
 const GRADE_KEYS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
@@ -118,6 +123,14 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
         }
       } catch (err) { console.error('giving-days page donor:', err.message); }
     }
+    // Link tag (?src=): sent back with any gift, and the visit counted. Not for demos, admins or obvious bots.
+    const src = cleanSource(req.query && req.query.src);
+    if (src) {
+      data.src = src;
+      if (!persona && !(shield.hasPass && shield.hasPass(req)) && !BOT_RE.test(req.headers['user-agent'] || '')) {
+        Promise.resolve(supabase.from('gd_visits').insert({ source: src })).then(r => { if (r && r.error) console.error('giving-days visit:', r.error.message); }, err => console.error('giving-days visit:', err.message));
+      }
+    }
     html = html.replace('<!--GD_DATA-->', `<script>window.__GD = ${safeJson(data)};</script>`);
     if (shieldAt) html = shield.apply(html, shieldAt);
     return { html, known };
@@ -159,4 +172,5 @@ module.exports.makeToken = makeToken;
 module.exports.effectiveTags = effectiveTags;
 module.exports.qualifies = qualifies;
 module.exports.TOKEN_RE = TOKEN_RE;
+module.exports.cleanSource = cleanSource;
 module.exports.demoPersona = demoPersona;

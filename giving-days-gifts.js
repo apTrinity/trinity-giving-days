@@ -3,8 +3,9 @@
 // Progress (which gifts count, challenge values) lives in giving-days-progress.js.
 
 const { TAGS } = require('./giving-days-admin');
-const { TOKEN_RE } = require('./giving-days-donors');
+const { TOKEN_RE, qualifies, cleanSource } = require('./giving-days-donors');
 const { loadGifts, giftTags, countStatus, invalidate } = require('./giving-days-progress');
+const { sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization } = require('./giving-days-emails');
 
 const TAG_KEYS = TAGS.map(t => t.key);
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -24,7 +25,7 @@ function fromAffiliations(list) {
   return { tags: [...tags], grades: GRADES.filter(g => grades.has(g)), class_year: year };
 }
 
-module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, skyRequest, isLive }) {
+module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, skyRequest, isLive, loadCampaign, audiences }) {
   const fail = (res, err, status = 500) => {
     console.error('giving-days-gifts:', err.message || err);
     res.status(status).json({ error: status === 500 ? 'Something went wrong. Please try again.' : err.message });
@@ -83,7 +84,10 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
     };
     try {
       row.donor_id = await findDonor(typeof b.token === 'string' ? b.token : '', email);
-      const { data, error } = await supabase.from('gd_gifts').insert(row).select('id').single();
+      const source = cleanSource(b.source);
+      let { data, error } = await supabase.from('gd_gifts').insert(source ? { ...row, source } : row).select('id').single();
+      // The source column comes from sql/gd-12-sources.sql. If that has not been run yet, record the gift without it rather than lose it.
+      if (error && source && error.code === '42703') ({ data, error } = await supabase.from('gd_gifts').insert(row).select('id').single());
       if (error) {
         if (error.code === '23505') {  // two requests for the same transaction: the first one won
           const { data: dup } = await supabase.from('gd_gifts').select('id').eq('transaction_id', transaction_id).maybeSingle();
@@ -92,9 +96,37 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         throw error;
       }
       invalidate();
+      // Receipt to the donor and a note to staff (test gifts go to Andrew only). Never blocks or fails the gift.
+      try {
+        let donor = null;
+        if (row.donor_id) {
+          const r = await supabase.from('gd_donors')
+            .select('re_id, first_name, class_year, grades, ly_gift, import_tags, tags_added, tags_removed').eq('id', row.donor_id).maybeSingle();
+          donor = r.data;
+        }
+        const gift = { ...row, id: data.id, created_at: new Date().toISOString() };
+        // Personal touches: the donor's audience text (reunion, senior parents, ...), the challenges they count toward, where their class stands.
+        let personal = null;
+        try {
+          const tags = giftTags({ ...gift, _donor: donor, tags_added: [], tags_removed: [] }).tags;
+          const profile = {
+            first_name: gift.first_name || (donor && donor.first_name) || '', tags,
+            grades: [...new Set([...(gift.grades || []), ...((donor && donor.grades) || [])])],
+            class_year: gift.class_year != null ? gift.class_year : donor ? donor.class_year : null,
+            ly: donor && donor.ly_gift != null ? Number(donor.ly_gift) : null,
+          };
+          personal = buildPersonalization(gift, profile, {
+            campaign: loadCampaign ? await loadCampaign() : null,
+            audiences: audiences ? await audiences.loadPublished() : [],
+            audienceFor: audiences && audiences.audienceFor, qualifies,
+          });
+        } catch (pErr) { console.error('[GD] email personalization skipped:', pErr.message || pErr); }
+        await sendGiftEmails(gift, donor, personal);
+      } catch (mailErr) { console.error('[GD] gift emails failed:', mailErr.message || mailErr); }
       return res.json({ success: true, gift_id: data.id });
     } catch (err) {
       console.error('[GD] UNRECORDED GIFT (payment captured, database write failed):', JSON.stringify(row), err.message || err);
+      try { await sendUnrecordedGiftAlert({ ...row, created_at: new Date().toISOString() }); } catch (mailErr) { console.error('[GD] alert email failed:', mailErr.message || mailErr); }
       return res.json({ success: true, gift_id: null });
     }
   });
@@ -112,7 +144,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         return {
           id: g.id, created_at: g.created_at, amount: Number(g.amount),
           first_name: g.first_name, last_name: g.last_name, email: g.email, anonymous: g.anonymous,
-          is_test: g.is_test, excluded: g.excluded, has_donor: !!g.donor_id,
+          is_test: g.is_test, excluded: g.excluded, has_donor: !!g.donor_id, source: g.source || null,
           class_year: g.class_year != null ? g.class_year : g._donor ? g._donor.class_year : null,
           grades: g.grades, tags: t.tags, tag_sources: t.sources,
           status: countStatus(g, s.data),
@@ -128,6 +160,32 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
           test: out.filter(g => g.is_test).length,
         },
       });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Admin: per link tag, how many times the page was opened, how many gifts followed and what they raised.
+  // Counts only gifts that count toward progress (real, in the window, not excluded).
+  app.get('/api/admin/gd/sources', requireAdmin, async (req, res) => {
+    try {
+      const [gifts, s, v] = await Promise.all([
+        loadGifts(supabase),
+        supabase.from('gd_settings').select('starts_at, ends_at, gifts_count_from, test_gifts_count').eq('id', 1).single(),
+        supabase.from('gd_visits').select('source'),
+      ]);
+      if (s.error) throw s.error;
+      if (v.error && v.error.code !== '42P01') throw v.error;   // 42P01: gd-12 not run yet
+      const by = {};
+      const row = k => (by[k] = by[k] || { source: k, visits: 0, gifts: 0, raised: 0, test_gifts: 0 });
+      for (const r of (v.data || [])) row(r.source).visits++;
+      for (const g of gifts) {
+        if (!g.source) continue;
+        if (g.is_test) { row(g.source).test_gifts++; continue; }
+        if (countStatus(g, s.data) !== 'counts') continue;
+        const r = row(g.source); r.gifts++; r.raised += Number(g.amount);
+      }
+      const sources = Object.values(by).map(r => ({ ...r, conversion: r.visits ? r.gifts / r.visits : null }))
+        .sort((a, b) => b.raised - a.raised || b.visits - a.visits);
+      res.json({ sources, ready: !v.error });
     } catch (err) { fail(res, err); }
   });
 

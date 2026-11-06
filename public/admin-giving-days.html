@@ -221,6 +221,7 @@
         <div><h2>Gifts</h2><p class="hint" id="g-summary">Loading…</p></div>
         <button class="btn small danger" id="g-del-test">Delete all test gifts</button>
       </div>
+      <div id="g-sources" style="margin-bottom:18px"></div>
       <div id="g-list"></div>
     </section>
 
@@ -762,8 +763,22 @@ async function loadGifts() {
     const s = j.summary;
     $('g-summary').textContent = `${s.counted} of ${s.total} gifts counted · ${s.donors} donors · ${money(s.raised)} · ${s.test} test gifts`;
     $('g-del-test').style.display = s.test ? '' : 'none';
-    renderGifts();
+    renderGifts(); loadSources();
   } catch (e) { $('g-list').innerHTML = `<div class="empty">Could not load gifts: ${esc(e.message)}</div>`; }
+}
+// Link tracking: a link ending in ?src=<tag> (a QR code, an email, a post) is counted here.
+async function loadSources() {
+  const el = $('g-sources');
+  try {
+    const j = await api('GET', '/api/admin/gd/sources');
+    const base = location.origin + '/preview?src=';
+    const head = `<h3 style="margin:0 0 4px">Where gifts come from</h3><p class="hint" style="margin:0 0 8px">Add <code>?src=a-name</code> to any link (for example <code>${esc(base)}qr-flyer</code>) and it shows up here. Use letters, numbers and dashes. Counts only gifts that count toward progress.</p>`;
+    if (!j.ready) { el.innerHTML = head + '<div class="empty">Tracking is not set up yet. Run sql/gd-12-sources.sql in Supabase.</div>'; return; }
+    if (!j.sources.length) { el.innerHTML = head + '<div class="empty">No tagged links used yet.</div>'; return; }
+    const pct = c => c == null ? '–' : (c * 100).toFixed(c < 0.1 ? 1 : 0) + '%';
+    el.innerHTML = head + '<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="text-align:left;color:#666"><th style="padding:4px 8px">Link tag</th><th>Page opens</th><th>Gifts</th><th>Raised</th><th>Gifts per open</th><th>Test gifts</th></tr>' +
+      j.sources.map(r => `<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px"><b>${esc(r.source)}</b></td><td>${r.visits}</td><td>${r.gifts}</td><td>${money(r.raised)}</td><td>${pct(r.conversion)}</td><td>${r.test_gifts || ''}</td></tr>`).join('') + '</table>';
+  } catch (e) { el.innerHTML = `<div class="empty">Could not load link tracking: ${esc(e.message)}</div>`; }
 }
 function renderGifts() {
   const el = $('g-list');
@@ -776,7 +791,7 @@ function renderGifts() {
     const extra = [g.class_year ? 'Class of ' + g.class_year : '', g.grades.length ? 'Grades ' + g.grades.join(', ') : ''].filter(Boolean).join(' · ');
     return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}">
       <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
-        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
         <div>${tags}</div></div>
       <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
     </div>`;

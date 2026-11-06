@@ -1800,7 +1800,7 @@ function gmInitCheckout(configId) {
     const body = {
       transaction_id: e.transaction.id, amount: total,
       first_name: $gm('gm-first').value.trim(), last_name: $gm('gm-last').value.trim(), email: $gm('gm-email').value.trim(),
-      anonymous: $gm('gm-anon').checked, affiliations: gmAffiliations(), token: GD.token || null,
+      anonymous: $gm('gm-anon').checked, affiliations: gmAffiliations(), token: GD.token || null, source: GD.src || null,
     };
     gmThanks(total);
     // The donor already sees the thank-you; the save runs behind it. Then refresh the hero numbers.

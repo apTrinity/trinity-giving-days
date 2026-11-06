@@ -2483,8 +2483,11 @@ async function requireAdmin(req, res, next) {
 let gdAdmin = null, gdAudiences = null;
 try {
   gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
-  require('./giving-days-gifts')(app, { supabase, requireAdmin, skyRequest, isLive: gdIsLive });
   gdAudiences = require('./giving-days-audiences')(app, { supabase, requireAdmin });
+  require('./giving-days-gifts')(app, {
+    supabase, requireAdmin, skyRequest, isLive: gdIsLive, loadCampaign: gdAdmin.loadCampaign,
+    audiences: { loadPublished: gdAudiences.loadPublished, audienceFor: require('./giving-days-audiences').audienceFor },
+  });
 } catch (err) {
   console.error('Giving Days admin routes failed to load:', err.message);
 }
