@@ -766,7 +766,11 @@ function renderQt(r) {
   const out = $('qt-out'), run = r.state === 'running';
   $('qt-run').disabled = run;
   if (run) { out.innerHTML = '<p class="hint">Running query ' + esc(r.query_id) + '… this takes a minute or two.</p>'; return; }
-  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Test failed: ${esc(r.error)}</div>`; return; }
+  if (r.state === 'error') {
+    const av = r.available;
+    const list = Array.isArray(av) ? (av.length ? '<p><b>Single-row queries this connection can see</b> (click an ID to use it):</p><ul>' + av.map(q => `<li><a href="#" data-qid="${esc(q.id)}"><code>${esc(q.id)}</code></a> ${esc(q.name || '')}</li>`).join('') + '</ul>' : '<p>This connection can see <b>no single-row queries</b>. They may be private to you, or saved in a folder this connection cannot read.</p>') : (av && av.error ? `<p class="hint">Could not list queries: ${esc(av.error)}</p>` : '');
+    out.innerHTML = `<div class="empty" style="color:#b91c1c">Test failed: ${esc(r.error)}</div>${list}`; return;
+  }
   if (r.state !== 'done') { out.innerHTML = ''; return; }
   const cols = r.headers.map(h => `<tr><td style="padding:2px 12px 2px 0"><code>${esc(h)}</code></td><td style="padding:2px 0;color:#666">${r.filled[h]} of ${r.rows} filled</td></tr>`).join('');
   const sample = r.sample.map(row => `<tr>${r.headers.map(h => `<td style="padding:2px 8px;border-top:1px solid var(--line);white-space:nowrap">${esc(row[h])}</td>`).join('')}</tr>`).join('');
@@ -779,6 +783,7 @@ async function pollQt() {
   try { const r = await api('GET', '/api/admin/gd/query-test/status'); renderQt(r); if (r.state === 'running') qtTimer = setTimeout(pollQt, 4000); }
   catch (e) { $('qt-out').innerHTML = `<div class="empty">Could not read status: ${esc(e.message)}</div>`; }
 }
+$('qt-out').addEventListener('click', e => { const a = e.target.closest('a[data-qid]'); if (a) { e.preventDefault(); $('qt-id').value = a.dataset.qid; $('qt-run').click(); } });
 $('qt-run').addEventListener('click', async () => {
   try { await api('POST', '/api/admin/gd/query-test/start', { query_id: $('qt-id').value.trim() }); pollQt(); } catch (e) { toast(e.message, true); }
 });

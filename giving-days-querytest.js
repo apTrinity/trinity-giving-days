@@ -8,11 +8,33 @@ const { parse } = require('csv-parse/sync');
 module.exports = function mountQueryTest(app, { requireAdmin, skyRequest }) {
   let run = { state: 'idle' };
 
+  // The single-row queries visible to this connection: [{ id, name }]. Pages through GET /v2/queries (new endpoint in the single-row preview).
+  async function listSingleRow() {
+    const out = []; let token = null;
+    for (let i = 0; i < 10; i++) {
+      const params = { product: 'RE', module: 'None', result_layout: 'SingleRow' };
+      if (token) params.continuation_token = token;
+      const r = await skyRequest({ method: 'get', url: 'https://api.sky.blackbaud.com/query/v2/queries', params });
+      const items = Array.isArray(r.data) ? r.data : (r.data && (r.data.value || r.data.queries)) || [];
+      for (const q of items) out.push({ id: q.id, name: q.name, type: q.type || q.type_name || null });
+      token = r.data && r.data.continuation_token;
+      if (!token) break;
+    }
+    return out.slice(0, 200);
+  }
+
   async function execute(id) {
     const t0 = Date.now();
     run = { state: 'running', query_id: id, started: new Date().toISOString() };
     try {
-      const ex = await skyRequest({ method: 'post', url: 'https://api.sky.blackbaud.com/query/queries/executebyid', params: { product: 'RE', module: 'None' }, data: { id } });
+      let ex;
+      try {
+        ex = await skyRequest({ method: 'post', url: 'https://api.sky.blackbaud.com/query/queries/executebyid', params: { product: 'RE', module: 'None' }, data: { id } });
+      } catch (err) {
+        // Not found: list the single-row queries this connection CAN see (GET /v2/queries), so the right ID can be picked.
+        if (err.response && err.response.status === 404) err.available = await listSingleRow().catch(e => ({ error: e.message }));
+        throw err;
+      }
       const jobId = ex.data && ex.data.id;
       if (!jobId) throw new Error('Blackbaud did not return a job for query ' + id);
       let sas = null, last = '';
@@ -34,7 +56,7 @@ module.exports = function mountQueryTest(app, { requireAdmin, skyRequest }) {
     } catch (err) {
       const detail = err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 300)}` : (err.message || String(err));
       console.error('[GD query test] failed:', detail);
-      run = { state: 'error', query_id: id, error: detail };
+      run = { state: 'error', query_id: id, error: detail, available: err.available || null };
     }
   }
 
