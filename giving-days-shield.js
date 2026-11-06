@@ -49,7 +49,7 @@ module.exports = function getShield(supabase) {
     // untilLaunch: the public front door, always a teaser before the launch time (does not need GD_SHIELD=on).
     if (!force) {
       if (!untilLaunch && String(process.env.GD_SHIELD || '').toLowerCase() !== 'on') return null;
-      if (hasPass(req)) return null;
+      if (!untilLaunch && hasPass(req)) return null;   // the public front door ignores the admin pass: admins use /preview
     }
     let t;
     try { t = await startsAt(); } catch (err) { console.error('giving-days-shield:', err.message); return new Date('2026-11-30T05:00:00Z'); }
