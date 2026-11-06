@@ -212,6 +212,13 @@
         <div><h2>Constituents</h2><p class="hint" id="d-summary">Loading…</p></div>
         <input type="text" id="d-q" placeholder="Search name, email or RE ID" autocomplete="off" style="max-width:280px">
       </div>
+      <div id="qt-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
+        <div class="head-row" style="margin-bottom:6px">
+          <div><b>Test an RE query</b><p class="hint" style="margin:2px 0 0">Runs the query and shows the columns it returns. Read-only: nothing is saved.</p></div>
+          <div style="display:flex;gap:8px;align-items:center"><input type="text" id="qt-id" value="648898" style="width:110px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
+        </div>
+        <div id="qt-out"></div>
+      </div>
       <div id="d-list"></div>
       <div class="head-row" style="margin-top:12px"><span class="hint" id="d-range"></span><div style="display:flex;gap:8px"><button class="btn small ghost" id="d-prev">← Previous</button><button class="btn small ghost" id="d-next">Next →</button></div></div>
     </section>
@@ -446,7 +453,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
-  if (b.dataset.tab === 'constituents') loadDonors();
+  if (b.dataset.tab === 'constituents') { loadDonors(); pollQt(); }
   if (b.dataset.tab === 'challenges') loadChallenges();
   document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences');
   if (b.dataset.tab === 'audiences') queuePreview();
@@ -753,6 +760,28 @@ $('dd-save').onclick = async () => {
   btn.disabled = false;
 };
 
+// ── Test an RE query (read-only) ──
+let qtTimer = null;
+function renderQt(r) {
+  const out = $('qt-out'), run = r.state === 'running';
+  $('qt-run').disabled = run;
+  if (run) { out.innerHTML = '<p class="hint">Running query ' + esc(r.query_id) + '… this takes a minute or two.</p>'; return; }
+  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Test failed: ${esc(r.error)}</div>`; return; }
+  if (r.state !== 'done') { out.innerHTML = ''; return; }
+  const cols = r.headers.map(h => `<tr><td style="padding:2px 12px 2px 0"><code>${esc(h)}</code></td><td style="padding:2px 0;color:#666">${r.filled[h]} of ${r.rows} filled</td></tr>`).join('');
+  const sample = r.sample.map(row => `<tr>${r.headers.map(h => `<td style="padding:2px 8px;border-top:1px solid var(--line);white-space:nowrap">${esc(row[h])}</td>`).join('')}</tr>`).join('');
+  out.innerHTML = `<p><b>Query ${esc(r.query_id)} worked.</b> ${r.rows} rows, ${r.headers.length} columns (${r.seconds}s).</p>
+    <table style="font-size:13px;margin-bottom:8px">${cols}</table>
+    <details><summary><b>First 3 rows</b></summary><div style="overflow:auto"><table style="font-size:12px"><tr>${r.headers.map(h => `<th style="padding:2px 8px;text-align:left">${esc(h)}</th>`).join('')}</tr>${sample}</table></div></details>`;
+}
+async function pollQt() {
+  clearTimeout(qtTimer);
+  try { const r = await api('GET', '/api/admin/gd/query-test/status'); renderQt(r); if (r.state === 'running') qtTimer = setTimeout(pollQt, 4000); }
+  catch (e) { $('qt-out').innerHTML = `<div class="empty">Could not read status: ${esc(e.message)}</div>`; }
+}
+$('qt-run').addEventListener('click', async () => {
+  try { await api('POST', '/api/admin/gd/query-test/start', { query_id: $('qt-id').value.trim() }); pollQt(); } catch (e) { toast(e.message, true); }
+});
 // ── Gifts ──
 let gifts = [], editingGift = null;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
