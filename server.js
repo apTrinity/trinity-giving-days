@@ -514,8 +514,8 @@ app.use(['/api/gift', '/api/lookup', '/api/leaderboard', '/api/sync-offline'], (
   res.status(410).json({ error: 'This endpoint has been retired.' });
 });
 
-// Redirect root to /parents (the Giving Days page is in progress at /preview).
-app.get('/', (req, res) => res.redirect(301, '/parents'));
+// The site root (giving.trinityschoolnyc.org) is served by giving-days-donors.js: the pre-launch page until
+// launch, then the Giving Days page. Parents live at /parents.
 
 app.use(express.static(path.join(__dirname, 'public')));
 

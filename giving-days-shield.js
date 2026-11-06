@@ -45,9 +45,10 @@ module.exports = function getShield(supabase) {
 
   // The launch time if this visitor should see the teaser, else null. A failure to read settings
   // falls on the safe side: keep the shield up rather than show the campaign early.
-  async function activeFor(req, { force = false } = {}) {
+  async function activeFor(req, { force = false, untilLaunch = false } = {}) {
+    // untilLaunch: the public front door, always a teaser before the launch time (does not need GD_SHIELD=on).
     if (!force) {
-      if (String(process.env.GD_SHIELD || '').toLowerCase() !== 'on') return null;
+      if (!untilLaunch && String(process.env.GD_SHIELD || '').toLowerCase() !== 'on') return null;
       if (hasPass(req)) return null;
     }
     let t;

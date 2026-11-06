@@ -152,9 +152,23 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     send(res, (await renderPage(req, t, demoPersona(req.query.p))).html);
   });
 
-  // Demo of the pre-launch teaser, shown whether or not the shield is switched on.
+  // The pre-launch teaser with no Give buttons and no test-mode banner (for screenshots, designers and the public front door).
+  const cleanTeaser = html => html
+    .replace('</head>', '<style>#hero-give,#test-flag,.sticky-give,.btn-give{display:none!important}</style></head>')
+    .replace(' You are welcome to make your gift now.', '');
+
+  // Demo of the pre-launch teaser, shown whether or not the shield is switched on. ?clean=1: no Give buttons or test banner.
   app.get('/prelaunch', async (req, res) => {
-    send(res, (await renderPage(req, null, null, { force: true })).html);
+    const html = (await renderPage(req, null, null, { force: true })).html;
+    send(res, req.query.clean === '1' ? cleanTeaser(html) : html);
+  });
+
+  // The front door, giving.trinityschoolnyc.org: the clean teaser until the launch time, then the Giving Days page.
+  // Link tags work here: giving.trinityschoolnyc.org/?src=qr-flyer
+  app.get('/', async (req, res) => {
+    const shieldAt = await shield.activeFor(req, { untilLaunch: true });
+    const html = (await renderPage(req, null, null, { untilLaunch: true })).html;
+    send(res, shieldAt ? cleanTeaser(html) : html);
   });
 
   // Personal link: /<code>. Registered after every real page, so real pages win.
