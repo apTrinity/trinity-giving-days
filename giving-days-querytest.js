@@ -1,4 +1,4 @@
-// Admin-only, read-only: runs a saved Raiser's Edge query (default 648898) through the SKY Query API and reports
+// Admin-only, read-only: runs a saved Raiser's Edge query (default -648898; single-row query IDs are negative) through the SKY Query API and reports
 // what comes back: the column names, the row count and the first few rows. Writes nothing anywhere.
 // Runs inside the server so it uses the server's own Blackbaud login (and renews it safely).
 
@@ -52,7 +52,14 @@ module.exports = function mountQueryTest(app, { requireAdmin, skyRequest }) {
       // How full each column is, so you can see at a glance what is usable.
       const filled = {};
       for (const h of headers) filled[h] = rows.reduce((n, r) => n + (String(r[h] || '').trim() ? 1 : 0), 0);
-      run = { state: 'done', query_id: id, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), rows: rows.length, headers, filled, sample: rows.slice(0, 3) };
+      // For columns with only a few different values (flags, codes), the values and how often each appears.
+      const values = {};
+      for (const h of headers) {
+        const c = new Map();
+        for (const r of rows) { const v = String(r[h] || '').trim(); if (v) { c.set(v, (c.get(v) || 0) + 1); if (c.size > 25) break; } }
+        if (c.size && c.size <= 25) values[h] = [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([v, n]) => ({ v: v.slice(0, 40), n }));
+      }
+      run = { state: 'done', query_id: id, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), rows: rows.length, headers, filled, values, sample: rows.slice(0, 3) };
     } catch (err) {
       const detail = err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 300)}` : (err.message || String(err));
       console.error('[GD query test] failed:', detail);
@@ -62,7 +69,7 @@ module.exports = function mountQueryTest(app, { requireAdmin, skyRequest }) {
 
   app.post('/api/admin/gd/query-test/start', requireAdmin, (req, res) => {
     if (run.state === 'running') return res.status(409).json({ error: 'A test is already running.' });
-    const id = parseInt(req.body && req.body.query_id, 10) || 648898;
+    const id = parseInt(req.body && req.body.query_id, 10) || -648898;
     execute(id);
     res.status(202).json({ started: true });
   });

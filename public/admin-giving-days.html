@@ -215,7 +215,7 @@
       <div id="qt-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
           <div><b>Test an RE query</b><p class="hint" style="margin:2px 0 0">Runs the query and shows the columns it returns. Read-only: nothing is saved.</p></div>
-          <div style="display:flex;gap:8px;align-items:center"><input type="text" id="qt-id" value="648898" style="width:110px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
+          <div style="display:flex;gap:8px;align-items:center"><input type="text" id="qt-id" value="-648898" style="width:110px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
         </div>
         <div id="qt-out"></div>
       </div>
@@ -772,7 +772,7 @@ function renderQt(r) {
     out.innerHTML = `<div class="empty" style="color:#b91c1c">Test failed: ${esc(r.error)}</div>${list}`; return;
   }
   if (r.state !== 'done') { out.innerHTML = ''; return; }
-  const cols = r.headers.map(h => `<tr><td style="padding:2px 12px 2px 0"><code>${esc(h)}</code></td><td style="padding:2px 0;color:#666">${r.filled[h]} of ${r.rows} filled</td></tr>`).join('');
+  const cols = r.headers.map(h => `<tr><td style="padding:2px 12px 2px 0"><code>${esc(h)}</code></td><td style="padding:2px 12px 2px 0;color:#666">${r.filled[h]} of ${r.rows} filled</td><td style="padding:2px 0;color:#666;font-size:12px">${(r.values && r.values[h]) ? esc(r.values[h].map(x => x.v + ' (' + x.n + ')').join(' · ')) : ''}</td></tr>`).join('');
   const sample = r.sample.map(row => `<tr>${r.headers.map(h => `<td style="padding:2px 8px;border-top:1px solid var(--line);white-space:nowrap">${esc(row[h])}</td>`).join('')}</tr>`).join('');
   out.innerHTML = `<p><b>Query ${esc(r.query_id)} worked.</b> ${r.rows} rows, ${r.headers.length} columns (${r.seconds}s).</p>
     <table style="font-size:13px;margin-bottom:8px">${cols}</table>
