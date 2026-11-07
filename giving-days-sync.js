@@ -126,9 +126,9 @@ function toPeople(rows, roles) {
     const grades = [...gradeSet].sort(gradeSort);
     const code = text(g(r, 'primary_code')) || '';
     const individualOnly = !!roles.primary_code && INDIVIDUAL_CODE.test(code) && household.size === 0;
-    // Codes with no flag column of their own: a withdrawn grandparent is a grandparent; trustees and friends are friends.
+    // Codes with no flag column of their own: a withdrawn grandparent is a grandparent; only the Friend code is a friend (trustees get no tag from being trustees).
     if (/^withdrawn grandparent/i.test(code)) household.add('grandparent');
-    if (/trustee|^friend/i.test(code)) household.add('friend');
+    if (/^friend/i.test(code)) household.add('friend');
     const own = new Set(household);
     if (alumniVal) { own.add('alumni'); if (/^withdrawn/i.test(alumniVal)) issues.withdrawn_alumni++; if (/^female/i.test(text(g(r, 'gender')) || '')) own.add('alumna'); }
     if (text(g(r, 'faculty'))) own.add('faculty');
