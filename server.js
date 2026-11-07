@@ -2484,6 +2484,7 @@ let gdAdmin = null, gdAudiences = null;
 try {
   gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
   gdAudiences = require('./giving-days-audiences')(app, { supabase, requireAdmin });
+  require('./giving-days-sync')(app, { supabase, requireAdmin, skyRequest });
   require('./giving-days-querytest')(app, { requireAdmin, skyRequest });
   require('./giving-days-gifts')(app, {
     supabase, requireAdmin, skyRequest, isLive: gdIsLive, loadCampaign: gdAdmin.loadCampaign,

@@ -219,6 +219,13 @@
         </div>
         <div id="qt-out"></div>
       </div>
+      <div id="sync-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
+        <div class="head-row" style="margin-bottom:6px">
+          <div><b>Sync from Raiser's Edge</b><p class="hint" id="sync-hint" style="margin:2px 0 0">Reads RE query <span id="sync-qid">…</span> and keeps this list up to date. A preview changes nothing.</p></div>
+          <div style="display:flex;gap:8px"><button class="btn small" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
+        </div>
+        <div id="sync-out"></div>
+      </div>
       <div id="d-list"></div>
       <div class="head-row" style="margin-top:12px"><span class="hint" id="d-range"></span><div style="display:flex;gap:8px"><button class="btn small ghost" id="d-prev">← Previous</button><button class="btn small ghost" id="d-next">Next →</button></div></div>
     </section>
@@ -284,6 +291,7 @@
   <div class="dlg-head"><h2 id="dd-title">Constituent</h2><button id="ddlg-x" aria-label="Close">×</button></div>
   <div class="gf-edit">
     <div class="hint" id="dd-info"></div>
+    <div class="hint" id="dd-names" style="margin-top:4px"></div>
     <div class="grid2">
       <div class="field" style="margin:0"><label for="dd-first">First name</label><input type="text" id="dd-first" maxlength="40"></div>
       <div class="field" style="margin:0"><label for="dd-year">Class year</label><input type="number" id="dd-year" min="1900" max="2100" step="1"></div>
@@ -453,7 +461,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
-  if (b.dataset.tab === 'constituents') { loadDonors(); pollQt(); }
+  if (b.dataset.tab === 'constituents') { loadDonors(); pollQt(); pollSync(); }
   if (b.dataset.tab === 'challenges') loadChallenges();
   document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences');
   if (b.dataset.tab === 'audiences') queuePreview();
@@ -714,6 +722,7 @@ function renderDonors() {
   if (!DN.rows.length) { el.innerHTML = `<div class="empty">${DN.q ? 'No constituents match that search.' : 'No constituents yet. They appear here after the Raiser\'s Edge import.'}</div>`; return; }
   el.innerHTML = DN.rows.map(d => `<div class="gf" data-id="${d.id}">
     <div><span class="who">${esc(donorName(d))}</span><span class="amt">${d.ly != null ? 'Last gift ' + money(d.ly) : ''}</span>
+      ${d.addressee ? `<div class="meta" style="color:var(--navy,#02193B)">${esc(d.addressee)}</div>` : ''}
       <div class="meta">${[d.email, 'RE ' + d.re_id, d.class_year ? 'Class of ' + d.class_year : '', d.grades.length ? 'Gr ' + d.grades.join(', ') : '', d.ask_a != null ? 'Ask A ' + money(d.ask_a) : '', d.ask_b != null ? 'Ask B ' + money(d.ask_b) : ''].filter(Boolean).map(esc).join(' · ')}</div>
       <div>${d.tags.map(t => `<span class="tg">${esc(tagLabel(t))}</span>`).join('')}</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
@@ -737,6 +746,7 @@ function openDonor(d) {
   editingDonor = d; $('dd-error').style.display = 'none';
   $('dd-title').textContent = donorName(d);
   $('dd-info').textContent = [d.email, 'RE ' + d.re_id].filter(Boolean).join(' · ');
+  $('dd-names').innerHTML = [['Addressee', d.addressee], ['Salutation', d.salutation], ['Alumni addressee', d.alumni_addressee], ['Alumni salutation', d.alumni_salutation], ['Given this year in RE', d.giving_ytd != null ? money(d.giving_ytd) : '']].filter(x => x[1]).map(x => `<div><span style="color:#888">${esc(x[0])}:</span> ${esc(x[1])}</div>`).join('');
   $('dd-first').value = d.first_name || ''; $('dd-year').value = d.class_year ?? ''; $('dd-ly').value = d.ly ?? ''; $('dd-a').value = d.ask_a ?? ''; $('dd-b').value = d.ask_b ?? '';
   $('dd-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${d.grades.includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
   $('dd-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}"><input type="checkbox" value="${t.key}" ${d.tags.includes(t.key) ? 'checked' : ''}> ${esc(t.label)}</label>`).join('');
@@ -787,6 +797,56 @@ $('qt-out').addEventListener('click', e => { const a = e.target.closest('a[data-
 $('qt-run').addEventListener('click', async () => {
   try { await api('POST', '/api/admin/gd/query-test/start', { query_id: $('qt-id').value.trim() }); pollQt(); } catch (e) { toast(e.message, true); }
 });
+// ── Sync from RE ──
+let syncTimer = null, syncPreviewed = false;
+function renderSync(r) {
+  const out = $('sync-out'); $('sync-qid').textContent = r.query_id || '';
+  const run = r.state === 'running';
+  $('sync-preview').disabled = run; $('sync-apply').disabled = run;
+  if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
+  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Sync failed: ${esc(r.error)}</div>`; return; }
+  if (r.state !== 'done' || !r.result) { out.innerHTML = ''; return; }
+  const x = r.result, w = x.would, i = x.issues, applied = r.mode === 'apply';
+  syncPreviewed = syncPreviewed || r.mode === 'preview';
+  $('sync-apply').style.display = (!applied && !x.blocking.length) ? '' : 'none';
+  const li = a => a.map(t => `<li>${t}</li>`).join('');
+  const ch = Object.entries(w.changed_fields).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') || 'none';
+  out.innerHTML = `
+    <p><b>${applied ? 'Applied.' : 'Preview.'}</b> ${x.rows} household rows from the query became <b>${x.people}</b> people (couples split into two).
+      ${applied ? 'Added' : 'Would add'} <b>${w.add}</b>, ${applied ? 'updated' : 'would update'} <b>${w.update}</b> (changed fields — ${ch}), ${w.unchanged} unchanged, ${w.missing_from_query} on the list but not in the query (${applied ? 'marked inactive' : 'would be marked inactive'}).</p>
+    ${x.blocking.length ? `<p style="color:#b91c1c"><b>Cannot apply:</b> ${esc(x.blocking.join(' '))}</p>` : ''}
+    ${x.asks_frozen ? '<p class="hint">Giving Days have started, so Ask A/B are frozen for existing donors.</p>' : ''}
+    <details open><summary><b>Columns the sync understood</b></summary><ul>${li(Object.entries(x.matched).map(([k, v]) => `${esc(k)} ← <code>${esc(v)}</code>`))}</ul></details>
+    <details><summary><b>Not in the query</b> (${x.missing_roles.length}) and <b>columns not used</b> (${x.unmatched_columns.length})</summary>
+      <p class="hint">Fields the platform can use that this query does not have: ${esc(x.missing_roles.join(', ') || 'none')}</p>
+      <p class="hint">Query columns the sync ignores: ${esc(x.unmatched_columns.join(', ') || 'none')}</p></details>
+    <details open><summary><b>Things to look at</b></summary><ul>${li([
+      i.no_email ? `${i.no_email} people have no email${x.examples.no_email.length ? ' (e.g. ' + esc(x.examples.no_email.join('; ')) + ')' : ''}` : '',
+      i.no_id ? `${i.no_id} rows have no RE ID and were skipped` : '', i.no_name ? `${i.no_name} people have no name and were skipped` : '',
+      i.duplicate_id ? `${i.duplicate_id} duplicate RE IDs were merged` : '', i.deceased ? `${i.deceased} deceased rows were left out` : '', i.no_solicit ? `${i.no_solicit} do-not-solicit rows were left out` : '',
+      i.spouse_id_missing ? `${i.spouse_id_missing} spouses have no RE ID in the query and were skipped` : '',
+      i.spouse_has_own_row ? `${i.spouse_has_own_row} spouses also have their own row; their own row was used` : '',
+      i.spouse_skipped_individual ? `${i.spouse_skipped_individual} spouses were left out because the primary code is one person's tie to the school (faculty/staff, alumni, withdrawn alumni) with no household code` : '',
+      i.email2_used ? `${i.email2_used} spouse emails taken from Email 2 (current parents and parents of alumni)` : '', i.email2_ignored ? `${i.email2_ignored} Email 2 values ignored (not current parents or parents of alumni)` : '',
+      i.withdrawn_alumni ? `${i.withdrawn_alumni} Withdrawn Alumni were tagged as alumni` : '', i.withdrawn_parent ? `${i.withdrawn_parent} Withdrawn Parents were tagged as parents of alumni` : '', i.new_family ? `${i.new_family} households tagged as new families (appeal code starts with NEW FAMILY)` : '',
+      i.class_year_unreadable ? `${i.class_year_unreadable} alumni class years could not be read${x.examples.class_year_unreadable.length ? ' (e.g. ' + esc(x.examples.class_year_unreadable.join('; ')) + ')' : ''}` : '',
+      i.student_class_outside_k12 ? `${i.student_class_outside_k12} student class years fall outside K-12 and were left out of grades` : '',
+    ].filter(Boolean)) || '<li>Nothing.</li>'}</ul></details>
+    ${(x.primary_codes && x.primary_codes.length) ? `<details><summary><b>Households with a spouse, by Primary Constituent Code</b></summary><ul>${li(x.primary_codes.map(c => esc(c.code) + ': ' + c.n + ' with a spouse' + (c.skipped ? ', ' + c.skipped + ' spouses left out' : '')))}</ul></details>` : ''}
+    <details><summary><b>First 5 people</b></summary><ul>${li(x.sample.map(p => esc([p.first_name, p.last_name].filter(Boolean).join(' ') + ' · ' + (p.email || 'no email') + ' · RE ' + p.re_id + (p.class_year ? ' · class of ' + p.class_year : '') + (p.grades && p.grades.length ? ' · grades ' + p.grades.join(',') : '') + ((p.import_tags || []).length ? ' · ' + p.import_tags.join(', ') : '') + (p.ask_a != null ? ' · asks $' + p.ask_a + '/$' + p.ask_b : ''))))}</ul></details>
+    <p class="hint">${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}${r.schedule ? ' · nightly sync is on' : ''}</p>`;
+}
+async function pollSync() {
+  clearTimeout(syncTimer);
+  try { const r = await api('GET', '/api/admin/gd/sync/status'); renderSync(r); if (r.state === 'running') syncTimer = setTimeout(pollSync, 4000); else if (r.state === 'done' && r.mode === 'apply') loadDonors && loadDonors(); }
+  catch (e) { $('sync-out').innerHTML = `<div class="empty">Could not read sync status: ${esc(e.message)}</div>`; }
+}
+async function startSync(apply) {
+  try { await api('POST', '/api/admin/gd/sync/start', { apply }); pollSync(); } catch (e) { toast(e.message, true); }
+}
+$('sync-preview').addEventListener('click', () => startSync(false));
+$('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? This adds new people and updates changed details from RE. Personal links and admin tag edits are not touched.')) startSync(true); });
+++ b/server.js
 // ── Gifts ──
 let gifts = [], editingGift = null;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };

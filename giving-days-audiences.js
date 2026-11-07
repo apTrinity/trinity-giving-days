@@ -138,11 +138,15 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
   // Affiliations are edited as the wanted list: the difference from the import's tags is stored as admin
   // additions/removals, so a re-import never undoes the edit. Class year, grades and last-year gift are
   // overwritten (a re-import rewrites them).
-  const COLS = 'id, token, re_id, first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed';
+  const BASE = 'id, token, re_id, first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed';
+  // Columns from sql/gd-13-sync.sql; until that is run the list falls back to BASE.
+  const COLS = BASE + ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id';
   const donorOut = d => ({
     id: d.id, token: d.token, re_id: d.re_id, first_name: d.first_name || '', last_name: d.last_name || '', email: d.email || '',
     class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
     ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null, tags: effectiveTags(d), grades: d.grades || [],
+    addressee: d.addressee || '', salutation: d.salutation || '', alumni_addressee: d.alumni_addressee || '', alumni_salutation: d.alumni_salutation || '',
+    giving_ytd: d.giving_ytd != null ? Number(d.giving_ytd) : null,
   });
 
   // Donor list, 50 a page, sorted by last name; q filters by name, email or RE ID.
@@ -151,15 +155,18 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
     const q = String(req.query.q || '').trim().slice(0, 60);
     const page = Math.max(0, parseInt(req.query.page, 10) || 0);
     try {
-      let qb = supabase.from('gd_donors').select(COLS, { count: 'exact' });
-      const term = q.replace(/[\\%_,()]/g, ' ').trim();
-      if (typeof req.query.id === 'string' && req.query.id) qb = qb.eq('id', req.query.id);
-      if (term) {
-        const like = '%' + term + '%';
-        qb = qb.or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},re_id.ilike.${like}`);
-      }
-      const { data, error, count } = await qb.order('last_name', { nullsFirst: false }).order('first_name').order('id')
-        .range(page * DONOR_PAGE, page * DONOR_PAGE + DONOR_PAGE - 1);
+      const run = async cols => {
+        let qb = supabase.from('gd_donors').select(cols, { count: 'exact' });
+        const term = q.replace(/[\\%_,()]/g, ' ').trim();
+        if (typeof req.query.id === 'string' && req.query.id) qb = qb.eq('id', req.query.id);
+        if (term) {
+          const like = '%' + term + '%';
+          qb = qb.or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},re_id.ilike.${like}`);
+        }
+        return qb.order('last_name', { nullsFirst: false }).order('first_name').order('id').range(page * DONOR_PAGE, page * DONOR_PAGE + DONOR_PAGE - 1);
+      };
+      let { data, error, count } = await run(COLS);
+      if (error && error.code === '42703') ({ data, error, count } = await run(BASE));
       if (error) throw error;
       res.json({ donors: data.map(donorOut), total: count != null ? count : data.length, page, page_size: DONOR_PAGE });
     } catch (err) { fail(res, err); }
