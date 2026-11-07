@@ -846,7 +846,6 @@ async function startSync(apply) {
 }
 $('sync-preview').addEventListener('click', () => startSync(false));
 $('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? This adds new people and updates changed details from RE. Personal links and admin tag edits are not touched.')) startSync(true); });
-++ b/server.js
 // ── Gifts ──
 let gifts = [], editingGift = null;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
