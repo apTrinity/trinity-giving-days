@@ -751,7 +751,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-link:hover { text-decoration: underline; }
 .gm-matchpanel { margin-top: 4px; background: #fff; border: 1px solid var(--border); padding: 12px; }
 .gm-matchnote { font-size: 12px; color: var(--ink-muted); margin: 0; }
-.gm-matchuse { display: block; width: 100%; margin-top: 10px; padding: 11px 14px; background: var(--navy); color: #fff; border: 0; font: 700 12px/1.3 'Open Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.gm-matchuse { display: block; width: 100%; margin: 0 0 10px; padding: 11px 14px; background: var(--navy); color: #fff; border: 0; font: 700 12px/1.3 'Open Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
 .gm-matchuse:hover { background: #0b2a66; }
 .gm-levelline { display: none; }
 .gm-matchbox { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: var(--cream); border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
@@ -929,7 +929,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift.</small></span></label>
           <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
           <a class="gm-link" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Check if your employer matches →</a>
-          <div class="gm-matchpanel" id="gm-match-panel" hidden><div id="dd-container"></div><button type="button" class="gm-matchuse" id="gm-match-use" hidden></button><p class="gm-matchnote" id="gm-match-note" hidden>The lookup didn’t load. <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Open it in a new tab →</a></p></div>
+          <div class="gm-matchpanel" id="gm-match-panel" hidden><button type="button" class="gm-matchuse" id="gm-match-use" hidden></button><div id="dd-container"></div><p class="gm-matchnote" id="gm-match-note" hidden>The lookup didn’t load. <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Open it in a new tab →</a></p></div>
         </div>
         <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
         <div class="gm-error" id="gm-error" hidden></div>
