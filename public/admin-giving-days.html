@@ -287,6 +287,7 @@
         <div><h2>Gifts</h2><p class="hint" id="g-summary">Loading…</p></div>
         <button class="btn small danger" id="g-del-test">Delete all test gifts</button>
       </div>
+      <div id="g-unlinked" style="margin-bottom:18px"></div>
       <div id="g-sources" style="margin-bottom:18px"></div>
       <div id="g-list"></div>
     </section>
@@ -1007,9 +1008,51 @@ async function loadGifts() {
     const s = j.summary;
     $('g-summary').textContent = `${s.counted} of ${s.total} gifts counted · ${s.donors} donors · ${money(s.raised)} · ${s.test} test gifts`;
     $('g-del-test').style.display = s.test ? '' : 'none';
-    renderGifts(); loadSources();
+    renderGifts(); loadSources(); loadUnlinked();
   } catch (e) { $('g-list').innerHTML = `<div class="empty">Could not load gifts: ${esc(e.message)}</div>`; }
 }
+// Gifts not tied to a donor record (the donor gave with an email we do not have): suggested matches by name, one click to link.
+async function loadUnlinked() {
+  const el = $('g-unlinked');
+  try {
+    const j = await api('GET', '/api/admin/gd/gifts/unlinked');
+    const list = j.gifts;
+    if (!list.length) { el.innerHTML = ''; return; }
+    const cand = (g, d) => `<button class="btn small ${d.score >= 2 ? '' : 'ghost'}" data-link="${esc(d.id)}" data-gift="${esc(g.id)}" title="${esc(d.email || 'no email on file')}">Link to ${esc([d.first_name, d.last_name].filter(Boolean).join(' '))}${d.class_year ? ' ’' + String(d.class_year).slice(-2) : ''}${d.re_id ? ' · RE ' + esc(d.re_id) : ''}</button>`;
+    el.innerHTML = `<div class="card" style="max-width:none;border-left:4px solid #FCB104"><h3 style="margin:0 0 4px">Gifts not linked to a donor record (${list.length})</h3>
+      <p class="hint" style="margin:0 0 10px">These donors gave with an email that is not on the constituent list, so the gifts do not show on a constituent’s row. Still counted toward progress. If one is a constituent, link it. Someone who is not on the list can stay as they are.</p>` +
+      list.map(g => {
+        const name = [g.first_name, g.last_name].filter(Boolean).join(' ') || '(no name)';
+        return `<div class="gf" data-ug="${esc(g.id)}" style="grid-template-columns:1fr"><div>
+          <span class="who">${esc(name)}</span><span class="amt">${money(g.amount)}</span>
+          <div class="meta">${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            ${g.suggestions.length ? g.suggestions.map(d => cand(g, d)).join('') : '<span class="hint">No donor with that last name.</span>'}
+            <input type="text" class="ug-q" placeholder="Search by name, email or RE ID" style="width:240px;padding:6px 8px" aria-label="Search for a donor">
+          </div>
+          <div class="ug-res" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div></div></div>`;
+      }).join('') + '</div>';
+  } catch (e) { el.innerHTML = ''; }
+}
+$('g-unlinked').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-link]'); if (!b) return;
+  b.disabled = true;
+  try { await api('PUT', '/api/admin/gd/gifts/' + b.dataset.gift + '/link', { donor_id: b.dataset.link }); toast('Linked'); loadGifts(); loadChallenges(); loadDonors(); }
+  catch (err) { toast(err.message, true); b.disabled = false; }
+});
+let ugTimer;
+$('g-unlinked').addEventListener('input', e => {
+  const inp = e.target.closest('.ug-q'); if (!inp) return;
+  clearTimeout(ugTimer);
+  const row = inp.closest('[data-ug]'), out = row.querySelector('.ug-res'), q = inp.value.trim();
+  if (q.length < 2) { out.innerHTML = ''; return; }
+  ugTimer = setTimeout(async () => {
+    try {
+      const j = await api('GET', '/api/admin/gd/donors?q=' + encodeURIComponent(q));
+      out.innerHTML = j.donors.slice(0, 8).map(d => `<button class="btn small ghost" data-link="${esc(d.id)}" data-gift="${esc(row.dataset.ug)}" title="${esc(d.email || 'no email on file')}">Link to ${esc([d.first_name, d.last_name].filter(Boolean).join(' '))}${d.re_id ? ' · RE ' + esc(d.re_id) : ''}</button>`).join('') || '<span class="hint">No one found.</span>';
+    } catch (err) { out.innerHTML = ''; }
+  }, 300);
+});
 // Link tracking: a link ending in ?src=<tag> (a QR code, an email, a post) is counted here.
 async function loadSources() {
   const el = $('g-sources');

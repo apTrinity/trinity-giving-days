@@ -168,6 +168,53 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
     } catch (err) { fail(res, err); }
   });
 
+  // Admin: gifts that were not tied to a donor record (the donor used an email we do not have), each with the
+  // donor records that look like the same person: same last name, best first-name match first.
+  // Registered before the /gifts/:id routes so "unlinked" is not read as an id.
+  app.get('/api/admin/gd/gifts/unlinked', requireAdmin, async (req, res) => {
+    try {
+      const { data: gifts, error } = await supabase.from('gd_gifts')
+        .select('id, created_at, amount, first_name, last_name, email, is_test, excluded, anonymous')
+        .is('donor_id', null).order('created_at', { ascending: false }).limit(300);
+      if (error) throw error;
+      const byLast = new Map();
+      const lasts = [...new Set((gifts || []).map(g => (g.last_name || '').trim().toLowerCase()).filter(Boolean))];
+      for (const ln of lasts) {
+        const { data } = await supabase.from('gd_donors').select('id, first_name, last_name, email, re_id, class_year')
+          .ilike('last_name', ln.replace(/[\\%_]/g, '\\$&')).limit(25);
+        byLast.set(ln, data || []);
+      }
+      const norm = v => (v || '').trim().toLowerCase();
+      const out = (gifts || []).map(g => {
+        const f = norm(g.first_name);
+        const cands = (byLast.get(norm(g.last_name)) || []).map(d => {
+          const df = norm(d.first_name);
+          const score = f && df === f ? 3 : f && df && (df.startsWith(f) || f.startsWith(df)) ? 2 : f && df && df[0] === f[0] ? 1 : 0;
+          return { id: d.id, first_name: d.first_name || '', last_name: d.last_name || '', email: d.email || '', re_id: d.re_id, class_year: d.class_year, score };
+        }).sort((a, b) => b.score - a.score).slice(0, 5);
+        return { ...g, amount: Number(g.amount), suggestions: cands };
+      });
+      res.json({ gifts: out });
+    } catch (err) { fail(res, err); }
+  });
+
+  // Admin: tie a gift to a donor record (or, with donor_id null, undo that). The donor's tags then apply to the gift.
+  app.put('/api/admin/gd/gifts/:id/link', requireAdmin, async (req, res) => {
+    const donorId = req.body && req.body.donor_id;
+    try {
+      if (donorId != null) {
+        const { data: d, error: de } = await supabase.from('gd_donors').select('id').eq('id', donorId).maybeSingle();
+        if (de) throw de;
+        if (!d) return res.status(404).json({ error: 'Donor not found.' });
+      }
+      const { data, error } = await supabase.from('gd_gifts').update({ donor_id: donorId == null ? null : donorId, updated_at: new Date().toISOString() }).eq('id', req.params.id).select('id');
+      if (error) throw error;
+      if (!data || !data.length) return res.status(404).json({ error: 'Gift not found.' });
+      invalidate();
+      res.json({ ok: true });
+    } catch (err) { fail(res, err); }
+  });
+
   // Admin: per link tag, how many times the page was opened, how many gifts followed and what they raised.
   // Counts only gifts that count toward progress (real, in the window, not excluded).
   app.get('/api/admin/gd/sources', requireAdmin, async (req, res) => {
