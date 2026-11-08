@@ -10,6 +10,7 @@ const { sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization } = requir
 const TAG_KEYS = TAGS.map(t => t.key);
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const name = v => str(v, 100).replace(/[<>]/g, '');   // names are shown on the public donor wall; angle brackets are never part of a real name
 
 // The tags, grades and class year a donor declared on the form. Form affiliations look like
 // [{ type: 'alumni', class_year }, { type: 'current_parent', grade }, { type: 'faculty' }].
@@ -77,7 +78,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
     const declared = fromAffiliations(b.affiliations);
     const row = {
       transaction_id, amount,
-      first_name: str(b.first_name, 100) || null, last_name: str(b.last_name, 100) || null,
+      first_name: name(b.first_name) || null, last_name: name(b.last_name) || null,
       email: email || null, anonymous: b.anonymous === true,
       is_test: !isLive(),
       declared_tags: declared.tags, grades: declared.grades, class_year: declared.class_year,

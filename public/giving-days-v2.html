@@ -1329,7 +1329,8 @@ function applyWall(wall) {
   GROUPS.forEach(g => { g.n = wall.groups[g.key] || 0; });
   GTOTAL = wall.total;
   DONORS.length = 0;
-  wall.donors.forEach(d => DONORS.push([d.name, d.group, ago(d.at)]));
+  const escH = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  wall.donors.forEach(d => DONORS.push([escH(d.name), d.group, ago(d.at)]));   // names are typed by donors: escaped here because every place that shows them builds HTML
 }
 applyWall(GD.campaign && GD.campaign.wall);
 let cmView = 'nw', nwGroup = 'all', nwAll = false, lsTimer;
@@ -1703,11 +1704,11 @@ $gm('gm-amts').addEventListener('click', e => {
   document.querySelectorAll('.gm-amt').forEach(x => x.classList.toggle('on', x === b));
   const other = b.dataset.amt === 'other';
   $gm('gm-custom').hidden = !other;
-  gm.amount = other ? (Math.round(parseFloat($gm('gm-custom-amt').value)) || 0) : +b.dataset.amt;
+  gm.amount = other ? Math.max(0, Math.round(parseFloat($gm('gm-custom-amt').value)) || 0) : +b.dataset.amt;
   if (other) $gm('gm-custom-amt').focus();
   gmUpdate();
 });
-$gm('gm-custom-amt').addEventListener('input', e => { gm.amount = Math.round(parseFloat(e.target.value)) || 0; gmUpdate(); });
+$gm('gm-custom-amt').addEventListener('input', e => { gm.amount = Math.max(0, Math.round(parseFloat(e.target.value)) || 0); gmUpdate(); });   // a minus sign must not break the form
 $gm('gm-affs').addEventListener('click', e => {
   const c = e.target.closest('.gm-chip'); if (!c) return;
   c.classList.toggle('on');
@@ -1786,6 +1787,7 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     link.textContent = 'Check if your employer matches →';
   }));
 })();
+$gm('gm-body').addEventListener('input', () => gmError(''));   // clear an old error message as soon as the donor edits something
 $gm('gm-first').addEventListener('input', gmAudience);   // the audience text greets them by the name they type
 $gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
 
@@ -1848,6 +1850,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$gm('gm-o
 $gm('gm-pay').addEventListener('click', () => {
   const first = $gm('gm-first').value.trim(), last = $gm('gm-last').value.trim(), email = $gm('gm-email').value.trim();
   if (!gm.amount || gm.amount < 1) return gmError('Please choose or enter a gift amount.');
+  if (gm.amount > 1000000) return gmError('For a gift over $1,000,000, please contact the Advancement Office at (212) 873-1650.');
   if (!first || !last) return gmError('Please enter your first and last name.');
   if (!/^\S+@\S+\.\S+$/.test(email)) return gmError('Please enter a valid email address.');
   const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
@@ -1881,10 +1884,16 @@ function gmInitCheckout(configId) {
     };
     gmThanks(total);
     // The donor already sees the thank-you; the save runs behind it. Then refresh the hero numbers.
+    // If the save fails the donor must not be left believing it worked: say so on the thank-you screen.
+    const unconfirmed = () => {
+      $gm('gm-thanks-title').textContent = 'We could not confirm your gift';
+      $gm('gm-thanks-text').textContent = 'Your gift may not have been recorded. If you do not receive a receipt by email shortly, please contact the Advancement Office at (212) 873-1650 and we will sort it out.';
+    };
     fetch('/api/gd/gift', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(r => r.ok ? fetch('/api/gd/campaign').then(c => c.json()) : Promise.reject(new Error('save failed ' + r.status)))
-      .then(d => refreshLive(d))
-      .catch(err => console.warn('Gift could not be saved:', err.message));
+      .then(r => r.ok ? r : (unconfirmed(), null), () => (unconfirmed(), null))   // server said no, or no answer at all
+      .then(r => r && fetch('/api/gd/campaign').then(c => c.json()))
+      .then(d => { if (d) refreshLive(d); })
+      .catch(err => console.warn('Page refresh after gift failed:', err.message));
   });
 }
 
