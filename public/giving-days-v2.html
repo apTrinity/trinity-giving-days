@@ -730,6 +730,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-custom .gm-input { padding-left: 24px; }
 .gm-input, .gm-select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); font-family: inherit; font-size: 14px; background: #fff; color: var(--ink); }
 .gm-input:focus, .gm-select:focus { border-color: var(--navy); outline: none; }
+.gm-input.bad { border-color: #B91C1C; background: #FEF2F2; }
+.gm-fielderr { color: #B91C1C; font-size: 12.5px; margin-top: 4px; }
+.gm-fielderr[hidden] { display: none; }
 .gm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .gm-stack { display: flex; flex-direction: column; gap: 8px; }
 .gm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -901,7 +904,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-amts" id="gm-amts"></div>
           <div class="gm-lyhint" id="gm-lyhint" hidden></div>
           <div class="gm-levelline" id="gm-levelline"></div>
-          <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="1" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
+          <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="1" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"><div class="gm-fielderr" id="gm-amt-err" hidden></div></div>
         </div>
         <div>
           <span class="gm-label">Your information</span>
@@ -915,6 +918,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
               <input class="gm-input" id="gm-last" placeholder="Last name" autocomplete="family-name" aria-label="Last name">
             </div>
             <input class="gm-input" id="gm-email" type="email" placeholder="Email address" autocomplete="email" aria-label="Email address">
+            <div class="gm-fielderr" id="gm-email-err" hidden></div>
           </div>
         </div>
         <div>
@@ -1704,11 +1708,38 @@ $gm('gm-amts').addEventListener('click', e => {
   document.querySelectorAll('.gm-amt').forEach(x => x.classList.toggle('on', x === b));
   const other = b.dataset.amt === 'other';
   $gm('gm-custom').hidden = !other;
-  gm.amount = other ? Math.max(0, Math.round(parseFloat($gm('gm-custom-amt').value)) || 0) : +b.dataset.amt;
+  const bad = other && amountMsg($gm('gm-custom-amt'));
+  fieldErr('gm-custom-amt', 'gm-amt-err', other ? bad : '');
+  gm.amount = other ? (bad ? 0 : Math.max(0, Math.round(parseFloat($gm('gm-custom-amt').value)) || 0)) : +b.dataset.amt;
   if (other) $gm('gm-custom-amt').focus();
   gmUpdate();
 });
-$gm('gm-custom-amt').addEventListener('input', e => { gm.amount = Math.max(0, Math.round(parseFloat(e.target.value)) || 0); gmUpdate(); });   // a minus sign must not break the form
+// Field-level checks: flag a bad amount or email right where the donor is typing
+function fieldErr(inputId, errId, msg) { $gm(inputId).classList.toggle('bad', !!msg); const e = $gm(errId); e.textContent = msg; e.hidden = !msg; return !msg; }
+function amountMsg(inp) {
+  const raw = inp.value.trim();
+  if (!raw) return '';
+  if (inp.validity.badInput || isNaN(parseFloat(raw))) return 'Please enter the amount as a number, like 250.';
+  const n = parseFloat(raw);
+  if (n < 0) return 'The amount can’t be negative.';
+  if (n < 1) return 'The minimum gift is $1.';
+  if (n > 1000000) return 'For a gift over $1,000,000, please contact the Advancement Office at (212) 873-1650.';
+  return '';
+}
+function emailMsg(v) {
+  v = v.trim();
+  if (!v) return '';
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'That doesn’t look like a valid email address.';
+}
+$gm('gm-custom-amt').addEventListener('input', e => {
+  const msg = amountMsg(e.target);
+  fieldErr('gm-custom-amt', 'gm-amt-err', msg);
+  gm.amount = msg ? 0 : Math.max(0, Math.round(parseFloat(e.target.value)) || 0);   // a bad value never counts as a gift
+  gmUpdate();
+});
+let emailTouched = false;
+$gm('gm-email').addEventListener('blur', () => { emailTouched = true; fieldErr('gm-email', 'gm-email-err', emailMsg($gm('gm-email').value)); });
+$gm('gm-email').addEventListener('input', () => { if (emailTouched || $gm('gm-email').classList.contains('bad')) fieldErr('gm-email', 'gm-email-err', emailMsg($gm('gm-email').value)); });
 $gm('gm-affs').addEventListener('click', e => {
   const c = e.target.closest('.gm-chip'); if (!c) return;
   c.classList.toggle('on');
@@ -1852,7 +1883,7 @@ $gm('gm-pay').addEventListener('click', () => {
   if (!gm.amount || gm.amount < 1) return gmError('Please choose or enter a gift amount.');
   if (gm.amount > 1000000) return gmError('For a gift over $1,000,000, please contact the Advancement Office at (212) 873-1650.');
   if (!first || !last) return gmError('Please enter your first and last name.');
-  if (!/^\S+@\S+\.\S+$/.test(email)) return gmError('Please enter a valid email address.');
+  if (!email || emailMsg(email)) { fieldErr('gm-email', 'gm-email-err', email ? emailMsg(email) : 'Please enter your email address.'); $gm('gm-email').hidden = false; return gmError('Please enter a valid email address.'); }
   const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
   if (alum && !$gm('gm-class-year').value) return gmError('Please select your class year.');
   if (!gm.checkout || !gm.ready) return gmError('The payment system is still loading. Please try again in a moment.');
