@@ -155,7 +155,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   // The pre-launch teaser with no Give buttons and no test-mode banner (for screenshots, designers and the public front door).
   const cleanTeaser = html => html
     .replace('</head>', '<style>#hero-give,#test-flag,.sticky-give,.btn-give{display:none!important}</style></head>')
-    .replace(' You are welcome to make your gift now.', '');
+    .replace(' You can make your gift now.', '');
 
   // Demo of the pre-launch teaser, shown whether or not the shield is switched on. ?clean=1: no Give buttons or test banner.
   app.get('/prelaunch', async (req, res) => {
