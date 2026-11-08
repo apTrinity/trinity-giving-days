@@ -201,6 +201,7 @@ function renderStaff(g, donor) {
     ${row('Amount', esc(money(g.amount)), true)}
     ${row('Connections', conn.length ? esc(conn.join('; ')) : '—')}
     ${row('In our records', known)}
+    ${row('Employer match', g.employer_match ? 'Yes' + (g.employer ? ': ' + esc(g.employer) : ' (employer not named)') + ' — follow up on a matching gift request' : 'No')}
     ${row('Anonymous', g.anonymous ? 'Yes, list as anonymous' : 'No')}
     ${row('Mode', g.is_test ? 'TEST (nothing charged)' : 'Live')}
     ${row('Date', esc(when(g.created_at)))}

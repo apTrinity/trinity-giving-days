@@ -82,11 +82,15 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       is_test: !isLive(),
       declared_tags: declared.tags, grades: declared.grades, class_year: declared.class_year,
     };
+    // "My employer matches gifts" from the form (columns from sql/gd-14-employer-match.sql).
+    const match = b.employer_match === true ? { employer_match: true, employer: str(b.employer, 200) || null } : null;
     try {
       row.donor_id = await findDonor(typeof b.token === 'string' ? b.token : '', email);
       const source = cleanSource(b.source);
-      let { data, error } = await supabase.from('gd_gifts').insert(source ? { ...row, source } : row).select('id').single();
-      // The source column comes from sql/gd-12-sources.sql. If that has not been run yet, record the gift without it rather than lose it.
+      const withSource = source ? { ...row, source } : row;
+      let { data, error } = await supabase.from('gd_gifts').insert(match ? { ...withSource, ...match } : withSource).select('id').single();
+      // Source and employer-match are optional columns (sql/gd-12 and gd-14). If one has not been added yet, record the gift without it rather than lose it.
+      if (error && match && error.code === '42703') ({ data, error } = await supabase.from('gd_gifts').insert(withSource).select('id').single());
       if (error && source && error.code === '42703') ({ data, error } = await supabase.from('gd_gifts').insert(row).select('id').single());
       if (error) {
         if (error.code === '23505') {  // two requests for the same transaction: the first one won
@@ -104,7 +108,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
             .select('re_id, first_name, class_year, grades, ly_gift, import_tags, tags_added, tags_removed').eq('id', row.donor_id).maybeSingle();
           donor = r.data;
         }
-        const gift = { ...row, id: data.id, created_at: new Date().toISOString() };
+        const gift = { ...row, ...(match || {}), id: data.id, created_at: new Date().toISOString() };
         // Personal touches: the donor's audience text (reunion, senior parents, ...), the challenges they count toward, where their class stands.
         let personal = null;
         try {
@@ -126,7 +130,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       return res.json({ success: true, gift_id: data.id });
     } catch (err) {
       console.error('[GD] UNRECORDED GIFT (payment captured, database write failed):', JSON.stringify(row), err.message || err);
-      try { await sendUnrecordedGiftAlert({ ...row, created_at: new Date().toISOString() }); } catch (mailErr) { console.error('[GD] alert email failed:', mailErr.message || mailErr); }
+      try { await sendUnrecordedGiftAlert({ ...row, ...(match || {}), created_at: new Date().toISOString() }); } catch (mailErr) { console.error('[GD] alert email failed:', mailErr.message || mailErr); }
       return res.json({ success: true, gift_id: null });
     }
   });
