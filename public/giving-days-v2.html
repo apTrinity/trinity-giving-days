@@ -855,7 +855,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="prog-cap">Every gift helps fill the seal</div>
         <div class="prog-fig"><div class="d-seal" role="img" aria-label="Trinity seal filling toward the donor goal"><div class="d-empty"></div><div class="d-fill" id="seal-fill"></div></div></div>
         <div class="prog-nums">
-          <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">0</span> <span>of 350 donors</span></div>
+          <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">0</span> <span id="goal-label">of 350 donors</span></div>
           <div class="prog-bar" aria-hidden="true"><i id="prog-bar"></i></div>
           <div class="prog-sub"><b id="stat-pct">0%</b> of our goal · <b id="stat-togo">350</b> to go<span class="prog-raised"> · <b id="stat-raised">$0</b> raised</span></div>
         </div>
@@ -1437,7 +1437,7 @@ vf.addEventListener('click', playVideo);
 vf.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playVideo(); } });
 
 // ── Hero numbers (sample) ──
-const GOAL = (GD.campaign && GD.campaign.settings && GD.campaign.settings.goal_donors) || 350;
+let GOAL = (GD.campaign && GD.campaign.settings && GD.campaign.settings.goal_donors) || 350;
 let heroDonors = 212, heroRaised = 84300;
 // Real counts from gifts once the server provides them (test gifts count only while the admin switch is on)
 // ── In-place updates: numbers count up, bars glide, nothing else is redrawn ──
@@ -1501,10 +1501,14 @@ function softUpdate(el, html, keySel) {
   return true;
 }
 
-function applyHero(camp) { if (camp && camp.progress) { heroDonors = camp.progress.donors; heroRaised = camp.progress.raised; } }
+function applyHero(camp) {
+  const g = camp && camp.settings && Number(camp.settings.goal_donors); if (g > 0) GOAL = g;
+  if (camp && camp.progress) { heroDonors = camp.progress.donors; heroRaised = camp.progress.raised; }
+}
 applyHero(GD.campaign);
 function renderHero() {
   heroText('donor-count', String(heroDonors));
+  document.getElementById('goal-label').textContent = 'of ' + GOAL.toLocaleString('en-US') + ' donors';
   heroText('stat-raised', fmt$(heroRaised));
   heroText('stat-togo', String(Math.max(GOAL - heroDonors, 0)));
   const pctDone = Math.min(heroDonors / GOAL, 1) * 100;
@@ -1834,7 +1838,7 @@ window.addEventListener('load', () => {
 let liveSig = JSON.stringify([GD.campaign && GD.campaign.progress, GD.campaign && GD.campaign.wall, GD.campaign && GD.campaign.challenges]);
 function refreshLive(d) {
   if (!d || !d.progress) return;
-  const sig = JSON.stringify([d.progress, d.wall, d.challenges]);
+  const sig = JSON.stringify([d.progress, d.wall, d.challenges, d.settings && d.settings.goal_donors]);
   if (sig === liveSig) return;
   liveSig = sig;
   GD.campaign = d;
