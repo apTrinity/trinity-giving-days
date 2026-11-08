@@ -752,6 +752,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-secure { font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: -8px; }
 .gm-link { font-size: 12px; font-weight: 700; color: var(--navy); text-decoration: none; letter-spacing: .04em; }
 .gm-link:hover { text-decoration: underline; }
+.gm-lookup { display: block; text-align: center; padding: 11px 14px; background: #fff; border: 1.5px solid var(--navy); font-size: 13px; font-weight: 700; color: var(--navy); text-decoration: none; }
+.gm-lookup:hover { background: var(--navy); color: #fff; }
+.gm-empnote { font-size: 12px; color: var(--ink-muted); margin-top: -4px; }
+.gm-empnote[hidden] { display: none; }
 .gm-matchpanel { margin-top: 4px; background: #fff; border: 1px solid var(--border); padding: 12px; }
 .gm-matchnote { font-size: 12px; color: var(--ink-muted); margin: 0; }
 /* On phones the lookup uses the full width of the form: it bleeds past the match box's padding and the widget's own side padding is trimmed. */
@@ -937,10 +941,11 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-counts" id="gm-counts" hidden></div>
         </div>
         <div class="gm-matchbox">
-          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift.</small></span></label>
-          <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
-          <a class="gm-link" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Check if your employer matches →</a>
+          <a class="gm-lookup" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Not sure? Look up your employer →</a>
           <div class="gm-matchpanel" id="gm-match-panel" hidden><button type="button" class="gm-matchuse gm-matchuse-top" hidden></button><div id="dd-container"></div><button type="button" class="gm-matchuse gm-matchuse-bottom" hidden></button><p class="gm-matchnote" id="gm-match-note" hidden>The lookup didn’t load. <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Open it in a new tab →</a></p></div>
+          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift.</small></span></label>
+          <input class="gm-input" id="gm-employer" placeholder="Type your employer’s name" aria-label="Employer name" hidden>
+          <small class="gm-empnote" id="gm-employer-note" hidden>This is just for our records. To check a company, use the lookup above.</small>
         </div>
         <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
         <div class="gm-error" id="gm-error" hidden></div>
@@ -1785,7 +1790,7 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     const open = panel.hidden;
     panel.hidden = !open;
     link.setAttribute('aria-expanded', String(open));
-    link.textContent = open ? 'Hide employer lookup ↑' : 'Check if your employer matches →';
+    link.textContent = open ? 'Hide employer lookup ↑' : 'Not sure? Look up your employer →';
     if (!open || loaded) return;
     loaded = true;
     window.DDCONF = { API_KEY: 'YzJhYzlmMmMtZWM0' }; // public, browser-side key (same one the school's own page uses)
@@ -1816,12 +1821,12 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     $gm('gm-employer').value = name;
     panel.hidden = true;
     link.setAttribute('aria-expanded', 'false');
-    link.textContent = 'Check if your employer matches →';
+    link.textContent = 'Not sure? Look up your employer →';
   }));
 })();
 $gm('gm-body').addEventListener('input', () => gmError(''));   // clear an old error message as soon as the donor edits something
 $gm('gm-first').addEventListener('input', gmAudience);   // the audience text greets them by the name they type
-$gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
+$gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = $gm('gm-employer-note').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
 
 function gmAffiliations() {
   const out = [];
