@@ -768,6 +768,8 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-matchuse:hover { background: #0b2a66; }
 .gm-levelline { display: none; }
 .gm-matchbox { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: var(--cream); border: 1px solid var(--border); border-top: 3px solid var(--trinity-yellow); }
+.gm-matchhead b { display: block; color: var(--ink); font-weight: 700; }
+.gm-matchhead small { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
 .gm-matchbox .gm-check b { display: block; color: var(--ink); font-weight: 700; }
 .gm-matchbox .gm-check small { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
 .gm-waytabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -941,9 +943,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-counts" id="gm-counts" hidden></div>
         </div>
         <div class="gm-matchbox">
-          <a class="gm-lookup" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Not sure? Look up your employer →</a>
+          <div class="gm-matchhead"><b>Does your employer match gifts?</b><small>A match can double your gift.</small></div>
+          <a class="gm-lookup" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Search for your employer →</a>
           <div class="gm-matchpanel" id="gm-match-panel" hidden><button type="button" class="gm-matchuse gm-matchuse-top" hidden></button><div id="dd-container"></div><button type="button" class="gm-matchuse gm-matchuse-bottom" hidden></button><p class="gm-matchnote" id="gm-match-note" hidden>The lookup didn’t load. <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Open it in a new tab →</a></p></div>
-          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift.</small></span></label>
+          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>Yes, my employer matches gifts</b></span></label>
           <input class="gm-input" id="gm-employer" placeholder="Type your employer’s name" aria-label="Employer name" hidden>
           <small class="gm-empnote" id="gm-employer-note" hidden>This is just for our records. To check a company, use the lookup above.</small>
         </div>
@@ -1790,7 +1793,7 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     const open = panel.hidden;
     panel.hidden = !open;
     link.setAttribute('aria-expanded', String(open));
-    link.textContent = open ? 'Hide employer lookup ↑' : 'Not sure? Look up your employer →';
+    link.textContent = open ? 'Hide employer lookup ↑' : 'Search for your employer →';
     if (!open || loaded) return;
     loaded = true;
     window.DDCONF = { API_KEY: 'YzJhYzlmMmMtZWM0' }; // public, browser-side key (same one the school's own page uses)
@@ -1821,7 +1824,7 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     $gm('gm-employer').value = name;
     panel.hidden = true;
     link.setAttribute('aria-expanded', 'false');
-    link.textContent = 'Not sure? Look up your employer →';
+    link.textContent = 'Search for your employer →';
   }));
 })();
 $gm('gm-body').addEventListener('input', () => gmError(''));   // clear an old error message as soon as the donor edits something
