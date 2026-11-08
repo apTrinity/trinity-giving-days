@@ -1488,11 +1488,12 @@ function sameShape(a, b) {
   for (let i = 0; i < Math.min(x.length, y.length); i++) if (!sameShape(x[i], y[i])) return false;
   return true;
 }
-function patch(a, b) {
+function patch(a, b, isRoot) {
   if (a.nodeType === 3) { setText(a, b.data, !!(a.parentElement && a.parentElement.closest(COUNTS))); return; }
   if (a.id === 'lb-hit') return;
-  for (const at of [...a.attributes]) if (!b.hasAttribute(at.name) && at.name !== 'class' && !KEEP_ATTR.has(at.name) && at.name !== 'value') a.removeAttribute(at.name);
-  for (const at of [...b.attributes]) {
+  // The root is the live container itself (#lb, #chal, #cm): its own id and attributes are never data, so only its contents are patched.
+  if (!isRoot) for (const at of [...a.attributes]) if (!b.hasAttribute(at.name) && at.name !== 'class' && !KEEP_ATTR.has(at.name) && at.name !== 'value') a.removeAttribute(at.name);
+  if (!isRoot) for (const at of [...b.attributes]) {
     if (at.name === 'class') {
       [...a.classList].forEach(c => { if (!b.classList.contains(c) && !KEEP_CLASS.has(c)) a.classList.remove(c); });
       [...b.classList].forEach(c => { if (!KEEP_CLASS.has(c)) a.classList.add(c); });
@@ -1508,7 +1509,7 @@ function softUpdate(el, html, keySel) {
   const t = document.createElement('div'); t.innerHTML = html;
   const keys = r => keySel ? [...r.querySelectorAll(keySel)].map(k => k.textContent).join('|') : '';
   if (!sameShape(el, t) || keys(el) !== keys(t)) return false;
-  patch(el, t);
+  patch(el, t, true);
   return true;
 }
 
