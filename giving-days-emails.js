@@ -255,4 +255,15 @@ async function sendUnrecordedGiftAlert(gift) {
   }, 'unrecorded-gift alert');
 }
 
-module.exports = { sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization, renderConfirmation, renderStaff };
+// Offline (RE) gifts whose donor is not on the Giving Days constituent list, so they could not be recorded. To staff.
+async function sendOfflineUnmatchedAlert(list) {
+  const rows = list.map(g => `<tr><td style="padding:4px 10px">${esc(g.name || '(name not in query)')}</td><td style="padding:4px 10px">RE ${esc(g.re_id || '?')}</td><td style="padding:4px 10px">${money(g.amount)}</td><td style="padding:4px 10px">${esc(g.date || '')}</td></tr>`).join('');
+  return send({
+    to: staffList(),
+    subject: `[Giving Days] ${list.length} offline gift${list.length === 1 ? '' : 's'} from RE could not be matched to a donor`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:14px;max-width:600px;"><p><strong>These gifts came from the Raiser's Edge offline gift query, but the donor is not on the Giving Days constituent list, so they are NOT counted yet.</strong> Add or sync the constituent, and the gift is picked up automatically on the next run (within 30 minutes).</p>
+      <table style="border-collapse:collapse;font-size:13px">${rows}</table></div>`,
+  }, 'offline unmatched alert');
+}
+
+module.exports = { sendOfflineUnmatchedAlert, sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization, renderConfirmation, renderStaff };

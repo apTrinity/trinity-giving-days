@@ -27,6 +27,8 @@
     nav.top a, nav.top button.link { color: rgba(255,255,255,.75); font-size: 13px; text-decoration: none; background: none; border: 0; }
     nav.top a:hover, nav.top button.link:hover { color: #fff; }
     #nav-email { font-size: 13px; color: rgba(255,255,255,.55); }
+    .banner.alert { background: #fde8e6; border-bottom: 1px solid #e0b4b0; color: #7a1a14; padding: 10px 24px; }
+    .banner.alert a { color: inherit; font-weight: 700; }
     .banner { background: #fff7cc; border-bottom: 1px solid #e8d96b; padding: 8px 24px; font-size: 13px; }
     main { max-width: 980px; margin: 0 auto; padding: 24px 16px 80px; }
     .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--line); margin-bottom: 20px; }
@@ -122,6 +124,32 @@
     .tg { display: inline-block; font-size: 12px; border-radius: 99px; padding: 1px 8px; margin: 4px 4px 0 0; background: #e3e8f5; color: var(--navy); }
     .tg.record { background: #e6f1ea; color: var(--green); } .tg.admin { background: #fff2c2; color: #6b5800; }
     .gf-edit { display: grid; gap: 14px; padding: 20px; }
+
+    /* Constituents list */
+    .stats-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+    @media (max-width: 640px) { .stats-bar { grid-template-columns: 1fr 1fr; } }
+    .stat-card { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .stat-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
+    .stat-value { font-size: 32px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+    .controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .controls input[type=text] { flex: 1 1 260px; width: auto; }
+    .controls select { border: 1px solid #cfcac0; border-radius: 6px; padding: 9px 11px; background: #fff; font-size: 15px; }
+    .table-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow-x: auto; }
+    .table-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid #f0ede8; color: var(--mute); font-size: 15px; flex-wrap: wrap; }
+    .pager { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .tbl { width: 100%; border-collapse: collapse; }
+    .tbl th { text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); padding: 14px 18px; background: #fff; border-bottom: 1px solid #ece9e2; white-space: nowrap; user-select: none; }
+    .tbl th.sortable { cursor: pointer; }
+    .tbl td { padding: 12px 18px; vertical-align: top; border-bottom: 1px solid #f3f1ec; font-size: 15px; }
+    .tbl tr.row { cursor: pointer; } .tbl tr.row:hover td { background: #faf8f3; }
+    .tbl tr.row.alt td { background: #f9f8f5; } .tbl tr.row.alt:hover td { background: #f3f1ec; }
+    .tbl .nm { font-weight: 600; } .tbl .em { font-size: 13px; color: var(--mute); margin-top: 1px; word-break: break-all; }
+    .tbl .code { font-size: 11px; color: #aaa; font-family: ui-monospace, Menlo, monospace; margin-top: 2px; }
+    .tbl .hh { color: var(--navy); }
+    .badge { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 99px; padding: 2px 10px; margin: 0 4px 4px 0; white-space: nowrap; }
+    .badge.grade { background: #e6f1ea; color: var(--green); } .badge.given { background: #dff3e7; color: var(--green); }
+    .badge.notyet { background: #eceae4; color: var(--mute); } .badge.test { background: #fdebd0; color: #8a5a00; }
+    .re-tools { margin-top: 18px; } .re-tools summary { cursor: pointer; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
     .locked { background: #f4f2ed; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
   </style>
 </head>
@@ -148,12 +176,14 @@
   </nav>
   <div class="banner" id="mode-banner">Test mode — gifts on the Giving Days page do not charge cards; they are saved as test gifts. Live mode stays locked until the go-live review.</div>
 
+  <div class="banner alert" id="off-alert" hidden></div>
   <main>
     <div class="tabs">
       <button class="tab active" data-tab="challenges">Challenges</button>
       <button class="tab" data-tab="audiences">Audiences</button>
       <button class="tab" data-tab="constituents">Constituents</button>
       <button class="tab" data-tab="gifts">Gifts</button>
+      <button class="tab" data-tab="re">Raiser's Edge</button>
       <button class="tab" data-tab="settings">Campaign settings</button>
     </div>
 
@@ -208,10 +238,27 @@
     </section>
 
     <section class="panel" id="panel-constituents">
-      <div class="head-row">
-        <div><h2>Constituents</h2><p class="hint" id="d-summary">Loading…</p></div>
-        <input type="text" id="d-q" placeholder="Search name, email or RE ID" autocomplete="off" style="max-width:280px">
+      <div class="head-row"><div><h2>Constituents</h2><p class="hint" id="d-summary">Loading…</p></div></div>
+      <div class="stats-bar">
+        <div class="stat-card"><div class="stat-label">Total donors</div><div class="stat-value" id="cs-total" style="color:var(--green)">—</div><div class="hint" id="cs-total-sub"></div></div>
+        <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value" id="cs-online">—</div><div class="hint">gave on this page</div></div>
+        <div class="stat-card"><div class="stat-label">Offline</div><div class="stat-value" id="cs-offline">—</div><div class="hint">gifts brought in from RE</div></div>
+        <div class="stat-card"><div class="stat-label">Not yet given</div><div class="stat-value" id="cs-notyet">—</div><div class="hint" id="cs-notyet-sub"></div></div>
       </div>
+      <div class="controls">
+        <input type="text" id="d-q" placeholder="Search by name, email or RE ID…" autocomplete="off">
+        <select id="d-grade" aria-label="Grade"><option value="">All Grades</option></select>
+        <select id="d-tag" aria-label="Affiliation"><option value="">All Affiliations</option></select>
+        <select id="d-status" aria-label="Status"><option value="">All Families</option><option value="given">Have Given (any)</option><option value="online">Gave Online</option><option value="offline">Gave Offline</option><option value="notyet">Not Yet Given</option><option value="inactive">Not in RE query</option></select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-meta"><span id="d-count">Loading…</span><div class="pager"><button class="btn small ghost" id="d-prev">‹ Prev</button><span id="d-page"></span><button class="btn small ghost" id="d-next">Next ›</button></div></div>
+        <div id="d-list"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-re">
+      <div class="head-row"><div><h2>Raiser's Edge</h2><p class="hint">How the platform stays in step with RE: the constituent list, and offline gifts (checks, cash, stock) entered in RE.</p></div></div>
       <div id="qt-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
           <div><b>Test an RE query</b><p class="hint" style="margin:2px 0 0">Runs the query and shows the columns it returns. Read-only: nothing is saved.</p></div>
@@ -226,8 +273,13 @@
         </div>
         <div id="sync-out"></div>
       </div>
-      <div id="d-list"></div>
-      <div class="head-row" style="margin-top:12px"><span class="hint" id="d-range"></span><div style="display:flex;gap:8px"><button class="btn small ghost" id="d-prev">← Previous</button><button class="btn small ghost" id="d-next">Next →</button></div></div>
+      <div id="off-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
+        <div class="head-row" style="margin-bottom:6px">
+          <div><b>Offline gifts from Raiser's Edge</b><p class="hint" style="margin:2px 0 0">Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list are recorded automatically and count like online gifts. A gift from someone who is not on the list is never recorded: it is flagged in red at the top of this page and emailed to staff. The query decides which gifts qualify (gift date from the launch, fund, and so on).</p></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="text" id="off-id" placeholder="RE query ID" style="width:120px" aria-label="Offline gifts query ID"><button class="btn small ghost" id="off-preview">Check only</button><button class="btn small" id="off-apply">Sync now</button></div>
+        </div>
+        <div id="off-out"></div>
+      </div>
     </section>
 
     <section class="panel" id="panel-gifts">
@@ -451,7 +503,7 @@ async function login() {
 }
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
-  loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor();
+  loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor(); checkOffAlert();
   // Before launch the public page is a teaser; this pass lets the preview below (and /preview) show the real page.
   api('POST', '/api/admin/gd/preview-pass').then(() => { frameReady = false; $('aud-frame').src = '/preview?demo=1'; }).catch(() => {});
 }
@@ -461,9 +513,10 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
-  if (b.dataset.tab === 'constituents') { loadDonors(); pollQt(); pollSync(); }
+  if (b.dataset.tab === 'constituents') loadDonors();
+  if (b.dataset.tab === 're') { pollQt(); pollSync(); pollOff(); }
   if (b.dataset.tab === 'challenges') loadChallenges();
-  document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences');
+  document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences' || b.dataset.tab === 'constituents');
   if (b.dataset.tab === 'audiences') queuePreview();
 });
 
@@ -706,40 +759,94 @@ async function restoreDonor() {   // the donor previewed last time, if any
 }
 
 // ── Donors ──
-const DN = { q: '', page: 0, total: 0, size: 50, rows: [] };
+// Everyone is loaded once, grouped into households (by Raiser's Edge household), then searched, filtered and paged here.
+const DN = { all: [], hh: new Map(), page: 1, size: 50, sort: { col: 'name', dir: 1 }, loaded: false };
 let editingDonor = null, dnTimer;
+const hhName = h => {
+  const w = h.members.find(m => m.addressee); if (w) return w.addressee;
+  return h.members.map(m => [m.first_name, m.last_name].filter(Boolean).join(' ')).join(' and ');
+};
 async function loadDonors() {
   try {
-    const j = await api('GET', `/api/admin/gd/donors?q=${encodeURIComponent(DN.q)}&page=${DN.page}`);
-    DN.rows = j.donors; DN.total = j.total; DN.size = j.page_size || DN.size; renderDonors();
-  } catch (e) { $('d-list').innerHTML = `<div class="empty">Could not load constituents: ${esc(e.message)}</div>`; $('d-summary').textContent = ''; }
+    const j = await api('GET', '/api/admin/gd/donors/all');
+    DN.all = j.donors; DN.loaded = true; DN.hh = new Map();
+    for (const d of DN.all) { if (!DN.hh.has(d.household)) DN.hh.set(d.household, { key: d.household, members: [] }); DN.hh.get(d.household).members.push(d); }
+    for (const h of DN.hh.values()) {
+      h.online = h.members.some(m => m.gift_count > 0); h.offline = h.members.some(m => m.offline_count > 0); h.given = h.online || h.offline; h.total = h.members.reduce((t, m) => t + m.gift_total, 0); h.offline_total = h.members.reduce((t, m) => t + m.offline_total, 0);
+      h.test = h.members.some(m => m.test_gifts > 0); h.active = h.members.some(m => m.active);
+      h.grades = [...new Set(h.members.flatMap(m => m.grades))]; h.name = hhName(h);
+    }
+    fillFilters(); renderDonors();
+  } catch (e) { $('d-list').innerHTML = `<div class="empty" style="margin:16px">Could not load constituents: ${esc(e.message)}</div>`; $('d-summary').textContent = ''; }
 }
+function fillFilters() {
+  const g = $('d-grade'), t = $('d-tag'), gv = g.value, tv = t.value;
+  g.innerHTML = '<option value="">All Grades</option>' + GRADES.map(x => `<option value="${x}">${x === 'K' ? 'Kindergarten' : 'Grade ' + x}</option>`).join('');
+  t.innerHTML = '<option value="">All Affiliations</option>' + TAGS.map(x => `<option value="${x.key}">${esc(x.label)}</option>`).join('');
+  g.value = gv; t.value = tv;
+}
+const gradeRank = x => GRADES.indexOf(x);
 function renderDonors() {
-  const el = $('d-list'), from = DN.page * DN.size + 1, to = DN.page * DN.size + DN.rows.length;
-  $('d-summary').textContent = DN.q ? `${DN.total} matching` : `${DN.total} constituents. Each has a personal link; the details come from Raiser's Edge.`;
-  $('d-range').textContent = DN.rows.length ? `${from}–${to} of ${DN.total}` : '';
-  $('d-prev').disabled = DN.page === 0; $('d-next').disabled = to >= DN.total;
-  if (!DN.rows.length) { el.innerHTML = `<div class="empty">${DN.q ? 'No constituents match that search.' : 'No constituents yet. They appear here after the Raiser\'s Edge import.'}</div>`; return; }
-  el.innerHTML = DN.rows.map(d => `<div class="gf" data-id="${d.id}">
-    <div><span class="who">${esc(donorName(d))}</span><span class="amt">${d.ly != null ? 'Last gift ' + money(d.ly) : ''}</span>
-      ${d.addressee ? `<div class="meta" style="color:var(--navy,#02193B)">${esc(d.addressee)}</div>` : ''}
-      <div class="meta">${[d.email, 'RE ' + d.re_id, d.class_year ? 'Class of ' + d.class_year : '', d.grades.length ? 'Gr ' + d.grades.join(', ') : '', d.ask_a != null ? 'Ask A ' + money(d.ask_a) : '', d.ask_b != null ? 'Ask B ' + money(d.ask_b) : ''].filter(Boolean).map(esc).join(' · ')}</div>
-      <div>${d.tags.map(t => `<span class="tg">${esc(tagLabel(t))}</span>`).join('')}</div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-      <button class="btn small" data-act="edit">Edit</button><button class="btn small ghost" data-act="copy">Copy link</button>
-      <a class="btn small ghost" href="/${d.token}" target="_blank" rel="noopener" style="text-decoration:none">Their page ↗</a>
-      <a class="btn small ghost" href="${esc(reLink(d))}" target="_blank" rel="noopener" style="text-decoration:none">Raiser's Edge ↗</a></div>
-  </div>`).join('');
+  const q = $('d-q').value.trim().toLowerCase(), grade = $('d-grade').value, tag = $('d-tag').value, status = $('d-status').value;
+  const live = [...DN.hh.values()].filter(h => status === 'inactive' ? !h.active : h.active);
+  const total = live.length, on = live.filter(h => h.online).length, off = live.filter(h => h.offline).length, given = live.filter(h => h.given).length;
+  $('cs-total').textContent = given.toLocaleString(); $('cs-online').textContent = on.toLocaleString(); $('cs-offline').textContent = off.toLocaleString();
+  $('cs-notyet').textContent = (total - given).toLocaleString();
+  $('cs-total-sub').textContent = (total ? Math.round(given / total * 100) : 0) + '% of ' + total.toLocaleString() + ' households';
+  $('cs-notyet-sub').textContent = 'households';
+  $('d-summary').textContent = `${DN.all.length.toLocaleString()} people. Each has a personal link; the details come from Raiser's Edge.`;
+  let rows = [];
+  for (const h of live) {
+    if (status === 'given' && !h.given) continue;
+    if (status === 'online' && !h.online) continue;
+    if (status === 'offline' && !h.offline) continue;
+    if (status === 'notyet' && h.given) continue;
+    if (grade && !h.grades.includes(grade)) continue;
+    h.members.forEach((m, i) => {
+      if (tag && !m.tags.includes(tag)) return;
+      if (q && !(`${m.first_name} ${m.last_name} ${m.email} ${m.re_id} ${h.name} ${m.addressee}`.toLowerCase().includes(q))) return;
+      rows.push({ m, h });
+    });
+  }
+  const { col, dir } = DN.sort;
+  rows.sort((a, b) => {
+    let x, y;
+    if (col === 'name') { x = `${a.m.last_name} ${a.m.first_name}`.toLowerCase(); y = `${b.m.last_name} ${b.m.first_name}`.toLowerCase(); }
+    else if (col === 'household') { x = a.h.name.toLowerCase(); y = b.h.name.toLowerCase(); }
+    else if (col === 'status') { x = a.h.given ? 1 : 0; y = b.h.given ? 1 : 0; }
+    else { x = a.h.total + a.h.offline_total; y = b.h.total + b.h.offline_total; }
+    return x < y ? -dir : x > y ? dir : 0;
+  });
+  const pages = Math.max(1, Math.ceil(rows.length / DN.size));
+  if (DN.page > pages) DN.page = pages;
+  const slice = rows.slice((DN.page - 1) * DN.size, DN.page * DN.size);
+  const filtered = q || grade || tag || (status && status !== 'inactive');
+  $('d-count').textContent = filtered ? `${rows.length.toLocaleString()} people` : `${total.toLocaleString()} households · ${rows.length.toLocaleString()} people`;
+  $('d-page').textContent = `Page ${DN.page} of ${pages}`;
+  $('d-prev').disabled = DN.page <= 1; $('d-next').disabled = DN.page >= pages;
+  if (!DN.all.length) { $('d-list').innerHTML = `<div class="empty" style="margin:16px">No constituents yet. They appear here after the Raiser's Edge sync.</div>`; return; }
+  if (!rows.length) { $('d-list').innerHTML = `<div class="empty" style="margin:16px">No people match your filters.</div>`; return; }
+  const arrow = c => `<span style="color:${DN.sort.col === c ? 'inherit' : '#ccc'};font-size:10px;margin-left:4px">${DN.sort.col === c ? (DN.sort.dir === 1 ? '↑' : '↓') : '⇅'}</span>`;
+  const th = (c, label) => `<th class="sortable" data-sort="${c}">${label}${arrow(c)}</th>`;
+  $('d-list').innerHTML = `<table class="tbl"><thead><tr>${th('name', 'Name')}${th('household', 'Household')}<th>Grade(s)</th><th>Affiliations</th>${th('status', 'Status')}${th('platform', 'Platform gifts')}</tr></thead><tbody>${slice.map(({ m, h }, i) => `<tr class="row${i % 2 ? ' alt' : ''}" data-id="${m.id}">
+    <td><div class="nm">${esc(donorName(m))}</div>${m.email ? `<div class="em">${esc(m.email)}</div>` : ''}<div class="code">/${esc(m.token)} · RE ${esc(m.re_id)}</div></td>
+    <td><div class="hh">${esc(h.name)}</div>${h.members.length > 1 ? `<div class="em">${h.members.length} people</div>` : ''}</td>
+    <td>${m.grades.slice().sort((a, b) => gradeRank(a) - gradeRank(b)).map(g => `<span class="badge grade">${g === 'K' ? 'K' : 'Gr ' + g}</span>`).join('') || '<span style="color:#ccc">—</span>'}${m.class_year ? `<span class="badge">’${String(m.class_year).slice(-2)}</span>` : ''}</td>
+    <td>${m.tags.map(t => `<span class="tg">${esc(tagLabel(t))}</span>`).join('') || '<span style="color:#ccc">—</span>'}</td>
+    <td>${h.given ? (h.online ? '<span class="badge given">Online</span>' : '') + (h.offline ? '<span class="badge given">Offline</span>' : '') : '<span class="badge notyet">Not yet</span>'}${h.test ? '<span class="badge test">Test gift</span>' : ''}</td>
+    <td>${h.given ? `<strong>${money(h.total + h.offline_total)}</strong>` : '<span style="color:#ccc">—</span>'}</td></tr>`).join('')}</tbody></table>`;
 }
 $('d-list').addEventListener('click', e => {
-  const b = e.target.closest('button[data-act]'); if (!b) return;
-  const d = DN.rows.find(x => x.id === b.closest('.gf').dataset.id); if (!d) return;
-  if (b.dataset.act === 'edit') openDonor(d);
-  if (b.dataset.act === 'copy') navigator.clipboard.writeText(location.origin + '/' + d.token).then(() => toast('Link copied'), () => toast('Could not copy', true));
+  const t = e.target.closest('th[data-sort]');
+  if (t) { const c = t.dataset.sort; DN.sort = DN.sort.col === c ? { col: c, dir: -DN.sort.dir } : { col: c, dir: 1 }; return renderDonors(); }
+  const r = e.target.closest('tr[data-id]'); if (!r) return;
+  const d = DN.all.find(x => x.id === r.dataset.id); if (d) openDonor(d);
 });
-$('d-q').addEventListener('input', () => { clearTimeout(dnTimer); dnTimer = setTimeout(() => { DN.q = $('d-q').value.trim(); DN.page = 0; loadDonors(); }, 250); });
-$('d-prev').onclick = () => { if (DN.page > 0) { DN.page--; loadDonors(); } };
-$('d-next').onclick = () => { DN.page++; loadDonors(); };
+const dnRefresh = () => { DN.page = 1; renderDonors(); };
+$('d-q').addEventListener('input', () => { clearTimeout(dnTimer); dnTimer = setTimeout(dnRefresh, 200); });
+['d-grade', 'd-tag', 'd-status'].forEach(id => $(id).addEventListener('change', dnRefresh));
+$('d-prev').onclick = () => { if (DN.page > 1) { DN.page--; renderDonors(); } };
+$('d-next').onclick = () => { DN.page++; renderDonors(); };
 
 const ddlg = $('ddlg');
 function openDonor(d) {
@@ -846,6 +953,50 @@ async function startSync(apply) {
 }
 $('sync-preview').addEventListener('click', () => startSync(false));
 $('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? This adds new people and updates changed details from RE. Personal links and admin tag edits are not touched.')) startSync(true); });
+// ── Offline gifts from RE ──
+let offTimer = null;
+const usd = n => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+function renderOff(r) {
+  const out = $('off-out'), run = r.state === 'running';
+  if (r.query_id && !$('off-id').value) $('off-id').value = r.query_id;
+  $('off-preview').disabled = run; $('off-apply').disabled = run;
+  if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
+  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Offline gift sync failed: ${esc(r.error)}</div>`; return; }
+  if (r.state !== 'done' || !r.result) { out.innerHTML = ''; return; }
+  const x = r.result, w = x.would, applied = r.mode === 'apply';
+    const li = a => a.map(t => `<li>${t}</li>`).join('');
+  const dr = x.first_date ? `${new Date(x.first_date).toLocaleDateString('en-US', { timeZone: ET })} to ${new Date(x.last_date).toLocaleDateString('en-US', { timeZone: ET })}` : 'no dates';
+  out.innerHTML = `
+    <p><b>${applied ? 'Synced.' : 'Check only (nothing saved).'}</b> The query returned ${x.rows} rows, ${x.gifts} usable gifts (${esc(dr)}). ${applied ? 'Recorded' : 'Would record'} <b>${w.add}</b> new gifts (${usd(w.add_total)}), ${applied ? 'updated' : 'would update'} <b>${w.update}</b> changed amounts, ${w.already_recorded} already recorded.</p>
+    ${w.unmatched ? `<p style="color:#8a5a00"><b>${w.unmatched} gifts (${usd(w.unmatched_total)}) are not recorded</b> because the donor is not on the constituent list: ${x.unmatched_examples.map(u => 'RE ' + esc(u.re_id) + ' ' + usd(u.amount)).join('; ')}${w.unmatched > x.unmatched_examples.length ? '…' : ''}</p>` : ''}
+    ${x.blocking.length ? `<p style="color:#b91c1c"><b>Cannot apply:</b> ${esc(x.blocking.join(' '))}</p>` : ''}
+    <details open><summary><b>Columns understood</b></summary><ul>${li(Object.entries(x.matched).map(([k, v]) => `${esc(k)} ← <code>${esc(v)}</code>`))}</ul>
+      <p class="hint">Not in the query: ${esc(x.missing_roles.join(', ') || 'none')}${x.skipped.lookups ? ` · ${x.skipped.lookups} gifts were looked up one by one` : ''}${x.skipped.no_amount ? ` · ${x.skipped.no_amount} rows had no usable amount` : ''}</p></details>
+    <details><summary><b>First 5 new gifts</b></summary><ul>${li(x.sample.map(g => esc(g.who + ' · ' + usd(g.amount) + (g.at ? ' · ' + new Date(g.at).toLocaleDateString('en-US', { timeZone: ET }) : ''))))}</ul></details>
+    <p class="hint">${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}${r.schedule ? ' · automatic every 30 minutes' : ' · automatic runs are off (no query ID set on the server)'}</p>`;
+}
+async function pollOff() {
+  clearTimeout(offTimer);
+  try { const r = await api('GET', '/api/admin/gd/offline/status'); renderOff(r); checkOffAlert(); if (r.state === 'running') offTimer = setTimeout(pollOff, 4000); else if (r.state === 'done' && r.mode === 'apply') { loadDonors(); loadGifts(); } }
+  catch (e) { $('off-out').innerHTML = `<div class="empty">Could not read status: ${esc(e.message)}</div>`; }
+}
+async function startOff(apply) {
+  try { await api('POST', '/api/admin/gd/offline/start', { apply, query_id: $('off-id').value.trim() }); pollOff(); } catch (e) { toast(e.message, true); }
+}
+$('off-preview').addEventListener('click', () => startOff(false));
+$('off-apply').addEventListener('click', () => startOff(true));
+// Red banner on every tab while any offline gift could not be matched to a donor on the list.
+async function checkOffAlert() {
+  try {
+    const r = await api('GET', '/api/admin/gd/offline/status'), a = r.alert || { count: 0 }, el = $('off-alert');
+    if (!a.count) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = `<b>${a.count} offline gift${a.count === 1 ? '' : 's'} (${usd(a.total)}) from Raiser's Edge could not be matched to a donor on the list, so ${a.count === 1 ? 'it is' : 'they are'} not counted yet.</b> `
+      + a.gifts.slice(0, 10).map(g => `<a href="${esc(reLink({ re_id: g.re_id }))}" target="_blank" rel="noopener">${esc(g.name || 'RE ' + g.re_id)}</a> ${usd(g.amount)}`).join(' · ')
+      + (a.gifts.length > 10 ? ' …' : '') + ' <span style="opacity:.8">Add or sync the person and it is picked up on the next run.</span>';
+  } catch {}
+}
+setInterval(checkOffAlert, 5 * 60 * 1000);
 // ── Gifts ──
 let gifts = [], editingGift = null;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };

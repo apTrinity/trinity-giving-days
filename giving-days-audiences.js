@@ -172,6 +172,42 @@ module.exports = function mountGivingDaysAudiences(app, { supabase, requireAdmin
     } catch (err) { fail(res, err); }
   });
 
+  // Everyone at once for the Constituents list (grouped into households, searched and filtered in the browser),
+  // with each person's platform gift total. Read in pages of 1,000 (the database's limit per request).
+  app.get('/api/admin/gd/donors/all', requireAdmin, async (req, res) => {
+    try {
+      const readAll = async (table, cols, build) => {
+        const out = [];
+        for (let from = 0; ; from += 1000) {
+          let qb = supabase.from(table).select(cols);
+          if (build) qb = build(qb);
+          const { data, error } = await qb.order('id').range(from, from + 999);
+          if (error) throw error;
+          out.push(...data);
+          if (data.length < 1000) break;
+        }
+        return out;
+      };
+      let rows;
+      try { rows = await readAll('gd_donors', COLS + ', active'); }
+      catch (e) { if (e.code !== '42703') throw e; rows = await readAll('gd_donors', BASE); }
+      const gifts = await readAll('gd_gifts', 'donor_id, amount, is_test, excluded, source', qb => qb.not('donor_id', 'is', null));
+      const given = new Map();
+      for (const g of gifts) {
+        const r = given.get(g.donor_id) || { total: 0, n: 0, test: 0, off_total: 0, off_n: 0 };
+        if (g.is_test) r.test++;
+        else if (!g.excluded) { if (g.source === 'offline') { r.off_total += Number(g.amount); r.off_n++; } else { r.total += Number(g.amount); r.n++; } }
+        given.set(g.donor_id, r);
+      }
+      res.json({
+        donors: rows.map(d => {
+          const g = given.get(d.id) || { total: 0, n: 0, test: 0, off_total: 0, off_n: 0 };
+          return { ...donorOut(d), household: d.household_re_id || d.re_id, active: d.active !== false, gift_total: g.total, gift_count: g.n, offline_total: g.off_total, offline_count: g.off_n, test_gifts: g.test };
+        }),
+      });
+    } catch (err) { fail(res, err); }
+  });
+
   app.put('/api/admin/gd/donors/:id', requireAdmin, async (req, res) => {
     const b = req.body || {}, row = {};
     if ('first_name' in b) {
