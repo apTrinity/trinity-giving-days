@@ -852,7 +852,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
       </div>
       <div class="prog">
         <div class="prog-day"><span>Day 3 · Wednesday</span><span class="pips"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></span></div>
-        <div class="prog-cap">Every gift helps fill the seal</div>
+        <div class="prog-cap">Let’s do this together.</div>
         <div class="prog-fig"><div class="d-seal" role="img" aria-label="Trinity seal filling toward the donor goal"><div class="d-empty"></div><div class="d-fill" id="seal-fill"></div></div></div>
         <div class="prog-nums">
           <div class="prog-count"><span id="donor-count" style="font:inherit;color:inherit">0</span> <span id="goal-label">of 350 donors</span></div>
@@ -922,7 +922,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-counts" id="gm-counts" hidden></div>
         </div>
         <div class="gm-matchbox">
-          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift at no cost to you.</small></span></label>
+          <label class="gm-check"><input type="checkbox" id="gm-match"> <span><b>My employer matches gifts</b><small>A match can double your gift.</small></span></label>
           <input class="gm-input" id="gm-employer" placeholder="Employer name" aria-label="Employer name" hidden>
           <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Check if your employer matches →</a>
         </div>
@@ -938,7 +938,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="gm-card" id="gm-levels-card">
           <div>
             <h3>Giving levels</h3>
-            <p id="gm-levels-intro">Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.</p>
+            <p id="gm-levels-intro">Every gift counts. Your gift of $1,709 or more includes membership in the 1709 Society.</p>
           </div>
           <div class="gm-ladders" id="gm-ladders"></div>
         </div>
@@ -1116,7 +1116,7 @@ const CHAL = {
     };
     return `<section class="ub"><div class="ub-inner">
       <div class="ub-head"><div class="ub-title">Help Earn <em>Bonus Gifts</em></div><div class="ub-sub"><b>${$(unlocked)}</b> earned so far</div></div>
-      <p class="ub-note">Each challenge is separate, and one gift can count toward several.</p>
+      <p class="ub-note">Your one gift counts toward all eligible challenges and matches.</p>
       <div class="ub-row">${order.map(card).join('')}</div>
       <div class="ub-dots" aria-hidden="true">${C.map(() => '<i></i>').join('')}</div>
     </div></section>`;
@@ -1651,8 +1651,8 @@ function gmUpdate() {
   $gm('gm-levelline').textContent = earned.length ? 'Your gift: ' + earned.join(' · ') : '';
   $gm('gm-levelline').classList.toggle('in', L.hit.society !== undefined || L.hit.bluegold !== undefined);
   $gm('gm-levels-intro').textContent = L.young
-    ? `As a member of the Class of ${L.cy}, your gift of ${L.cy >= 2017 ? '$100' : '$250'} or more joins the 1709 Society through the Blue & Gold Club.`
-    : 'Every gift is recognized. Gifts of $1,709 or more join the 1709 Society.';
+    ? `As a member of the Class of ${L.cy}, your gift of ${L.cy >= 2017 ? '$100' : '$250'} or more includes membership in the 1709 Society’s Blue & Gold Club.`
+    : 'Every gift counts. Your gift of $1,709 or more includes membership in the 1709 Society.';
 
   // Ladder: every level for this donor, with the level(s) their gift earns highlighted
   // With a last-year gift, show only the levels near it (and the level this gift reaches)

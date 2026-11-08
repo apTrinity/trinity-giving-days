@@ -44,6 +44,6 @@ where not exists (select 1 from public.gd_audiences where name = 'Reunion alumni
 insert into public.gd_audiences (name, tags, grades, class_years, heading, body, sort_order, published)
 select 'Senior parents', '{current_parent}', '{12}', '{}',
        'Thank you, senior parents',
-       '{{first_name}}, your family is in its final year at Trinity. A gift today supports the students who follow your child, and is part of the senior class parent community''s giving.',
+       '{{first_name}}, because the Families of the Class of 2027 gift includes support for both the Trinity Fund and the Class of 2027 Financial Aid Endowment, your contribution or pledge between now and midnight on December 4th helps us not only reach our participation goal of 100% from senior class families, but also our Giving Days goal.',
        1, true
 where not exists (select 1 from public.gd_audiences where name = 'Senior parents');
