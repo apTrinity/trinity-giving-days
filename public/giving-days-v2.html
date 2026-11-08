@@ -1629,32 +1629,37 @@ function gmLevels(amount) {
 // Audience text for this visitor, with {{first_name}}, {{class_year}} and {{ly_gift}} filled in
 function gmFill(t) {
   const out = String(t || '').replace(/\{\{\s*(first_name|class_year|ly_gift)\s*\}\}/g, (m, k) =>
-    k === 'first_name' ? (ME && ME.first_name) || '' : k === 'class_year' ? (ME && ME.class_year) || '' : ME && ME.ly ? fmt$(ME.ly) : '')
+    k === 'first_name' ? (ME && ME.first_name) || ($gm('gm-first') && $gm('gm-first').value.trim()) || '' : k === 'class_year' ? (ME && ME.class_year) || (gm.audWho && gm.audWho.class_year) || '' : ME && ME.ly ? fmt$(ME.ly) : '')
     .replace(/^\s*[,;:]\s*/, '').replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 function gmAudience() {
-  const a = ME && ME.audience, box = $gm('gm-aud');
+  const who = gmWho();
+  const a = (GD.audiences || []).find(x => qual(x, who)) || (ME && ME.audience) || null, box = $gm('gm-aud');
+  gm.audWho = who;
   box.hidden = !(a && (a.heading || a.body));
   $gm('gm-levels-card').hidden = !box.hidden;   // a personal message takes the place of the giving levels
   if (!box.hidden) { $gm('gm-aud-h').textContent = gmFill(a.heading); $gm('gm-aud-p').textContent = gmFill(a.body); }
 }
 // "Your gift counts toward ...": challenges this donor qualifies for, from who they are plus what they have ticked
-function gmCounts() {
-  const el = $gm('gm-counts');
+function gmWho() {
   const ticked = [...document.querySelectorAll('#gm-affs .gm-chip.on')].map(c => c.dataset.aff);
-  const who = {
+  return {
     tags: [...new Set([...(ME ? ME.tags : []), ...ticked])],
     grades: [...new Set([...(ME ? ME.grades : []), ...[...document.querySelectorAll('#gm-grades .gm-chip.on')].map(g => g.dataset.grade)])],
     class_year: (ME && ME.class_year) || (ticked.includes('alumni') ? parseInt($gm('gm-class-year').value) || null : null),
   };
+}
+function gmCounts() {
+  const el = $gm('gm-counts');
+  const who = gmWho();
   const hits = C.filter(c => c.rule && !c.soon && qual(c.rule, who));
   el.hidden = !hits.length;
   if (hits.length) el.innerHTML = 'Your gift counts toward: ' + hits.map(c => `<b>${c.name}</b>`).join(' · ');
 }
 
 function gmUpdate() {
-  gmCounts();
+  gmCounts(); gmAudience();
   const a = gm.amount, L = gmLevels(a);
   // Phone-only line under the amounts: every level this gift earns (young alumni at $1,709+ earn two)
   const earned = L.sections.filter(sec => L.hit[sec.key] !== undefined)
@@ -1780,6 +1785,7 @@ document.querySelectorAll('.gm-waytab').forEach(tab => tab.addEventListener('cli
     link.textContent = 'Check if your employer matches →';
   }));
 })();
+$gm('gm-first').addEventListener('input', gmAudience);   // the audience text greets them by the name they type
 $gm('gm-match').addEventListener('change', e => { $gm('gm-employer').hidden = !e.target.checked; if (e.target.checked) $gm('gm-employer').focus(); });
 
 function gmAffiliations() {
@@ -1924,7 +1930,7 @@ function demoRibbon() {
 function applyDemo(m) {
   const p = m.persona;
   ME = p ? { first_name: p.first_name || '', tags: p.tags || [], grades: p.grades || [], class_year: p.class_year || null, ly: p.ly || null, ask_a: p.ask_a || null, ask_b: p.ask_b || null } : null;
-  if (ME) ME.audience = (m.audiences || []).find(a => qual(a, ME)) || null;
+  GD.audiences = m.audiences || GD.audiences; if (ME) ME.audience = (m.audiences || []).find(a => qual(a, ME)) || null;
   if (m.ask) ASK = { on: !!m.ask.on, steps: Math.min(5, Math.max(1, parseInt(m.ask.steps, 10) || 2)) };
   applyChallenges(GD.campaign);
   renderChal(chalView);

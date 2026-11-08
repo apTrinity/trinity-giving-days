@@ -102,6 +102,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     let known = false;
     let auds = [];
     if (audiences && !shieldAt) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
+    if (auds.length) data.audiences = auds;  // so a visitor without a personal link still sees the text for what they tick on the form
     const finish = me => {
       me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
       me.audience = audiences ? audiences.audienceFor(auds, me, qualifies) : null;
