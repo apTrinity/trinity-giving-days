@@ -102,10 +102,12 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   -webkit-mask: var(--seal-mask) center / contain no-repeat; mask: var(--seal-mask) center / contain no-repeat; }
 .d-empty { position: absolute; inset: 0; background: rgba(255,255,255,.16); }
 .d-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #fff; transition: height 1.4s cubic-bezier(.2,.8,.2,1); }
-.d-fill::before { content: ''; position: absolute; left: 0; right: 0; top: -9px; height: 10px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='10'%3E%3Cpath d='M0 10 V5 Q15 0 30 5 T60 5 V10Z' fill='white'/%3E%3C/svg%3E") repeat-x;
-  background-size: 60px 10px; animation: wave 2.4s linear infinite; }
-@keyframes wave { to { background-position: 60px 0; } }
+/* a tiny, slow ripple on the surface so the seal feels live without looking like water */
+.d-fill::before { content: ''; position: absolute; left: 0; right: 0; top: -4px; height: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='4'%3E%3Cpath d='M0 4 V2 Q20 0 40 2 T80 2 V4Z' fill='white'/%3E%3C/svg%3E") repeat-x;
+  background-size: 80px 4px; animation: wave 9s linear infinite; }
+@keyframes wave { to { background-position: 80px 0; } }
+@media (prefers-reduced-motion: reduce) { .d-fill::before { animation: none; } .d-fill { transition: none; } }
 .prog-nums { text-align: center; }
 .prog-count { font-family: 'Lora', serif; font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .prog-count span { font-family: 'Open Sans', sans-serif; font-size: 14px; font-weight: 600; color: rgba(255,255,255,.75); }
