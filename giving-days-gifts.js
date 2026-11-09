@@ -5,10 +5,11 @@
 const { TAGS } = require('./giving-days-admin');
 const { TOKEN_RE, qualifies, cleanSource } = require('./giving-days-donors');
 const { loadGifts, giftTags, countStatus, invalidate } = require('./giving-days-progress');
-const { sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization } = require('./giving-days-emails');
+const { sendGiftEmails, sendUnrecordedGiftAlert, sendSystemAlert, buildPersonalization } = require('./giving-days-emails');
 
 const TAG_KEYS = TAGS.map(t => t.key);
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const name = v => str(v, 100).replace(/[<>]/g, '');   // names are shown on the public donor wall; angle brackets are never part of a real name
 
@@ -71,6 +72,10 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       console.log(`[GD] Payment captured: ${transaction_id} state: ${r.data && r.data.state || r.status}`);
     } catch (err) {
       console.error('[GD] BBMS capture failed:', err.response && err.response.status, JSON.stringify(err.response && err.response.data || err.message));
+      // Tell the team right away (at most one email an hour): a donor just saw "could not confirm your gift".
+      try {
+        await sendSystemAlert('A gift payment could not be captured', `<p><strong>A donor's payment could not be completed on the Giving Days page.</strong> If this keeps happening, gifts are failing.</p><p>Amount: ${esc(String(amount))}<br>Transaction: <code>${esc(transaction_id)}</code><br>Reason: <code>${esc(String((err.response && err.response.data && (err.response.data.message || err.response.data.error)) || err.message || 'unknown').slice(0, 300))}</code></p><p>Check the Render logs for "[GD] BBMS capture failed". If it mentions re-authorization, restart the service on Render, or visit /auth/blackbaud on the live site.</p>`, 'capture');
+      } catch (alertErr) { console.error('[GD] capture alert failed:', alertErr.message || alertErr); }
       return res.status(502).json({ error: 'Payment capture failed.' });
     }
 

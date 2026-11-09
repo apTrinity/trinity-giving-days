@@ -522,6 +522,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ─── Token state ──────────────────────────────────────────────────────────────
 // Seeded from env vars, then kept in sync with Supabase so tokens survive
 // server restarts and redeploys on Render/Railway.
+const { backgroundAllowed } = require('./sky-instance');
 let tokens = {
   access_token:  process.env.SKY_ACCESS_TOKEN  || null,
   refresh_token: process.env.SKY_REFRESH_TOKEN || null,
@@ -620,7 +621,7 @@ async function refreshAccessToken() {
       // Check Supabase first: if it holds newer tokens, adopt them, and if they are still fresh, use them as they are.
       try {
         const { data: saved } = await supabase.from('sky_tokens').select('access_token, refresh_token, updated_at').eq('id', 1).single();
-        if (saved && saved.refresh_token && saved.refresh_token !== tokens.refresh_token) {
+        if (saved && saved.refresh_token && (saved.refresh_token !== tokens.refresh_token || saved.access_token !== tokens.access_token)) {
           tokens.access_token  = saved.access_token;
           tokens.refresh_token = saved.refresh_token;
           console.log('Adopted newer SKY tokens saved by another server instance.');
@@ -630,6 +631,8 @@ async function refreshAccessToken() {
           }
         }
       } catch (adoptErr) { console.error('Could not check Supabase for newer SKY tokens:', adoptErr.message || adoptErr); }
+      // A copy running on a laptop never renews the login (see sky-instance.js): that would break the deployed server.
+      if (!backgroundAllowed()) throw new Error('This copy of the server does not renew the Blackbaud login (only the deployed server does). Try again in a minute, or set SKY_BACKGROUND=on to allow it.');
       const response = await axios.post(BB_TOKEN_URL, new URLSearchParams({
         grant_type:    'refresh_token',
         refresh_token: tokens.refresh_token,
@@ -1296,15 +1299,17 @@ loadTokensFromSupabase();
 // Access tokens expire after ~60 min. Refreshing early means background jobs
 // never hit an expired token mid-run, eliminating the most common cause of
 // invalid_grant errors from concurrent refresh attempts.
-setInterval(async () => {
+if (backgroundAllowed()) setInterval(async () => {
   try {
     await refreshAccessToken();
     console.log('Proactive token refresh successful.');
   } catch (err) {
     console.error('Proactive token refresh failed:', err.message);
     // skyAuthValid is already set to false inside refreshAccessToken on invalid_grant
+    try { await require('./giving-days-emails').sendSystemAlert('Blackbaud login could not be renewed', `<p>The server could not renew its Blackbaud (SKY API) login: <code>${String(err.message).replace(/[<>&]/g, '')}</code></p><p>Gifts cannot be captured until this is fixed. Try restarting the service on Render; if that does not help, visit <b>/auth/blackbaud</b> on the live site to reconnect.</p>`, 'sky-token'); } catch (e) { /* alerting must never break the interval */ }
   }
 }, 45 * 60 * 1000);
+else console.log('Local copy: Blackbaud login renewal and background syncs are off (set SKY_BACKGROUND=on to enable).');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Offline gift sync — polls RE NXT every 30 min for gifts entered by staff
@@ -1813,7 +1818,7 @@ async function runParentsSyncSafe() {
   try { await syncParentsOfflineGifts(); }
   catch (err) { /* already logged inside syncParentsOfflineGifts */ }
 }
-setTimeout(() => {
+if (backgroundAllowed()) setTimeout(() => {
   runParentsSyncSafe();
   setInterval(runParentsSyncSafe, 30 * 60 * 1000);
 }, 8000); // slight offset from main sync to avoid simultaneous SKY API calls

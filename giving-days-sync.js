@@ -280,7 +280,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
   app.get('/api/admin/gd/sync/status', requireAdmin, (req, res) => res.json({ ...run, query_id: QUERY_ID(), schedule: String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on' }));
 
   // Opt-in nightly apply at 3 a.m. Eastern (only after a preview has been run and applied by hand at least once on this server).
-  if (String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on') {
+  if (require('./sky-instance').backgroundAllowed() && String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on') {
     let lastDay = '';
     setInterval(() => {
       const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));

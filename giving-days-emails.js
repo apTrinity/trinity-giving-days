@@ -267,4 +267,17 @@ async function sendOfflineUnmatchedAlert(list) {
   }, 'offline unmatched alert');
 }
 
-module.exports = { sendOfflineUnmatchedAlert, sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization, renderConfirmation, renderStaff };
+// A problem staff or the developer must act on (the payment system is refusing, the Blackbaud login failed). At most one
+// email per kind per hour, so a failure that repeats on every gift does not flood anyone. `to`: 'staff' (default) or 'dev'.
+const lastAlert = {};
+async function sendSystemAlert(subject, html, kind, to) {
+  if (Date.now() - (lastAlert[kind] || 0) < 60 * 60 * 1000) return false;
+  lastAlert[kind] = Date.now();
+  return send({
+    to: to === 'dev' ? testAddress() : [...new Set([testAddress(), ...staffList()])],
+    subject: `[Giving Days] ACTION NEEDED: ${subject}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:14px;max-width:560px;">${html}</div>`,
+  }, 'system alert: ' + kind);
+}
+
+module.exports = { sendSystemAlert, sendOfflineUnmatchedAlert, sendGiftEmails, sendUnrecordedGiftAlert, buildPersonalization, renderConfirmation, renderStaff };

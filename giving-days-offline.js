@@ -169,7 +169,8 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
     execute(apply, 'admin', id);
     res.status(202).json({ started: true });
   });
-  const scheduled = () => !!queryId({}) && String(process.env.GD_OFFLINE_SCHEDULE || 'on').toLowerCase() !== 'off' && process.env.SKIP_RE_RESOLUTION !== 'true';
+  const { backgroundAllowed } = require('./sky-instance');
+  const scheduled = () => backgroundAllowed() && !!queryId({}) && String(process.env.GD_OFFLINE_SCHEDULE || 'on').toLowerCase() !== 'off' && process.env.SKIP_RE_RESOLUTION !== 'true';
   app.get('/api/admin/gd/offline/status', requireAdmin, (req, res) => res.json({ ...run, query_id: run.query_id || queryId({}), schedule: scheduled(), alert }));
 
   // Automatic: 90 seconds after the server starts, then every 30 minutes (only when a query ID is set).
