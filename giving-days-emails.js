@@ -125,6 +125,18 @@ function renderConfirmation(g, p) {
     ? `<p style="margin:0 0 16px;color:#444;">Gifts of $1,709 or more are recognized in the <strong style="color:#02193B;">1709 Society</strong>, and we are delighted to have you among its members.</p>` : '';
   const test = g.is_test
     ? `<div style="background-color:#FCB104;color:#02193B;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-align:center;padding:10px 16px;">TEST GIFT. This is a test of the gift confirmation email. Nothing was charged.</div>` : '';
+  const matchUrl = 'https://www.trinityschoolnyc.org/support-trinity/matching-gifts';
+  const matchCard = g.employer_match
+    ? `<div style="background-color:#F4F2ED;border-top:4px solid #FCB104;padding:20px 24px 22px;">
+      <p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#02193B;">Thank you for noting your employer match.</p>
+      <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444;">You let us know that ${g.employer ? `<strong style="color:#02193B;">${esc(g.employer)}</strong>` : 'your employer'} matches gifts, and we are grateful. To complete the match, most employers ask donors to submit a short request. Our matching gifts page explains the steps.</p>
+      <a href="${matchUrl}" style="display:inline-block;background-color:#02193B;color:#ffffff;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;padding:14px 26px;text-decoration:none;">How to complete your match &rarr;</a>
+    </div>`
+    : `<div style="background-color:#F4F2ED;border-top:4px solid #FCB104;padding:20px 24px 24px;">
+      <p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#02193B;">Double your impact with a matching gift.</p>
+      <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity, so your gift could be worth twice as much at no extra cost to you.</p>
+      <a href="${matchUrl}" style="display:inline-block;background-color:#FCB104;color:#02193B;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;padding:14px 26px;text-decoration:none;">Check if your employer matches &rarr;</a>
+    </div>`;
   const td = (k, v, bold) => `<tr><td style="padding:9px 18px 9px 0;border-top:1px solid #E4E2DC;color:#787878;font-size:13px;font-family:Arial,sans-serif;">${k}</td><td style="padding:9px 0;border-top:1px solid #E4E2DC;color:#02193B;font-size:14px;${bold ? 'font-weight:bold;' : ''}">${v}</td></tr>`;
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -168,13 +180,9 @@ function renderConfirmation(g, p) {
       </table>
     </div>
   </div>
-  <!-- Matching gifts: warm-gray card, yellow top edge, yellow button -->
+  <!-- Matching gifts: warm-gray card, yellow top edge. Donors who said their employer matches get an acknowledgement instead of the prompt. -->
   <div style="padding:0 32px 34px;background-color:#ffffff;">
-    <div style="background-color:#F4F2ED;border-top:4px solid #FCB104;padding:20px 24px 24px;">
-      <p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#02193B;">Double your impact with a matching gift.</p>
-      <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444;">Many companies match employee donations to schools like Trinity, so your gift could be worth twice as much at no extra cost to you.</p>
-      <a href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" style="display:inline-block;background-color:#FCB104;color:#02193B;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;padding:14px 26px;text-decoration:none;">Check if your employer matches &rarr;</a>
-    </div>
+    ${matchCard}
   </div>
   <!-- Footer: navy with a yellow top edge, seal and address like the page -->
   <div style="background-color:#02193B;border-top:4px solid #FCB104;padding:24px 32px 26px;text-align:center;font-family:Arial,sans-serif;">
