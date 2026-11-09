@@ -615,6 +615,21 @@ async function refreshAccessToken() {
 
   tokenRefreshInProgress = (async () => {
     try {
+      // Another copy of this server (for example one running on a laptop) may already have refreshed and saved newer
+      // tokens, which makes the refresh token held in memory here stale (Blackbaud rotates it on every refresh).
+      // Check Supabase first: if it holds newer tokens, adopt them, and if they are still fresh, use them as they are.
+      try {
+        const { data: saved } = await supabase.from('sky_tokens').select('access_token, refresh_token, updated_at').eq('id', 1).single();
+        if (saved && saved.refresh_token && saved.refresh_token !== tokens.refresh_token) {
+          tokens.access_token  = saved.access_token;
+          tokens.refresh_token = saved.refresh_token;
+          console.log('Adopted newer SKY tokens saved by another server instance.');
+          if (saved.updated_at && Date.now() - new Date(saved.updated_at).getTime() < 50 * 60 * 1000) {
+            skyAuthValid = true;
+            return tokens.access_token;
+          }
+        }
+      } catch (adoptErr) { console.error('Could not check Supabase for newer SKY tokens:', adoptErr.message || adoptErr); }
       const response = await axios.post(BB_TOKEN_URL, new URLSearchParams({
         grant_type:    'refresh_token',
         refresh_token: tokens.refresh_token,
