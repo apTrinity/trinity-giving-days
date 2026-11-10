@@ -1402,7 +1402,11 @@ function renderCM() {
 renderCM();
 // ── About + FAQ (Trinity's own copy from last year, dates updated) ──
 const STOCK = '<a href="https://www.trinityschoolnyc.org/support-trinity/making-a-stock-gift" target="_blank" rel="noopener">trinityschoolnyc.org/support-trinity/making-a-stock-gift</a>';
-const LEAD = 'If we receive <b>350 new gifts</b> from members of the Trinity community between now and midnight on December 4th, it will unlock <b>$150,000</b> in additional support for the Trinity Fund!';
+// Lead sentence follows the main (first) donor-count challenge, so it always matches the "Help Earn Bonus Gifts" card
+const leadText = () => {
+  const m = C.find(c => !c.match && c.prize > 0) || { target: 200, prize: 200000 };
+  return `If we receive <b>${m.target.toLocaleString('en-US')} new gifts</b> from members of the Trinity community between now and midnight on December 4th, it will unlock <b>${fmt$(m.prize)}</b> in additional support for the Trinity Fund!`;
+};
 const WHY = 'The Trinity Fund is the school\'s philanthropic priority and impacts every student K–12. Your gift today gets us one step closer to unlocking this challenge and reaching our Giving Days goal.';
 const WAYS = [
   ['Online', 'Right here on this page.'],
@@ -1429,18 +1433,18 @@ const faqList = numbered => FAQ.map(([q, a], i) => `<details class="faq-item"${i
 const waysList = () => `<ul class="ways-list">${WAYS.map(([k, v]) => `<li><b>${k}</b><span>${v}</span></li>`).join('')}</ul>`;
 const AB = {
   split: () => `<div class="ab-split">
-      <div class="ab-why"><div class="ab-kicker">About Giving Days</div><div class="ab-lead">${LEAD}</div><p>${WHY}</p><div class="ways-title">Ways to give</div>${waysList()}</div>
+      <div class="ab-why"><div class="ab-kicker">About Giving Days</div><div class="ab-lead">${leadText()}</div><p>${WHY}</p><div class="ways-title">Ways to give</div>${waysList()}</div>
       <div class="ab-faq"><h3>Questions, <em>answered</em></h3>${faqList(false)}</div>
     </div>`,
   num: () => `<div class="ab-num">
       <div class="sec-head" style="justify-content:center"><div class="sec-title">About <em>Giving Days</em></div></div>
-      <div class="ab-lead">${LEAD}</div><p class="ab-sub">${WHY}</p>
+      <div class="ab-lead">${leadText()}</div><p class="ab-sub">${WHY}</p>
       ${faqList(true)}
       <div class="ways-tiles">${TILES.map(([k, v]) => `<div class="ways-tile"><b>${k}</b><span>${v}</span></div>`).join('')}</div>
     </div>`,
   tabs: () => `<div class="ab-tabs">
       <div class="ab-tabbar">${[['about', 'About'], ['faq', 'FAQ'], ['ways', 'Ways to give']].map(([k, l]) => `<button data-t="${k}" class="${abTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <div class="ab-pane">${abTab === 'about' ? `<div class="ab-lead">${LEAD}</div><p>${WHY}</p>` : abTab === 'faq' ? faqList(false) : waysList()}</div>
+      <div class="ab-pane">${abTab === 'about' ? `<div class="ab-lead">${leadText()}</div><p>${WHY}</p>` : abTab === 'faq' ? faqList(false) : waysList()}</div>
     </div>`,
 };
 function renderAB() {
@@ -1955,7 +1959,7 @@ function refreshLive(d) {
   liveSig = sig;
   GD.campaign = d;
   applyHero(d); applyChallenges(d); buildBoards(d.wall); applyWall(d.wall);
-  renderHero();
+  renderHero(); renderAB();
   // Challenge band, leaderboard and donor wall: patch in place; redraw only if their layout changed
   const chal = document.getElementById('chal'), lb = document.getElementById('lb'), cm = document.getElementById('cm');
   if (chalView !== 'ub' || !softUpdate(chal, CHAL[chalView](), '.ub-bname')) renderChal(chalView);
