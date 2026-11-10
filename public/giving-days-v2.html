@@ -1937,7 +1937,7 @@ function gmInitCheckout(configId) {
     };
     fetch('/api/gd/gift', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(r => r.ok ? r : (unconfirmed(), null), () => (unconfirmed(), null))   // server said no, or no answer at all
-      .then(r => r && fetch('/api/gd/campaign').then(c => c.json()))
+      .then(r => r && fetch('/api/gd/campaign', { cache: 'no-store' }).then(c => c.json()))   // no-store: skip the 15s browser cache so the new gift shows
       .then(d => { if (d) refreshLive(d); })
       .catch(err => console.warn('Page refresh after gift failed:', err.message));
   });

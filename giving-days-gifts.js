@@ -106,6 +106,8 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         throw error;
       }
       invalidate();
+      // Answer the page now so the counter can refresh right away; the receipt and staff note go out behind the response.
+      res.json({ success: true, gift_id: data.id });
       // Receipt to the donor and a note to staff (test gifts go to Andrew only). Never blocks or fails the gift.
       try {
         let donor = null;
@@ -133,7 +135,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         } catch (pErr) { console.error('[GD] email personalization skipped:', pErr.message || pErr); }
         await sendGiftEmails(gift, donor, personal);
       } catch (mailErr) { console.error('[GD] gift emails failed:', mailErr.message || mailErr); }
-      return res.json({ success: true, gift_id: data.id });
+      return;
     } catch (err) {
       console.error('[GD] UNRECORDED GIFT (payment captured, database write failed):', JSON.stringify(row), err.message || err);
       try { await sendUnrecordedGiftAlert({ ...row, ...(match || {}), created_at: new Date().toISOString() }); } catch (mailErr) { console.error('[GD] alert email failed:', mailErr.message || mailErr); }
