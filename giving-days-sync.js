@@ -138,7 +138,7 @@ function toPeople(rows, roles) {
     const pos = v => (v != null && v > 0 ? v : null);   // RE writes $0 when there is no ask or no gift last year: treat that as none, so the form shows no $0 button
     const hh = { ly_gift: pos(money(g(r, 'ly_gift'))), ask_a: pos(money(g(r, 'ask_a'))), ask_b: pos(money(g(r, 'ask_b'))), giving_ytd: money(g(r, 'giving_ytd')) };
     const email = (text(g(r, 'email')) || '').toLowerCase() || null;
-    const names = { addressee: text(g(r, 'addressee')), salutation: text(g(r, 'salutation')), household_re_id: id };
+    const names = { addressee: text(g(r, 'addressee')), salutation: text(g(r, 'salutation')), household_re_id: id, appeal_code: text(g(r, 'appeal_code')) };
     const person = { re_id: id, first_name: first, last_name: last, email, class_year: cy, grades, import_tags: [...own].sort(), ...hh, ...names,
       alumni_addressee: alumniVal ? text(g(r, 'alumni_addressee')) : null, alumni_salutation: alumniVal ? text(g(r, 'alumni_salutation')) : null };
     if (add(person, `row with ${first || ''} ${last || ''}`.trim()) && !email) { issues.no_email++; push(examples.no_email, `${first || ''} ${last || ''} (${id})`.trim()); }
@@ -162,9 +162,9 @@ function toPeople(rows, roles) {
   return { people: [...people.values()], issues, examples, unknownTags: [], codes: [...codes.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 20).map(([code, c]) => ({ code: code || '(blank)', ...c })) };
 }
 
-const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id'];
+const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code'];
 const BASE_COLS = 'id, re_id, first_name, last_name, email, class_year, ly_gift, ask_a, ask_b, grades, import_tags';
-const NEW_COLS = ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id';
+const NEW_COLS = ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id, appeal_code';
 const same = (a, b) => (Array.isArray(a) || Array.isArray(b)) ? JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort())
   : (a == null && b == null) || (a != null && b != null && String(a) === String(b)) || (typeof a === 'number' && Number(b) === a);
 
@@ -234,15 +234,15 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       if (!apply) { previewed = true; run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result }; return; }
 
       if (result.blocking.length) throw new Error('Not applied: ' + result.blocking.join(' '));
-      const probe = await supabase.from('gd_donors').select('active, addressee, household_re_id').limit(1);
-      if (probe.error) throw new Error('Not applied: run sql/gd-13-sync.sql in Supabase first (it adds the active, synced_at, giving_ytd, addressee and household columns).');
+      const probe = await supabase.from('gd_donors').select('active, addressee, household_re_id, appeal_code').limit(1);
+      if (probe.error) throw new Error('Not applied: run sql/gd-13-sync.sql and sql/gd-15-appeal-code.sql in Supabase first (they add the active, synced_at, giving_ytd, addressee, household and appeal_code columns).');
       const now = new Date().toISOString();
       // New people: a fresh personal-link code each.
       const taken = new Set((await fetchAll(() => supabase.from('gd_donors').select('token'))).map(d => d.token));
       const fresh = () => { for (;;) { const t = makeToken(); if (!taken.has(t)) { taken.add(t); return t; } } };
       for (let i = 0; i < adds.length; i += 200) {
         const chunk = adds.slice(i, i + 200).map(p => {
-          const r = { token: fresh(), re_id: p.re_id, first_name: p.first_name, last_name: p.last_name, email: p.email, class_year: p.class_year, ly_gift: p.ly_gift, ask_a: p.ask_a, ask_b: p.ask_b, giving_ytd: p.giving_ytd, addressee: p.addressee, salutation: p.salutation, alumni_addressee: p.alumni_addressee, alumni_salutation: p.alumni_salutation, household_re_id: p.household_re_id, active: true, synced_at: now };
+          const r = { token: fresh(), re_id: p.re_id, first_name: p.first_name, last_name: p.last_name, email: p.email, class_year: p.class_year, ly_gift: p.ly_gift, ask_a: p.ask_a, ask_b: p.ask_b, giving_ytd: p.giving_ytd, addressee: p.addressee, salutation: p.salutation, alumni_addressee: p.alumni_addressee, alumni_salutation: p.alumni_salutation, household_re_id: p.household_re_id, appeal_code: p.appeal_code, active: true, synced_at: now };
           if (p.grades !== undefined) r.grades = p.grades;
           if (p.import_tags !== undefined) r.import_tags = p.import_tags;
           return r;
