@@ -857,13 +857,10 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-known b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
 .gm-known a { color: var(--navy); text-decoration: underline; }
 .gm-known[hidden], .gm-row[hidden], .gm-input[hidden] { display: none; }
-.gm-counts { font-size: 12.5px; color: var(--navy); background: var(--paper-2); padding: 10px 12px; line-height: 1.4; }
-.gm-counts-h { font-weight: 800; margin-bottom: 6px; }
-.gm-counts ul { list-style: none; display: grid; gap: 6px; }
-.gm-counts li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
-.gm-counts li i { width: 18px; height: 18px; border-radius: 50%; background: var(--navy); color: var(--trinity-yellow); font-style: normal; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
-.gm-counts li b { font-weight: 800; }
-.gm-counts li span { display: block; font-weight: 400; color: var(--ink-mid); }
+.gm-counts { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--navy); background: var(--paper-2); padding: 8px 12px; line-height: 1.4; }
+.gm-counts[hidden] { display: none; }
+.gm-counts i { flex: none; width: 15px; height: 15px; border-radius: 50%; background: var(--navy); color: var(--trinity-yellow); font-style: normal; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 1px; line-height: 1; }
+.gm-counts b { font-weight: 800; }
 .ub-card.you .ub-front { box-shadow: inset 0 0 0 2px var(--trinity-yellow); }
 .demo-ribbon { position: fixed; left: 12px; bottom: 12px; z-index: 300; background: var(--navy); color: #fff; font-size: 12px; padding: 7px 12px; border-left: 4px solid var(--trinity-yellow); max-width: calc(100vw - 24px); }
 /* Live updates: bars glide to their new width */
@@ -1692,9 +1689,9 @@ function gmCounts() {
   const hits = C.filter(c => c.rule && !c.soon && qual(c.rule, who));
   el.hidden = !hits.length;
   if (!hits.length) return;
-  const n = hits.length, head = n === 1 ? 'Your gift counts toward this challenge:' : n === 2 ? 'Your one gift counts toward both of these challenges:' : `Your one gift counts toward all ${n} of these challenges:`;
-  const what = c => c.match ? 'Your gift is matched dollar for dollar' : `Helps unlock ${fmt$(c.prize)} for the Trinity Fund`;
-  el.innerHTML = `<div class="gm-counts-h">${head}</div><ul>${hits.map(c => `<li><i aria-hidden="true">✓</i><div><b>${c.name}</b><span>${what(c)}</span></div></li>`).join('')}</ul>`;
+  const names = hits.map(c => `<b>${c.name}</b>`), n = names.length;
+  const list = n === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[n - 1];
+  el.innerHTML = `<i aria-hidden="true">✓</i><span>${n > 1 ? 'Your one gift counts toward' : 'Your gift counts toward'} ${list}</span>`;
 }
 
 function gmUpdate() {
