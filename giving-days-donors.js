@@ -82,8 +82,12 @@ function demoPersona(raw) {
     grades: (Array.isArray(p.grades) ? p.grades.map(String) : []).filter(g => GRADE_KEYS.includes(g)),
     class_year: Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null,
     ly: isFinite(ly) && ly > 0 && ly <= 10000000 ? Math.round(ly) : null,
+    leadership: p.leadership === true,
   };
 }
+
+// Leadership appeal codes ("1A.) Leadership - No Amounts", "1B.) Leadership - Amounts", with or without "NEW FAMILY - " in front)
+const isLeadership = code => /^\s*(new family\s*-\s*)?1[ab]\b/i.test(String(code || ''));
 
 module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, audiences }) {
   const shield = require('./giving-days-shield')(supabase);
@@ -114,12 +118,12 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     } else if (token) {
       try {
         const { data: d, error } = await supabase.from('gd_donors')
-          .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
+          .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
         if (error) throw error;
         if (d) {
           known = true;
           finish({ first_name: d.first_name, last_name: d.last_name || '', email: d.email || '', tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
-            ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null });
+            ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null, leadership: isLeadership(d.appeal_code) });
           data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
         }
       } catch (err) { console.error('giving-days page donor:', err.message); }

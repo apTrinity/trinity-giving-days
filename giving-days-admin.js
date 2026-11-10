@@ -110,6 +110,7 @@ function cleanChallenge(body, { partial = false } = {}) {
     out.sort_order = s;
   }
   if (has('published')) out.published = b.published === true || b.published === 'true';
+  for (const k of ['counts_gifts', 'secret']) if (has(k)) out[k] = b[k] === true || b[k] === 'true';
 
   if (has('tags')) {
     if (!Array.isArray(b.tags)) return { error: 'Who counts must be a list of affiliations.' };
@@ -196,19 +197,24 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
   // What the Giving Days page needs (published challenges only); shared by the API and the page itself.
   // Challenge progress is counted from gifts (see giving-days-progress.js), plus the admin's manual adjustment.
   async function loadCampaign() {
-    const [s, c] = await Promise.all([
-      supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, ask_personalize, ask_steps, test_gifts_count, gifts_count_from').eq('id', 1).single(),
-      supabase.from('gd_challenges')
-        .select('id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order')
-        .eq('published', true).order('sort_order').order('created_at'),
-    ]);
+    const settingsQ = supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, ask_personalize, ask_steps, test_gifts_count, gifts_count_from').eq('id', 1).single();
+    const BASE = 'id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order';
+    const chal = cols => supabase.from('gd_challenges').select(cols).eq('published', true).order('sort_order').order('created_at');
+    let [s, c] = await Promise.all([settingsQ, chal(BASE + ', counts_gifts, secret')]);
+    if (c.error && c.error.code === '42703') c = await chal(BASE);   // sql/gd-16 not run yet: behave as before
     if (s.error) throw s.error;
     if (c.error) throw c.error;
     const { progress, values, wall } = await computeProgress(supabase, s.data, c.data);
     const { test_gifts_count, gifts_count_from, ...settings } = s.data;  // switches stay private to the admin
+    const now = Date.now();
+    // A secret challenge that has not started yet is sent as a bare mystery card: nothing about it leaves the server.
+    const mystery = x => x.secret && x.starts_at && new Date(x.starts_at).getTime() > now;
     return {
       settings, progress, wall,
-      challenges: c.data.map(x => ({ ...x, who_counts: whoCountsText(x), current_value: Number(x.current_value) + (values[x.id] || 0) })),
+      challenges: c.data.map(x => mystery(x)
+        ? { id: x.id, mystery: true, starts_at: x.starts_at, sort_order: x.sort_order, name: 'Mystery challenge', kind: 'challenge', target: 1, prize: 0, current_value: 0,
+            description: 'A surprise challenge is coming. Check back on the day to find out what it is.', who_counts: '', tags: [], grades: [], counts_gifts: false }
+        : { ...x, who_counts: whoCountsText(x), current_value: Number(x.current_value) + (values[x.id] || 0) }),
     };
   }
 

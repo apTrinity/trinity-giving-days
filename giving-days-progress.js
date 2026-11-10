@@ -106,6 +106,7 @@ function compute(gifts, settings, challenges) {
   const ppl = people(gifts, settings);
   const progress = {
     donors: ppl.length,
+    gifts: ppl.reduce((t, p) => t + p.gifts.length, 0),   // every counted gift, however many one person made
     raised: ppl.reduce((t, p) => t + p.gifts.reduce((s, g) => s + Number(g.amount), 0), 0),
   };
   const values = {};
@@ -119,7 +120,7 @@ function compute(gifts, settings, challenges) {
       if (!qualifies(c, p)) continue;
       const mine = p.gifts.filter(inWindow);
       if (!mine.length) continue;
-      donors++;
+      donors += c.counts_gifts ? mine.length : 1;   // "new gifts" challenges count every gift; the rest count each person once
       dollars += mine.reduce((s, g) => s + Number(g.amount), 0);
     }
     values[c.id] = c.kind === 'match' ? Math.min(Number(c.target), dollars) : donors;

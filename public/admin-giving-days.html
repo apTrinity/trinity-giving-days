@@ -295,7 +295,7 @@
     <section class="panel" id="panel-settings">
       <div class="head-row"><h2>Campaign settings</h2></div>
       <div class="card">
-        <div class="field"><label for="s-goal">Donor goal</label><input type="number" id="s-goal" min="1" step="1"></div>
+        <div class="field"><label for="s-goal">Gift goal (shown in the top progress bar)</label><input type="number" id="s-goal" min="1" step="1"></div>
         <div class="grid2">
           <div class="field"><label for="s-start">Starts (Eastern time)</label><input type="datetime-local" id="s-start"></div>
           <div class="field"><label for="s-end">Ends (Eastern time)</label><input type="datetime-local" id="s-end"></div>
@@ -400,6 +400,8 @@
       <div class="grid2">
         <div class="field"><label for="f-cur" id="l-cur">Progress so far</label><input type="number" id="f-cur" min="0" step="any" value="0"></div>
         <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);padding-top:9px"><input type="checkbox" id="f-pub"> Published (visible on the page)</label></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);padding-top:9px"><input type="checkbox" id="f-gifts"> Count every gift (not each person once)</label></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);padding-top:9px"><input type="checkbox" id="f-secret"> Keep it secret until its start time (shows a mystery card)</label></div>
       </div>
       <div class="err" id="f-error"></div>
     </div>
@@ -537,7 +539,7 @@ function renderList() {
     return `<div class="ch ${c.published ? '' : 'draft'}" data-id="${c.id}">
       <div class="order"><button data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button data-act="down" ${i === challenges.length - 1 ? 'disabled' : ''} aria-label="Move down">▼</button></div>
       <div><h3>${esc(c.name)}</h3>
-        <div class="meta"><span class="pill ${c.published ? 'live' : 'draft'}">${c.published ? 'Published' : 'Draft'}</span><span class="pill kind">${isMatch ? 'Match' : 'Challenge'}</span>${goal} · ${prog}</div>
+        <div class="meta"><span class="pill ${c.published ? 'live' : 'draft'}">${c.published ? 'Published' : 'Draft'}</span><span class="pill kind">${isMatch ? 'Match' : 'Challenge'}</span>${c.secret ? '<span class="pill kind">Secret until start</span>' : ''}${c.counts_gifts ? '<span class="pill kind">Counts gifts</span>' : ''}${goal} · ${prog}</div>
         <div class="meta">Counts: ${esc(whoText(c))}</div></div>
       <div class="actions"><button class="btn small ghost" data-act="pub">${c.published ? 'Unpublish' : 'Publish'}</button><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
     </div>`;
@@ -566,7 +568,7 @@ function openEditor(c) {
   $('f-target').value = c?.target ?? ''; $('f-prize').value = c?.prize ?? ''; $('f-unit').value = c?.unit || '';
   $('f-desc').value = c?.description || ''; $('f-who').value = c?.who_counts || ''; $('f-when').value = c?.when_text || '';
   $('f-start').value = isoToET(c?.starts_at); $('f-end').value = isoToET(c?.ends_at); $('f-sponsor').value = c?.sponsor || '';
-  $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('max-label').textContent = descMax;
+  $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('f-gifts').checked = !!c?.counts_gifts; $('f-secret').checked = !!c?.secret; $('max-label').textContent = descMax;
   $('f-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}" title="${t.hidden ? 'Not on the gift form: set from the RE import or by an admin' : 'Ticked on the gift form'}"><input type="checkbox" value="${t.key}" ${(c?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('')
     + '<p class="hint" style="width:100%;margin-top:2px">* Not a gift-form choice: matched from the RE import or set by an admin.</p>';
   $('f-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${(c?.grades || []).includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
@@ -590,7 +592,7 @@ $('f-save').onclick = async () => {
     name: $('f-name').value, kind: kindVal(), target: $('f-target').value, prize: kindVal() === 'match' ? null : $('f-prize').value,
     unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, when_text: $('f-when').value,
     starts_at: etToISO($('f-start').value), ends_at: etToISO($('f-end').value), sponsor: $('f-sponsor').value,
-    current_value: $('f-cur').value, published: $('f-pub').checked,
+    current_value: $('f-cur').value, published: $('f-pub').checked, counts_gifts: $('f-gifts').checked, secret: $('f-secret').checked,
     tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value),
   };
   const btn = $('f-save'); btn.disabled = true; $('f-error').style.display = 'none';
