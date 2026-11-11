@@ -269,9 +269,10 @@
       <div id="sync-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
           <div><b>Sync from Raiser's Edge</b><p class="hint" id="sync-hint" style="margin:2px 0 0">Reads RE query <span id="sync-qid">…</span> and keeps this list up to date. A preview changes nothing.</p></div>
-          <div style="display:flex;gap:8px"><button class="btn small" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
+          <div style="display:flex;gap:8px"><button class="btn small" id="sync-now">Sync now</button><button class="btn small" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
         </div>
-        <div id="sync-out"></div>
+        <p id="sync-last" class="hint" style="margin:8px 0 0"></p>
+      <div id="sync-out"></div>
       </div>
       <div id="off-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
@@ -927,7 +928,9 @@ let syncTimer = null, syncPreviewed = false;
 function renderSync(r) {
   const out = $('sync-out'); $('sync-qid').textContent = r.query_id || '';
   const run = r.state === 'running';
-  $('sync-preview').disabled = run; $('sync-apply').disabled = run;
+  $('sync-preview').disabled = run; $('sync-apply').disabled = run; $('sync-now').disabled = run;
+  const ago = r.last_synced ? Math.max(0, Math.round((Date.now() - new Date(r.last_synced)) / 60000)) : null;
+  $('sync-last').innerHTML = (r.last_synced ? `<b>Last synced:</b> ${esc(new Date(r.last_synced).toLocaleString())} (${ago < 60 ? ago + ' min ago' : ago < 2880 ? Math.round(ago / 60) + ' hours ago' : Math.round(ago / 1440) + ' days ago'})` : '<b>Last synced:</b> never') + ` · <b>Nightly sync (3 a.m. ET):</b> ${r.schedule ? 'on' : 'off'}`;
   if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
   if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Sync failed: ${esc(r.error)}</div>`; return; }
   if (r.state !== 'done' || !r.result) { out.innerHTML = ''; return; }
@@ -966,10 +969,11 @@ async function pollSync() {
   try { const r = await api('GET', '/api/admin/gd/sync/status'); renderSync(r); if (r.state === 'running') syncTimer = setTimeout(pollSync, 4000); else if (r.state === 'done' && r.mode === 'apply') loadDonors && loadDonors(); }
   catch (e) { $('sync-out').innerHTML = `<div class="empty">Could not read sync status: ${esc(e.message)}</div>`; }
 }
-async function startSync(apply) {
-  try { await api('POST', '/api/admin/gd/sync/start', { apply }); pollSync(); } catch (e) { toast(e.message, true); }
+async function startSync(apply, now) {
+  try { await api('POST', '/api/admin/gd/sync/start', { apply, now }); pollSync(); } catch (e) { toast(e.message, true); }
 }
 $('sync-preview').addEventListener('click', () => startSync(false));
+$('sync-now').addEventListener('click', () => { if (confirm('Sync now? This reads RE and applies changes right away (new people, updated emails/names). Personal links and admin tag edits are not touched.')) startSync(true, true); });
 $('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? This adds new people and updates changed details from RE. Personal links and admin tag edits are not touched.')) startSync(true); });
 // ── Offline gifts from RE ──
 let offTimer = null;

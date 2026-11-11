@@ -273,11 +273,17 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
   app.post('/api/admin/gd/sync/start', requireAdmin, (req, res) => {
     if (run.state === 'running') return res.status(409).json({ error: 'A sync is already running.' });
     const apply = !!(req.body && req.body.apply);
-    if (apply && !previewed) return res.status(400).json({ error: 'Run a preview first.' });
-    execute(apply, 'admin');
+    const now = !!(req.body && req.body.now);   // "Sync now": apply straight away, no preview first
+    if (apply && !previewed && !now) return res.status(400).json({ error: 'Run a preview first.' });
+    execute(apply, now ? 'admin (sync now)' : 'admin');
     res.status(202).json({ started: true });
   });
-  app.get('/api/admin/gd/sync/status', requireAdmin, (req, res) => res.json({ ...run, query_id: QUERY_ID(), schedule: String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on' }));
+  app.get('/api/admin/gd/sync/status', requireAdmin, async (req, res) => {
+    // Last successful apply survives restarts: every applied sync stamps synced_at on the donors it saw.
+    let last_synced = null;
+    try { const { data } = await supabase.from('gd_donors').select('synced_at').not('synced_at', 'is', null).order('synced_at', { ascending: false }).limit(1); last_synced = data && data[0] ? data[0].synced_at : null; } catch (e) {}
+    res.json({ ...run, query_id: QUERY_ID(), last_synced, schedule: String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on' });
+  });
 
   // Opt-in nightly apply at 3 a.m. Eastern (only after a preview has been run and applied by hand at least once on this server).
   if (require('./sky-instance').backgroundAllowed() && String(process.env.GD_SYNC_SCHEDULE || '').toLowerCase() === 'on') {
