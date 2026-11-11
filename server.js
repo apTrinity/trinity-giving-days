@@ -2505,6 +2505,7 @@ try {
   gdAdmin = require('./giving-days-admin')(app, { supabase, requireAdmin });
   gdAudiences = require('./giving-days-audiences')(app, { supabase, requireAdmin });
   require('./giving-days-sync')(app, { supabase, requireAdmin, skyRequest });
+  require('./giving-days-mailchimp')(app, { supabase, requireAdmin });
   require('./giving-days-offline')(app, { supabase, requireAdmin, skyRequest });
   require('./giving-days-querytest')(app, { requireAdmin, skyRequest });
   require('./giving-days-gifts')(app, {

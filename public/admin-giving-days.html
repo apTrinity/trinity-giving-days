@@ -274,6 +274,13 @@
         <p id="sync-last" class="hint" style="margin:8px 0 0"></p>
       <div id="sync-out"></div>
       </div>
+      <div id="mc-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
+        <div class="head-row" style="margin-bottom:6px">
+          <div><b>Mailchimp</b><p class="hint" style="margin:2px 0 0">Preview only: compares this list with your Mailchimp audience. Nothing is changed in either place.</p></div>
+          <div style="display:flex;gap:8px"><button class="btn small" id="mc-preview">Preview (no changes)</button></div>
+        </div>
+        <div id="mc-out"></div>
+      </div>
       <div id="off-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
           <div><b>Offline gifts from Raiser's Edge</b><p class="hint" style="margin:2px 0 0">Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list are recorded automatically and count like online gifts. A gift from someone who is not on the list is never recorded: it is flagged in red at the top of this page and emailed to staff. The query decides which gifts qualify (gift date from the launch, fund, and so on).</p></div>
@@ -529,7 +536,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
   if (b.dataset.tab === 'gifts') loadGifts();
   if (b.dataset.tab === 'constituents') loadDonors();
-  if (b.dataset.tab === 're') { pollQt(); pollSync(); pollOff(); }
+  if (b.dataset.tab === 're') { pollQt(); pollSync(); pollMc(); pollOff(); }
   if (b.dataset.tab === 'challenges') loadChallenges();
   document.querySelector('main').classList.toggle('wide', b.dataset.tab === 'audiences' || b.dataset.tab === 'constituents');
   if (b.dataset.tab === 'audiences') queuePreview();
@@ -975,6 +982,37 @@ async function startSync(apply, now) {
 $('sync-preview').addEventListener('click', () => startSync(false));
 $('sync-now').addEventListener('click', () => { if (confirm('Sync now? This reads RE and applies changes right away (new people, updated emails/names). Personal links and admin tag edits are not touched.')) startSync(true, true); });
 $('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? This adds new people and updates changed details from RE. Personal links and admin tag edits are not touched.')) startSync(true); });
+// ── Mailchimp preview ──
+let mcTimer = null;
+function renderMc(r) {
+  const out = $('mc-out'), run = r.state === 'running';
+  $('mc-preview').disabled = run;
+  if (r.configured === false) { out.innerHTML = `<div class="empty">Not set on the server yet: ${esc((r.missing || []).join(', '))}</div>`; return; }
+  if (r.state === 'idle') { out.innerHTML = ''; return; }
+  if (run) { out.innerHTML = '<div class="empty">Reading Mailchimp…</div>'; return; }
+  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Mailchimp preview failed: ${esc(r.error)}</div>`; return; }
+  const x = r.result, n = v => Number(v || 0).toLocaleString();
+  const li = a => (a || []).map(v => `<li>${esc(v)}</li>`).join('') || '<li>none</li>';
+  out.innerHTML = `<ul style="margin:8px 0">
+      <li><b>${n(x.donors_with_email)}</b> people here with an email (${n(x.donors_without_email)} have none and are skipped)</li>
+      <li><b>${n(x.mailchimp_members)}</b> contacts in Mailchimp (${esc(Object.entries(x.status_counts).map(([k, v]) => v + ' ' + k).join(', '))})</li>
+      <li><b>${n(x.already_in_mailchimp)}</b> already in Mailchimp · <b>${n(x.would_add)}</b> would be added</li>
+      <li><b>${n(x.skipped_not_subscribed)}</b> in Mailchimp but not subscribed: never touched</li>
+      <li><b>${n(x.gave_total)}</b> households have given this year: <b>${n(x.would_tag_gave)}</b> would get the "Gave 26-27" tag, ${n(x.would_untag_gave)} would lose it</li>
+      <li><b>${n(x.would_tag_appeal)}</b> would get an appeal-code tag · <b>${n(x.name_differs)}</b> names differ (left as they are in Mailchimp)</li>
+      <li><b>${n(x.mailchimp_only)}</b> in Mailchimp but not in this list: left alone</li></ul>
+    <details><summary><b>Would be added</b></summary><ul>${li(x.examples.would_add)}</ul></details>
+    <details><summary><b>Names that differ (informational)</b></summary><ul>${li(x.examples.name_differs)}</ul></details>
+    <details><summary><b>In Mailchimp only</b></summary><ul>${li(x.examples.mailchimp_only)}</ul></details>
+    <details><summary><b>Not subscribed (skipped)</b></summary><ul>${li(x.examples.skipped_not_subscribed)}</ul></details>
+    <p class="hint">Examples show up to 15 each · ${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}</p>`;
+}
+async function pollMc() {
+  clearTimeout(mcTimer);
+  try { const r = await api('GET', '/api/admin/gd/mailchimp/status'); renderMc(r); if (r.state === 'running') mcTimer = setTimeout(pollMc, 4000); }
+  catch (e) { $('mc-out').innerHTML = `<div class="empty">Could not read Mailchimp status: ${esc(e.message)}</div>`; }
+}
+$('mc-preview').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/preview'); pollMc(); } catch (e) { toast(e.message, true); } });
 // ── Offline gifts from RE ──
 let offTimer = null;
 const usd = n => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
