@@ -412,7 +412,7 @@
           <div class="field"><label for="f-t-pill">Status label</label><input type="text" id="f-t-pill" maxlength="40" placeholder="Revealed Fri 12/4"></div>
         </div>
         <div class="field"><label for="f-t-title">Back of the card: title</label><input type="text" id="f-t-title" maxlength="60" placeholder="Mystery challenge"></div>
-        <div class="field"><label for="f-t-back">Back of the card: text</label><textarea id="f-t-back" rows="3" maxlength="220" placeholder="A surprise challenge is coming. Check back on the day to find out what it is."></textarea></div>
+        <div class="field"><label for="f-t-back">Back of the card: text</label><textarea id="f-t-back" rows="3" maxlength="220" placeholder="A surprise challenge is coming. Check back on the day to find out what it is."></textarea><p class="hint" style="margin-top:4px">Type a single dash (-) for no back at all: the card won't flip.</p></div>
       </div>
       <div class="err" id="f-error"></div>
     </div>
@@ -592,6 +592,7 @@ function refresh() {
   const cnt = $('desc-count'); cnt.textContent = `${len} / ${descMax}`; cnt.className = 'count' + (len > descMax ? ' over' : '');
   const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
   const sec = $('f-secret').checked; $('teaser-box').hidden = !sec;
+  if (sec && $('f-t-back').value.trim() === '-') { $('pv').innerHTML = `<p class="hint">No back: the hidden card won't flip.</p>`; return; }
   if (sec) { $('pv').innerHTML = `<h4>${esc($('f-t-title').value.trim() || 'Mystery challenge')}</h4><p>${esc($('f-t-back').value.trim() || 'A surprise challenge is coming. Check back on the day to find out what it is.')}</p><p class="hint" style="margin-top:8px">Showing the hidden card's back, as visitors see it before the reveal.</p>`; return; }
   $('pv').innerHTML = `<h4>${esc($('f-name').value || 'Challenge name')}</h4><p>${esc(d || 'Description appears here.')}</p><dl>`
     + (who ? `<div><dt>Who counts</dt><dd>${esc(who)}</dd></div>` : '') + (when ? `<div><dt>When</dt><dd>${esc(when)}</dd></div>` : '')

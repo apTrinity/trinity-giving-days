@@ -214,8 +214,8 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
       settings, progress, wall,
       challenges: c.data.map(x => mystery(x)
         ? { id: x.id, mystery: true, starts_at: x.starts_at, sort_order: x.sort_order, name: x.teaser_title || 'Mystery challenge', kind: 'challenge', target: 1, prize: 0, current_value: 0,
-            description: x.teaser_back || 'A surprise challenge is coming. Check back on the day to find out what it is.', who_counts: '', tags: [], grades: [], counts_gifts: false,
-            teaser: { lock: x.teaser_lock || '', front: x.teaser_front || '', pill: x.teaser_pill || '' } }
+            description: (x.teaser_back && x.teaser_back !== '-' ? x.teaser_back : '') || 'A surprise challenge is coming. Check back on the day to find out what it is.', who_counts: '', tags: [], grades: [], counts_gifts: false,
+            teaser: { lock: x.teaser_lock || '', front: x.teaser_front || '', pill: x.teaser_pill || '', flip: x.teaser_back !== '-' } }
         : { ...x, who_counts: whoCountsText(x), current_value: Number(x.current_value) + (values[x.id] || 0) }),
     };
   }
