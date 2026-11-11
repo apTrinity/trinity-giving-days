@@ -960,6 +960,7 @@ function renderSync(r) {
       i.no_id ? `${i.no_id} rows have no RE ID and were skipped` : '', i.no_name ? `${i.no_name} people have no name and were skipped` : '',
       i.duplicate_id ? `${i.duplicate_id} duplicate RE IDs were merged` : '', i.deceased ? `${i.deceased} deceased rows were left out` : '', i.no_solicit ? `${i.no_solicit} do-not-solicit rows were left out` : '',
       i.spouse_id_missing ? `${i.spouse_id_missing} spouses have no RE ID in the query and were skipped` : '',
+      i.couples_linked ? `${i.couples_linked} couples who each have their own record were linked as one household (a gift on either counts for both)` : '',
       i.spouse_has_own_row ? `${i.spouse_has_own_row} spouses also have their own row; their own row was used` : '',
       i.spouse_skipped_individual ? `${i.spouse_skipped_individual} spouses were left out because the primary code is one person's tie to the school (faculty/staff, alumni, withdrawn alumni) with no household code` : '',
       i.email2_used ? `${i.email2_used} spouse emails taken from Email 2 (current parents and parents of alumni)` : '', i.email2_ignored ? `${i.email2_ignored} Email 2 values ignored (not current parents or parents of alumni)` : '',

@@ -97,9 +97,9 @@ const INDIVIDUAL_CODE = /^\s*((current|former)\s+)?fac|^\s*(withdrawn\s+)?alumn|
 // parent_of_alumni, grandparent tags, grades, asks and last year's gift. A spouse who has a row of their own is taken from that row.
 function toPeople(rows, roles) {
   const g = (r, role) => (roles[role] ? r[roles[role]] : undefined);
-  const people = new Map(), pending = [], codes = new Map();
+  const people = new Map(), pending = [], codes = new Map(), spouseOf = new Map();
   const issues = { no_id: 0, no_name: 0, no_email: 0, duplicate_id: 0, deceased: 0, no_solicit: 0, spouse_id_missing: 0, spouse_has_own_row: 0,
-    withdrawn_alumni: 0, withdrawn_parent: 0, new_family: 0, spouse_skipped_individual: 0, class_year_unreadable: 0, student_class_outside_k12: 0, email2_used: 0, email2_ignored: 0 };
+    withdrawn_alumni: 0, withdrawn_parent: 0, new_family: 0, spouse_skipped_individual: 0, class_year_unreadable: 0, student_class_outside_k12: 0, email2_used: 0, email2_ignored: 0, couples_linked: 0 };
   const examples = { no_email: [], no_id: [], no_name: [], class_year_unreadable: [] };
   const push = (arr, v) => { if (arr.length < 5) arr.push(v); };
   const add = (p, label) => {
@@ -143,6 +143,7 @@ function toPeople(rows, roles) {
       alumni_addressee: alumniVal ? text(g(r, 'alumni_addressee')) : null, alumni_salutation: alumniVal ? text(g(r, 'alumni_salutation')) : null };
     if (add(person, `row with ${first || ''} ${last || ''}`.trim()) && !email) { issues.no_email++; push(examples.no_email, `${first || ''} ${last || ''} (${id})`.trim()); }
     // Spouse: Email 2 is the spouse's address only for current parents and parents of alumni; for everyone else it is ignored.
+    { const sid0 = text(g(r, 'spouse_re_id')); if (id && sid0) spouseOf.set(id, sid0); }   // remembered so two alums who are married can be linked below
     const sFirst = text(g(r, 'spouse_nick')) || text(g(r, 'spouse_first')), sLast = text(g(r, 'spouse_last'));
     if (roles.primary_code && (sFirst || sLast)) { const c = codes.get(code) || { n: 0, skipped: 0 }; c.n++; if (individualOnly) c.skipped++; codes.set(code, c); }
     if ((sFirst || sLast) && individualOnly) { issues.spouse_skipped_individual++; continue; }
@@ -158,6 +159,18 @@ function toPeople(rows, roles) {
   for (const sp of pending) {
     if (people.has(sp.re_id)) { issues.spouse_has_own_row++; continue; }   // their own row is richer: keep that one
     if (add(sp, 'spouse') && !sp.email) issues.no_email++;
+  }
+  // Married alums each have their own record (and their own row). Give a couple one shared household id, so a gift
+  // on either record counts for both (used by the Mailchimp "Gave 26-27" tag). Needs both people in the query and
+  // the spouse link on at least one side; the smaller RE ID becomes the household id.
+  const smaller = (a, b) => (/^\d+$/.test(a) && /^\d+$/.test(b)) ? (Number(a) <= Number(b) ? a : b) : (a <= b ? a : b);
+  for (const [a, b] of spouseOf) {
+    const pa = people.get(a), pb = people.get(b);
+    if (!pa || !pb || a === b) continue;
+    if (pa.household_re_id !== a || pb.household_re_id !== b) continue;   // already part of a shared household
+    const hid = smaller(a, b);
+    pa.household_re_id = hid; pb.household_re_id = hid;
+    issues.couples_linked++;
   }
   return { people: [...people.values()], issues, examples, unknownTags: [], codes: [...codes.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 20).map(([code, c]) => ({ code: code || '(blank)', ...c })) };
 }
