@@ -403,6 +403,17 @@
         <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);padding-top:9px"><input type="checkbox" id="f-gifts"> Count every gift (not each person once)</label></div>
         <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);padding-top:9px"><input type="checkbox" id="f-secret"> Keep it secret until its start time (shows a mystery card)</label></div>
       </div>
+      <div id="teaser-box" hidden style="border:1px dashed var(--border,#ccc);border-radius:8px;padding:14px 14px 2px;margin-bottom:16px">
+        <p style="margin:0 0 4px;font-weight:700">Hidden card wording (public)</p>
+        <p class="hint" style="margin:0 0 12px">This is what visitors see <b>before</b> the reveal. Leave a box blank to use the standard wording. Don't put the real challenge details here. Once the start time passes, the real card replaces it automatically.</p>
+        <div class="field"><label for="f-t-front">Sentence on the front of the card</label><input type="text" id="f-t-front" maxlength="140" placeholder="A secret challenge is waiting. Come back Friday to see what it unlocks."></div>
+        <div class="grid2">
+          <div class="field"><label for="f-t-lock">Under the padlock</label><input type="text" id="f-t-lock" maxlength="40" placeholder="until Friday"></div>
+          <div class="field"><label for="f-t-pill">Status label</label><input type="text" id="f-t-pill" maxlength="40" placeholder="Revealed Fri 12/4"></div>
+        </div>
+        <div class="field"><label for="f-t-title">Back of the card: title</label><input type="text" id="f-t-title" maxlength="60" placeholder="Mystery challenge"></div>
+        <div class="field"><label for="f-t-back">Back of the card: text</label><textarea id="f-t-back" rows="3" maxlength="220" placeholder="A surprise challenge is coming. Check back on the day to find out what it is."></textarea></div>
+      </div>
       <div class="err" id="f-error"></div>
     </div>
     <div class="pv-wrap">
@@ -568,7 +579,7 @@ function openEditor(c) {
   $('f-target').value = c?.target ?? ''; $('f-prize').value = c?.prize ?? ''; $('f-unit').value = c?.unit || '';
   $('f-desc').value = c?.description || ''; $('f-who').value = c?.who_counts || ''; $('f-when').value = c?.when_text || '';
   $('f-start').value = isoToET(c?.starts_at); $('f-end').value = isoToET(c?.ends_at); $('f-sponsor').value = c?.sponsor || '';
-  $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('f-gifts').checked = !!c?.counts_gifts; $('f-secret').checked = !!c?.secret; $('max-label').textContent = descMax;
+  $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('f-gifts').checked = !!c?.counts_gifts; $('f-secret').checked = !!c?.secret; $('f-t-front').value = c?.teaser_front || ''; $('f-t-lock').value = c?.teaser_lock || ''; $('f-t-pill').value = c?.teaser_pill || ''; $('f-t-title').value = c?.teaser_title || ''; $('f-t-back').value = c?.teaser_back || ''; $('max-label').textContent = descMax;
   $('f-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}" title="${t.hidden ? 'Not on the gift form: set from the RE import or by an admin' : 'Ticked on the gift form'}"><input type="checkbox" value="${t.key}" ${(c?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('')
     + '<p class="hint" style="width:100%;margin-top:2px">* Not a gift-form choice: matched from the RE import or set by an admin.</p>';
   $('f-grades').innerHTML = GRADES.map(g => `<label><input type="checkbox" value="${g}" ${(c?.grades || []).includes(g) ? 'checked' : ''}> ${g === 'K' ? 'K' : 'Gr ' + g}</label>`).join('');
@@ -580,6 +591,8 @@ function refresh() {
   $('prize-field').style.display = m ? 'none' : ''; $('l-target').textContent = m ? 'Match cap ($)' : 'Target (donors)'; $('l-cur').textContent = m ? 'Manual adjustment ($, added to gifts)' : 'Manual adjustment (added to gifts)';
   const cnt = $('desc-count'); cnt.textContent = `${len} / ${descMax}`; cnt.className = 'count' + (len > descMax ? ' over' : '');
   const who = whoText({ who_counts: $('f-who').value.trim(), tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value) }), when = $('f-when').value.trim(), by = $('f-sponsor').value.trim(), d = $('f-desc').value.trim();
+  const sec = $('f-secret').checked; $('teaser-box').hidden = !sec;
+  if (sec) { $('pv').innerHTML = `<h4>${esc($('f-t-title').value.trim() || 'Mystery challenge')}</h4><p>${esc($('f-t-back').value.trim() || 'A surprise challenge is coming. Check back on the day to find out what it is.')}</p><p class="hint" style="margin-top:8px">Showing the hidden card's back, as visitors see it before the reveal.</p>`; return; }
   $('pv').innerHTML = `<h4>${esc($('f-name').value || 'Challenge name')}</h4><p>${esc(d || 'Description appears here.')}</p><dl>`
     + (who ? `<div><dt>Who counts</dt><dd>${esc(who)}</dd></div>` : '') + (when ? `<div><dt>When</dt><dd>${esc(when)}</dd></div>` : '')
     + (by ? `<div><dt>Made possible by</dt><dd>${esc(by)}</dd></div>` : '') + `</dl><div class="go">Give →</div>`;
@@ -593,6 +606,7 @@ $('f-save').onclick = async () => {
     unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, when_text: $('f-when').value,
     starts_at: etToISO($('f-start').value), ends_at: etToISO($('f-end').value), sponsor: $('f-sponsor').value,
     current_value: $('f-cur').value, published: $('f-pub').checked, counts_gifts: $('f-gifts').checked, secret: $('f-secret').checked,
+    teaser_front: $('f-t-front').value, teaser_lock: $('f-t-lock').value, teaser_pill: $('f-t-pill').value, teaser_title: $('f-t-title').value, teaser_back: $('f-t-back').value,
     tags: checkedTags(), grades: checkedGrades(), class_year_min: orNull($('f-ymin').value), class_year_max: orNull($('f-ymax').value),
   };
   const btn = $('f-save'); btn.disabled = true; $('f-error').style.display = 'none';

@@ -1044,6 +1044,7 @@ C.forEach((c, i) => { c.from = FROM[i]; c.days = c.soon ? [4, 4] : [0, 4]; });
 // Full descriptions (last year's wording, refreshed for 2026) — these would be edited on the admin page
 const DETAIL = [];
 C.forEach((c, i) => Object.assign(c, DETAIL[i]));
+const escT = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function applyChallenges(camp) {
   if (!(camp && camp.challenges && camp.challenges.length)) return;
   const now = Date.now();
@@ -1053,7 +1054,7 @@ function applyChallenges(camp) {
     const soon = !!x.starts_at && new Date(x.starts_at).getTime() > now;
     C.push({
       id: x.id, name: x.name, unit: x.unit || 'donors', target: Number(x.target), cur: Number(x.current_value), prize: Number(x.prize || 0),
-      match: x.kind === 'match', gifts: !!x.counts_gifts, mystery: !!x.mystery, who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
+      match: x.kind === 'match', gifts: !!x.counts_gifts, mystery: !!x.mystery, teaser: x.teaser || {}, who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
       desc: paras(x.description, x.name),
       counts: x.who_counts, when: x.when_text || 'All week', from: x.sponsor || 'Trinity supporters',
       you: !x.mystery && !!(ME && qual(x, ME)),
@@ -1121,15 +1122,15 @@ const CHAL = {
     const order = [...C].sort((x, y) => stage(x) - stage(y));
     const card = c => {
       const d = isDone(c), lead = c === C[0], w = Math.min(c.cur / c.target, 1) * 100;
-      const pill = d ? '✓ Goal met' : c.mystery ? 'Revealed Fri 12/4' : c.soon ? 'Starts Fri 12/4' : c.match ? 'Matching' : 'In progress';
-      const rule = c.mystery ? 'A <b>secret challenge</b> is waiting. Come back Friday to see what it unlocks.' : c.match ? `Gifts <b>matched</b> dollar for dollar`
+      const pill = d ? '✓ Goal met' : c.mystery ? escT(c.teaser.pill || 'Revealed Fri 12/4') : c.soon ? 'Starts Fri 12/4' : c.match ? 'Matching' : 'In progress';
+      const rule = c.mystery ? (c.teaser.front ? escT(c.teaser.front) : 'A <b>secret challenge</b> is waiting. Come back Friday to see what it unlocks.') : c.match ? `Gifts <b>matched</b> dollar for dollar`
         : c.gifts ? `When we receive <b>${c.target} new gifts</b>${c.soon ? ' on Friday' : ''}`
         : c.soon ? `When <b>${c.target} ${c.unit}</b> give on Friday` : `When <b>${c.target} ${c.unit}</b> give`;
       const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
         : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
       return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}${c.mystery ? ' mystery' : ''}${c.you ? ' you' : ''}" role="button" tabindex="0" aria-pressed="false" aria-label="${c.mystery ? 'Mystery challenge' : c.name}: show more">
           <div class="ub-face ub-front">
-            ${c.mystery ? '<div class="ub-lock"><svg class="ub-lockicon" viewBox="0 0 48 56" aria-hidden="true"><path class="shackle" d="M14 26V17a10 10 0 0 1 20 0v9" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="6" y="25" width="36" height="27" rx="4" fill="currentColor"/><circle cx="24" cy="36" r="3.6" fill="#02193B"/><rect x="22.2" y="37" width="3.6" height="9" rx="1.6" fill="#02193B"/></svg><span>Locked<small>until Friday</small></span></div>' : `<div class="ub-prize">${$(c.match ? c.target : c.prize)}<small>${c.match ? 'match' : 'bonus'}</small></div>`}
+            ${c.mystery ? `<div class="ub-lock"><svg class="ub-lockicon" viewBox="0 0 48 56" aria-hidden="true"><path class="shackle" d="M14 26V17a10 10 0 0 1 20 0v9" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="6" y="25" width="36" height="27" rx="4" fill="currentColor"/><circle cx="24" cy="36" r="3.6" fill="#02193B"/><rect x="22.2" y="37" width="3.6" height="9" rx="1.6" fill="#02193B"/></svg><span>Locked<small>${escT(c.teaser.lock || 'until Friday')}</small></span></div>` : `<div class="ub-prize">${$(c.match ? c.target : c.prize)}<small>${c.match ? 'match' : 'bonus'}</small></div>`}
             ${c.you ? '<div class="ub-you">✓ You count toward this</div>' : ''}
             <div class="ub-rule">${rule}</div>
             ${c.mystery ? '' : `<div class="ub-bar"><i style="width:${c.soon ? 0 : w}%"></i></div>`}
