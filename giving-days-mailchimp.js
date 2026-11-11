@@ -37,17 +37,33 @@ const base = c => `https://${c.dc}.api.mailchimp.com/3.0/lists/${c.list}`;
 const authOf = c => ({ username: 'giving-days', password: c.key });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Mailchimp's gateway sometimes answers 504/502/503 or 429 on big requests: wait and try again (up to 6 tries).
+async function withRetry(fn, label) {
+  for (let attempt = 1; ; attempt++) {
+    try { return await fn(); }
+    catch (e) {
+      const st = e.response && e.response.status;
+      const transient = !e.response || st === 429 || (st >= 500 && st <= 599) || e.code === 'ECONNABORTED' || e.code === 'ECONNRESET';
+      if (!transient || attempt >= 6) throw e;
+      const wait = Math.min(30000, 2000 * attempt * attempt);
+      console.warn(`[GD mailchimp] ${label || 'request'} failed (${st || e.code}), retry ${attempt} in ${wait / 1000}s`);
+      await sleep(wait);
+    }
+  }
+}
+
 async function fetchMembers(c) {
+  const PAGE = 500;   // smaller pages: 1,000 at once was timing out at Mailchimp's gateway
   const out = [];
   let total = null;
-  for (let offset = 0; ; offset += 1000) {
-    const r = await axios.get(`${base(c)}/members`, {
-      auth: authOf(c), timeout: 60000,
-      params: { count: 1000, offset, fields: 'total_items,members.email_address,members.status,members.merge_fields,members.tags' },
-    });
+  for (let offset = 0; ; offset += PAGE) {
+    const r = await withRetry(() => axios.get(`${base(c)}/members`, {
+      auth: authOf(c), timeout: 90000,
+      params: { count: PAGE, offset, fields: 'total_items,members.email_address,members.status,members.merge_fields,members.tags' },
+    }), `read members at ${offset}`);
     total = r.data.total_items;
     out.push(...(r.data.members || []));
-    if (!r.data.members || r.data.members.length < 1000 || out.length >= total) break;
+    if (!r.data.members || r.data.members.length < PAGE || out.length >= total) break;
   }
   return out;
 }
@@ -138,16 +154,16 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
 
 // ---- Apply helpers (talk to Mailchimp) ----
 async function ensureReIdField(c) {
-  const r = await axios.get(`${base(c)}/merge-fields`, { auth: authOf(c), params: { count: 100, fields: 'merge_fields.tag' }, timeout: 60000 });
+  const r = await withRetry(() => axios.get(`${base(c)}/merge-fields`, { auth: authOf(c), params: { count: 100, fields: 'merge_fields.tag' }, timeout: 60000 }), 'read merge fields');
   if ((r.data.merge_fields || []).some(f => f.tag === 'RE_ID')) return false;
-  await axios.post(`${base(c)}/merge-fields`, { tag: 'RE_ID', name: 'RE ID', type: 'text', required: false, public: false }, { auth: authOf(c), timeout: 60000 });
+  await withRetry(() => axios.post(`${base(c)}/merge-fields`, { tag: 'RE_ID', name: 'RE ID', type: 'text', required: false, public: false }, { auth: authOf(c), timeout: 60000 }), 'create RE_ID field');
   return true;
 }
 
 async function batchUpsert(c, items, summary) {
   for (let i = 0; i < items.length; i += 500) {
     const chunk = items.slice(i, i + 500);
-    const r = await axios.post(base(c), { members: chunk, update_existing: true }, { auth: authOf(c), timeout: 180000 });
+    const r = await withRetry(() => axios.post(base(c), { members: chunk, update_existing: true }, { auth: authOf(c), timeout: 180000 }), `batch ${i}`);
     summary.created += r.data.total_created || 0;
     summary.updated += r.data.total_updated || 0;
     for (const e of (r.data.errors || [])) { summary.errors++; if (summary.error_examples.length < 10) summary.error_examples.push(`${e.email_address}: ${e.error}`); }
@@ -211,12 +227,12 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       await batchUpsert(cfg, upserts, summary);
       await pool(actions.removals, 8, async x => {
         try {
-          await axios.post(`${base(cfg)}/members/${hashOf(x.email)}/tags`, { tags: x.remove.map(name => ({ name, status: 'inactive' })) }, { auth: authOf(cfg), timeout: 60000 });
+          await withRetry(() => axios.post(`${base(cfg)}/members/${hashOf(x.email)}/tags`, { tags: x.remove.map(name => ({ name, status: 'inactive' })) }, { auth: authOf(cfg), timeout: 60000 }), 'remove tags');
           summary.tags_removed += x.remove.length;
         } catch (e) { summary.errors++; if (summary.error_examples.length < 10) summary.error_examples.push(`${x.email}: ${scrub(e.message)}`); }
       });
       await pool(actions.archives, 8, async x => {
-        try { await axios.delete(`${base(cfg)}/members/${hashOf(x.email)}`, { auth: authOf(cfg), timeout: 60000 }); summary.archived++; }
+        try { await withRetry(() => axios.delete(`${base(cfg)}/members/${hashOf(x.email)}`, { auth: authOf(cfg), timeout: 60000 }), 'archive'); summary.archived++; }
         catch (e) { summary.errors++; if (summary.error_examples.length < 10) summary.error_examples.push(`${x.email}: ${scrub(e.message)}`); }
       });
       appliedOnce = true;
