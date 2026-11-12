@@ -1902,6 +1902,7 @@ function openGift() {
   setTimeout(() => { const f = [$gm('gm-first'), $gm('gm-email')].find(x => x.offsetParent); if (f) f.focus(); }, 30);
 }
 function closeGift() {
+  if (gm.finalizing) return;   // a gift is being confirmed: keep the window open until we know it is saved
   $gm('gm-overlay').hidden = true;
   document.body.style.overflow = '';
   if (gm.lastFocus) gm.lastFocus.focus();
@@ -1920,6 +1921,7 @@ $gm('gm-pay').addEventListener('click', () => {
   if (!email || emailMsg(email)) { fieldErr('gm-email', 'gm-email-err', email ? emailMsg(email) : 'Please enter your email address.'); $gm('gm-email').hidden = false; return gmError('Please enter a valid email address.'); }
   const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
   if (alum && !$gm('gm-class-year').value) return gmError('Please select your class year.');
+  if (gm.configFailed) return gmError('We could not reach the payment system. Please refresh this page and try again.');
   if (!gm.checkout || !gm.ready) return gmError('The payment system is still loading. Please try again in a moment.');
   gmError('');
   gm.checkout.checkoutModal.openPaymentForm({ baseAmount: Math.round(gm.amount * 100), billingDetails: { name: first + ' ' + last, email } });
@@ -1931,8 +1933,26 @@ function gmThanks(total) {
   $gm('gm-thanks-text').textContent = gm.mode === 'test'
     ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. Nothing is charged; it is saved as a test gift.`
     : `Your ${fmt$(total)} gift has been received. A receipt is on its way to your inbox.`;
+  $gm('gm-done-close').hidden = false;
   $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
   // Everything on the page refreshes once the gift is saved (see checkoutComplete).
+}
+
+// Save a gift on our server. Safe to repeat (the server answers "already saved" for a transaction it has seen), so a failed
+// attempt that could be a hiccup (no answer, or a server error) is tried again up to three times. A 4xx answer is final.
+async function gmPostGift(body, tries = 3, fetchFn = fetch, wait = ms => new Promise(r => setTimeout(r, ms))) {
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = ctl ? setTimeout(() => ctl.abort(), 60000) : null;
+      const r = await fetchFn('/api/gd/gift', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined });
+      if (timer) clearTimeout(timer);
+      if (r.ok) return true;
+      if (r.status < 500 && r.status !== 429) return false;   // the server said no: retrying will not change that
+    } catch (e) { /* no answer: try again */ }
+    if (i < tries) await wait(i * 2500);
+  }
+  return false;
 }
 
 function gmInitCheckout(configId) {
@@ -1947,26 +1967,37 @@ function gmInitCheckout(configId) {
       first_name: $gm('gm-first').value.trim(), last_name: $gm('gm-last').value.trim(), email: $gm('gm-email').value.trim(),
       anonymous: $gm('gm-anon').checked, employer_match: $gm('gm-match').checked, employer: $gm('gm-match').checked ? $gm('gm-employer').value.trim() : '', affiliations: gmAffiliations(), token: GD.token || null, source: GD.src || null,
     };
-    gmThanks(total);
-    // The donor already sees the thank-you; the save runs behind it. Then refresh the hero numbers.
-    // If the save fails the donor must not be left believing it worked: say so on the thank-you screen.
+    // The card is authorized, but the gift is only complete once our server has captured and saved it. Until it answers, show
+    // "finalizing" (not "thank you"), keep the window open, and ask the browser to warn before the tab is closed.
+    const guard = ev => { ev.preventDefault(); ev.returnValue = ''; };
+    gm.finalizing = true; window.addEventListener('beforeunload', guard);
+    $gm('gm-thanks-title').textContent = 'Finalizing your gift\u2026';
+    $gm('gm-thanks-text').textContent = 'Please keep this window open for a moment while we confirm your gift. Do not close or refresh the page.';
+    $gm('gm-done-close').hidden = true;
+    $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
+    const finish = () => { gm.finalizing = false; window.removeEventListener('beforeunload', guard); };
     const unconfirmed = () => {
+      finish();
       $gm('gm-thanks-title').textContent = 'We could not confirm your gift';
       $gm('gm-thanks-text').textContent = 'Your gift may not have been recorded. If you do not receive a receipt by email shortly, please contact the Advancement Office at (212) 873-1650 and we will sort it out.';
+      $gm('gm-done-close').hidden = false;
     };
-    fetch('/api/gd/gift', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(r => r.ok ? r : (unconfirmed(), null), () => (unconfirmed(), null))   // server said no, or no answer at all
-      .then(r => r && fetch('/api/gd/campaign', { cache: 'no-store' }).then(c => c.json()))   // no-store: skip the 15s browser cache so the new gift shows
-      .then(d => { if (d) refreshLive(d); })
-      .catch(err => console.warn('Page refresh after gift failed:', err.message));
+    gmPostGift(body).then(ok => {
+      if (!ok) return unconfirmed();
+      finish(); gmThanks(total);
+      return fetch('/api/gd/campaign', { cache: 'no-store' }).then(c => c.json()).then(d => { if (d) refreshLive(d); });   // no-store: skip the 15s browser cache so the new gift shows
+    }).catch(err => console.warn('Page refresh after gift failed:', err.message));
   });
 }
 
+// The payment configuration says whether this page takes live or test gifts. If it cannot be loaded, do NOT guess "test":
+// a live donor would be sent to the test system. Retry (it may be a hiccup under load) and, until it loads, say so.
 window.addEventListener('load', () => {
-  fetch('/api/gd/config').then(r => r.ok ? r.json() : Promise.reject())
-    .then(cfg => { gm.mode = cfg.mode; return cfg.paymentConfigurationId; })
-    .catch(() => { gm.mode = 'test'; return GM_TEST_CONFIG_ID; })
-    .then(id => { $gm('test-flag').hidden = gm.mode !== 'test'; gmInitCheckout(id); });
+  let tries = 0;
+  const load = () => fetch('/api/gd/config').then(r => r.ok ? r.json() : Promise.reject())
+    .then(cfg => { gm.configFailed = false; gm.mode = cfg.mode; $gm('test-flag').hidden = gm.mode !== 'test'; gmInitCheckout(cfg.paymentConfigurationId); })
+    .catch(() => { gm.configFailed = true; if (++tries < 12) setTimeout(load, Math.min(15000, 1500 * tries)); });
+  load();
 });
 
 // Rebuild every live part of the page from fresh campaign data: hero, challenges, leaderboards, donor wall

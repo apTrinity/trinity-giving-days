@@ -22,9 +22,15 @@ module.exports = function getShield(supabase) {
   let cached = null, cachedAt = 0;
   async function startsAt() {
     if (cached && Date.now() - cachedAt < 15000) return cached;
-    const { data, error } = await supabase.from('gd_settings').select('starts_at').eq('id', 1).single();
-    if (error) throw error;
-    cached = new Date(data.starts_at); cachedAt = Date.now();
+    try {
+      const { data, error } = await supabase.from('gd_settings').select('starts_at').eq('id', 1).single();
+      if (error) throw error;
+      cached = new Date(data.starts_at); cachedAt = Date.now();
+    } catch (err) {
+      if (!cached) throw err;                 // never loaded: the caller decides (see activeFor)
+      cachedAt = Date.now() - 10000;           // a hiccup: keep the last good launch time and look again in about 5 seconds
+      console.error('giving-days-shield: using the last known launch time:', err.message);
+    }
     return cached;
   }
 
@@ -52,7 +58,14 @@ module.exports = function getShield(supabase) {
       if (!untilLaunch && hasPass(req)) return null;   // the public front door ignores the admin pass: admins use /preview
     }
     let t;
-    try { t = await startsAt(); } catch (err) { console.error('giving-days-shield:', err.message); return new Date('2026-11-30T05:00:00Z'); }
+    try { t = await startsAt(); }
+    catch (err) {
+      console.error('giving-days-shield:', err.message);
+      // Never read the launch time at all: keep the teaser up before the planned launch, but once that moment has passed
+      // show the campaign (a database hiccup must not put the "coming soon" page back up on launch day).
+      const planned = new Date('2026-11-30T05:00:00Z');
+      return force || Date.now() < planned.getTime() ? planned : null;
+    }
     return force || Date.now() < t.getTime() ? t : null;
   }
 

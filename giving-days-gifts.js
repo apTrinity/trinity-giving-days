@@ -48,12 +48,14 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
 
   // Public: called by the gift form once Blackbaud Checkout reports success.
   // Captures the payment first (no money moves if that fails), then records the gift.
-  app.post('/api/gd/gift', async (req, res) => {
+  // Generous per-address limit (a whole table of donors can share one school network); it stops scripts, not people.
+  app.post('/api/gd/gift', require('./giving-days-ratelimit').limiter(60, 10 * 60 * 1000, 'Too many requests. Please wait a few minutes and try again.'), async (req, res) => {
     const b = req.body || {};
     const transaction_id = str(b.transaction_id, 120);
     const amount = Number(b.amount);
     const email = str(b.email, 200).toLowerCase();
     if (!transaction_id) return res.status(400).json({ error: 'transaction_id is required.' });
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transaction_id)) return res.status(400).json({ error: 'transaction_id is not valid.' });   // Blackbaud ids are UUIDs: do not spend a Blackbaud call on anything else
     if (!isFinite(amount) || amount <= 0 || amount > 1000000) return res.status(400).json({ error: 'amount must be between 0 and 1,000,000.' });
     if (email && !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'email is not valid.' });
 

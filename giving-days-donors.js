@@ -46,7 +46,21 @@ function qualifies(c, donor) {
 // Wrong-code guesses per visitor: 20 misses in 10 minutes and that visitor is paused.
 const misses = new Map();
 const MISS_LIMIT = 20, MISS_WINDOW_MS = 10 * 60 * 1000;
-const visitorId = req => String((req.headers['x-forwarded-for'] || req.ip || '')).split(',')[0].trim();
+const { clientId: visitorId } = require('./giving-days-ratelimit');
+// Backstop that does not depend on knowing who is asking: if wrong codes are being tried at a rate no real donors would
+// cause (hundreds in ten minutes, from many addresses), personal lookups are slowed to a few a second and the rest get the
+// plain page. Gifts are never affected.
+let globalMiss = { n: 0, start: Date.now() }, lookupSecond = { n: 0, at: 0 };
+const GLOBAL_MISS_LIMIT = parseInt(process.env.GD_GLOBAL_MISS_LIMIT || '500', 10);
+function lookupAllowed() {
+  const now = Date.now();
+  if (now - globalMiss.start > MISS_WINDOW_MS) globalMiss = { n: 0, start: now };
+  if (globalMiss.n <= GLOBAL_MISS_LIMIT) return true;
+  const sec = Math.floor(now / 1000);
+  if (lookupSecond.at !== sec) lookupSecond = { n: 0, at: sec };
+  return ++lookupSecond.n <= 5;
+}
+setInterval(() => { const now = Date.now(); for (const [k, v] of misses) if (now - v.start > MISS_WINDOW_MS) misses.delete(k); }, MISS_WINDOW_MS).unref();
 function blocked(id) {
   const m = misses.get(id);
   if (!m) return false;
@@ -54,6 +68,8 @@ function blocked(id) {
   return m.n >= MISS_LIMIT;
 }
 function recordMiss(id) {
+  if (Date.now() - globalMiss.start > MISS_WINDOW_MS) globalMiss = { n: 0, start: Date.now() };
+  globalMiss.n++;
   const m = misses.get(id);
   if (!m || Date.now() - m.start > MISS_WINDOW_MS) misses.set(id, { n: 1, start: Date.now() });
   else m.n++;
@@ -103,7 +119,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (shieldAt) persona = null;
     const data = {};
     if (!shieldAt) { try { data.campaign = await loadCampaign(); } catch (err) { console.error('giving-days page campaign:', err.message); } }
-    let known = false;
+    let known = null;   // null: nobody was looked up; false: a code was tried and is not a donor
     let auds = [];
     if (audiences && !shieldAt) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
     if (auds.length) data.audiences = auds;  // so a visitor without a personal link still sees the text for what they tick on the form
@@ -115,7 +131,8 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (persona) {
       finish({ ...persona, demo: true });
       data.demo = true;
-    } else if (token) {
+    } else if (token && !shieldAt && lookupAllowed()) {   // no lookup while the teaser is up (nothing personal is shown then)
+      known = false;
       try {
         const { data: d, error } = await supabase.from('gd_donors')
           .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
@@ -154,6 +171,13 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   // The public page; /preview?t=<code> previews a personalized visit.
   app.get('/preview', async (req, res) => {
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
+    if (t) {   // /preview?t=<code> shows a real personal page, so it gets the same wrong-code limit as /<code>
+      const id = visitorId(req);
+      if (blocked(id)) return res.status(429).type('text').send('Too many attempts. Please try again in a few minutes.');
+      const { html, known } = await renderPage(req, t, demoPersona(req.query.p));
+      if (known === false) recordMiss(id);
+      return send(res, html);
+    }
     send(res, (await renderPage(req, t, demoPersona(req.query.p))).html);
   });
 
@@ -182,7 +206,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     const id = visitorId(req);
     if (blocked(id)) return res.status(429).type('text').send('Too many attempts. Please try again in a few minutes.');
     const { html, known } = await renderPage(req, req.params.code);
-    if (!known) recordMiss(id);
+    if (known === false) recordMiss(id);
     send(res, html);
   });
 };
