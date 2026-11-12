@@ -317,6 +317,13 @@
         <div id="off-out"></div>
       </div>
 
+      <div class="rc" id="pay-card">
+        <div class="rc-head"><h3>Payment configuration</h3><span class="pill idle" data-st="pay">Not checked</span></div>
+        <p class="hint">Asks Blackbaud which payment configurations it has on file and compares them with the ones this server is set to use (test now, live at launch). Read-only: nothing is changed.</p>
+        <div class="rc-bar"><button class="btn small" id="pay-check">Check payment configuration</button></div>
+        <div id="pay-out"></div>
+      </div>
+
       <details class="rc rc-tool" id="qt-card">
         <summary><h3>Test an RE query</h3><span class="hint">Read-only: runs a query and shows its columns. Nothing is saved.</span></summary>
         <div class="rc-bar"><input type="text" id="qt-id" value="-648898" style="width:130px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
@@ -1105,6 +1112,28 @@ async function pollMc() {
 $('mc-apply').addEventListener('click', async () => { if (!confirm('Apply to Mailchimp? This adds new contacts as ' + (window.mcNewStatus || 'subscribed') + ', sets tags and RE IDs, and archives replaced old addresses. Unsubscribed contacts and existing names are not touched.')) return; try { await api('POST', '/api/admin/gd/mailchimp/apply'); pollMc(); } catch (e) { toast(e.message, true); } });
 $('mc-quick').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/quick'); pollMc(); } catch (e) { toast(e.message, true); } });
 $('mc-preview').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/preview'); pollMc(); } catch (e) { toast(e.message, true); } });
+// ── Payment configuration check (read-only) ──
+$('pay-check').addEventListener('click', async () => {
+  const out = $('pay-out'), btn = $('pay-check'); btn.disabled = true; setStatus('pay', 'run', 'Checking', ''); out.innerHTML = '';
+  try {
+    const j = await api('GET', '/api/admin/gd/payment-config');
+    const test = j.configs.find(c => c._is_test), live = j.configs.find(c => c._is_live);
+    const notes = [
+      `This server is in <b>${esc(j.mode.toUpperCase())}</b> mode. ${j.live_allowed ? '' : 'Live payments are locked in the code until the go-live change.'}`,
+      test ? 'The test configuration was found at Blackbaud.' : `<b style="color:#b91c1c">The test configuration ID ${esc(j.test_id)} was not found at Blackbaud.</b>`,
+      !j.live_id ? '<b style="color:#8a5a00">PAYMENT_CONFIG_ID_LIVE is not set on Render yet.</b>' : live ? 'The live configuration was found at Blackbaud.' : `<b style="color:#b91c1c">The live configuration ID ${esc(j.live_id)} was not found at Blackbaud.</b>`,
+    ];
+    const keys = [...new Set(j.configs.flatMap(c => Object.keys(c)))].filter(k => !k.startsWith('_'));
+    const rows = j.configs.map(c => `<tr style="border-top:1px solid var(--line);${c._is_live || c._is_test ? 'background:#fbf6dd' : ''}"><td style="padding:4px 8px"><b>${c._is_live ? 'LIVE' : c._is_test ? 'TEST' : ''}</b></td>${keys.map(k => `<td style="padding:4px 8px;font-size:12.5px;word-break:break-all">${esc(c[k] || '')}</td>`).join('')}</tr>`).join('');
+    out.innerHTML = `<ul style="margin:8px 0">${notes.map(n => `<li>${n}</li>`).join('')}</ul>
+      <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%"><tr style="text-align:left;color:#666"><th style="padding:4px 8px"></th>${keys.map(k => `<th style="padding:4px 8px;font-size:12px">${esc(k)}</th>`).join('')}</tr>${rows || '<tr><td>No configurations returned.</td></tr>'}</table></div>
+      <p class="hint">Highlighted rows are the ones this server uses. Look for any field about authorization or capture; if there is none, ask Blackbaud support how the live configuration is set.</p>`;
+    const bad = !test || (j.live_id && !live);
+    setStatus('pay', bad ? 'bad' : !j.live_id ? 'warn' : 'ok', bad ? 'ID not found' : !j.live_id ? 'Live ID not set' : 'Both found', '');
+  } catch (e) {
+    out.innerHTML = `<div class="empty" style="color:#b91c1c">${esc(e.message)}</div>`; setStatus('pay', 'bad', 'Check failed', '');
+  } finally { btn.disabled = false; }
+});
 // ── Offline gifts from RE ──
 let offTimer = null;
 const usd = n => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });

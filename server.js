@@ -2466,6 +2466,31 @@ app.get('/api/gd/config', (req, res) => {
   });
 });
 
+// Admin, read-only: the payment configurations Blackbaud has on file, next to the IDs this server is set to use.
+// Lets staff confirm the live configuration exists (and see its settings) without asking Blackbaud. Changes nothing.
+app.get('/api/admin/gd/payment-config', requireAdmin, async (req, res) => {
+  const out = { mode: gdIsLive() ? 'live' : 'test', live_allowed: GD_LIVE_ALLOWED, test_id: GD_TEST_CONFIG_ID, live_id: process.env.PAYMENT_CONFIG_ID_LIVE || null, configs: [] };
+  try {
+    const r = await skyRequest({ method: 'get', url: 'https://api.sky.blackbaud.com/payments/v1/paymentconfigurations' }, process.env.BBMS_API_KEY);
+    const d = r.data;
+    const list = Array.isArray(d) ? d : (d && (d.value || d.payment_configurations || d.items || d.configurations)) || [];
+    // Flatten each entry to plain text so the page can show whatever fields Blackbaud returns.
+    out.configs = list.map(c => {
+      const row = {};
+      for (const [k, v] of Object.entries(c || {})) row[k] = v !== null && typeof v === 'object' ? JSON.stringify(v).slice(0, 200) : String(v);
+      row._id = String((c && (c.id || c.payment_configuration_id)) || '');
+      row._is_test = row._id === String(GD_TEST_CONFIG_ID);
+      row._is_live = !!out.live_id && row._id === String(out.live_id);
+      return row;
+    });
+    res.json(out);
+  } catch (err) {
+    const st = err.response && err.response.status;
+    console.error('[GD] payment-config lookup failed:', st, err.response ? JSON.stringify(err.response.data || '').slice(0, 200) : err.message);
+    res.status(502).json({ ...out, error: st ? `Blackbaud answered ${st}. ${st === 404 ? 'The list call was not found for this account.' : st === 401 || st === 403 ? 'The server\'s Blackbaud login or Payments API key is not allowed to list configurations.' : ''}`.trim() : 'Could not reach Blackbaud.' });
+  }
+});
+
 // SKY API auth status — lets the admin dashboard show a re-auth banner if needed
 app.get('/api/admin/sky-status', (req, res) => {
   res.json({
