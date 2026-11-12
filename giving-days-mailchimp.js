@@ -192,6 +192,8 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   let run = { state: 'idle' };
   let previewed = false, appliedOnce = false;
   let lastBlocking = [];
+  let lastNightly = null;   // { at, outcome: 'applied' | 'blocked' | 'error', note }
+  const scheduleOn = () => String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on';
 
   // Email staff (Resend) when the nightly run finds something worth a look.
   async function alertStaff(subject, lines) {
@@ -239,7 +241,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       const { members, donors, gave } = await load(cfg);
       const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale });
       lastBlocking = report.blocking;
-      if (by === 'nightly' && report.blocking.length) await alertStaff('Mailchimp nightly sync NOT applied', report.blocking);
+      if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
         previewed = true;
         run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report };
@@ -265,6 +267,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       });
       appliedOnce = true;
       if (by === 'nightly') {
+        lastNightly = { at: new Date().toISOString(), outcome: 'applied', note: `${summary.created} added, ${summary.updated} updated, ${summary.tags_removed} tags removed, ${summary.archived} archived, ${summary.errors} errors` };
         const stale = actions.removals.filter(x => x.stale).map(x => `${x.email}: lost ${x.remove.join(', ')}`);
         if (stale.length) await alertStaff(`Mailchimp nightly sync: ${stale.length} stale appeal tag${stale.length === 1 ? '' : 's'} removed`, ['These people left the giving list in Raiser\'s Edge, so their old Appeal tag was removed in Mailchimp:', ...stale]);
         if (summary.errors) await alertStaff(`Mailchimp nightly sync: ${summary.errors} error${summary.errors === 1 ? '' : 's'}`, summary.error_examples);
@@ -272,6 +275,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       console.log(`[GD mailchimp] applied by ${by}: +${summary.created} new, ${summary.updated} updated, ${summary.tags_removed} tags removed, ${summary.archived} archived, ${summary.errors} errors`);
       run = { state: 'done', mode: 'apply', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report, applied: summary };
     } catch (err) {
+      if (by === 'nightly') lastNightly = { at: new Date().toISOString(), outcome: 'error', note: scrub(err.message || String(err)).slice(0, 200) };
       if (by === 'nightly') alertStaff('Mailchimp nightly sync failed', [scrub(err.message || String(err))]);
       const detail = scrub(err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 300)}` : (err.message || String(err)));
       console.error('[GD mailchimp] failed:', detail);
@@ -339,16 +343,17 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   app.get('/api/admin/gd/mailchimp/status', requireAdmin, (req, res) => {
     const cfg = config();
     res.json({ ...run, configured: !cfg.missing.length, missing: cfg.missing, new_status: cfg.newStatus,
-      schedule: String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on' });
+      schedule: scheduleOn(), last_nightly: lastNightly });
   });
 
-  // Opt-in nightly apply at 4 a.m. Eastern (after the 3 a.m. RE sync), only after one apply has been done by hand on this server.
-  if (require('./sky-instance').backgroundAllowed() && String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on') {
+  // Opt-in nightly apply at 4 a.m. Eastern (after the 3 a.m. RE sync). No hand-apply needed first: the safety limits
+  // (adds, archives, stale tags) block anything unusual, and staff are emailed when that happens.
+  if (require('./sky-instance').backgroundAllowed() && scheduleOn()) {
     let lastDay = '';
     setInterval(() => {
       const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
       const day = et.getFullYear() + '-' + et.getMonth() + '-' + et.getDate();
-      if (et.getHours() === 4 && lastDay !== day && run.state !== 'running' && appliedOnce) { lastDay = day; previewed = true; execute(true, 'nightly'); }
+      if (et.getHours() === 4 && lastDay !== day && run.state !== 'running') { lastDay = day; previewed = true; execute(true, 'nightly'); }
     }, 10 * 60 * 1000).unref();
   }
 };

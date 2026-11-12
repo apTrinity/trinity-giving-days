@@ -279,6 +279,7 @@
           <div><b>Mailchimp</b><p class="hint" style="margin:2px 0 0">Compares this list with your Mailchimp audience. A preview changes nothing. Apply adds new contacts, sets the Gave 26-27 and Appeal tags, and saves RE IDs. It never touches unsubscribed contacts or existing names.</p></div>
           <div style="display:flex;gap:8px"><button class="btn small ghost" id="mc-quick" title="Tags new givers only. Takes seconds.">Quick: tag new givers</button><button class="btn small" id="mc-preview">Preview (no changes)</button><button class="btn small danger" id="mc-apply" style="display:none">Apply to Mailchimp</button></div>
         </div>
+        <p id="mc-sched" class="hint" style="margin:6px 0"></p>
         <div id="mc-out"></div>
       </div>
       <div id="off-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
@@ -990,6 +991,10 @@ function renderMc(r) {
   $('mc-preview').disabled = run; $('mc-apply').disabled = run; $('mc-quick').disabled = run;
   $('mc-apply').style.display = (r.state === 'done' && r.mode === 'preview' && !(r.result && r.result.blocking && r.result.blocking.length)) ? '' : 'none';
   window.mcNewStatus = r.new_status;
+  const ln = r.last_nightly;
+  $('mc-sched').innerHTML = r.configured === false ? '' : (r.schedule
+    ? `<b style="color:#166534">Nightly run: ON</b> (4 a.m. ET, after the RE sync). ${ln ? `Last run ${esc(new Date(ln.at).toLocaleString())}: <b style="color:${ln.outcome === 'applied' ? '#166534' : '#b91c1c'}">${esc(ln.outcome)}</b>${ln.note ? ' · ' + esc(ln.note) : ''}` : 'No run since the server last started.'}`
+    : '<b>Nightly run: OFF</b> (set GD_MAILCHIMP_SCHEDULE=on on Render to turn it on).');
   if (r.configured === false) { out.innerHTML = `<div class="empty">Not set on the server yet: ${esc((r.missing || []).join(', '))}</div>`; return; }
   if (r.state === 'idle') { out.innerHTML = ''; return; }
   if (run) { out.innerHTML = '<div class="empty">Reading Mailchimp…</div>'; return; }
