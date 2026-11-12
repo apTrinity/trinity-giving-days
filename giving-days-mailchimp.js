@@ -204,7 +204,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       const esc = v => String(v).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
       await new Resend(process.env.RESEND_API_KEY).emails.send({
         from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>', to, subject,
-        html: `<p>${lines.slice(0, 60).map(esc).join('<br>')}</p>${lines.length > 60 ? `<p>…and ${lines.length - 60} more. See the Raiser's Edge tab of the admin page.</p>` : ''}`,
+        html: `<p>${lines.slice(0, 60).map(esc).join('<br>')}</p>${lines.length > 60 ? `<p>…and ${lines.length - 60} more. See the Integration settings tab of the admin page.</p>` : ''}`,
       });
     } catch (e) { console.warn('[GD mailchimp] alert email failed:', e.message); }
   }
