@@ -203,7 +203,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   async function loadLocal() {
     const [donors, gifts] = await Promise.all([
       fetchAll(() => supabase.from('gd_donors').select('id, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true).order('id')),
-      fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded')),
+      fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded').order('id')),
     ]);
     const byId = new Map(donors.map(d => [d.id, d]));
     const byEmailD = new Map();

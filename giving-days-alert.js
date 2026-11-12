@@ -11,10 +11,11 @@ async function alertStaff(subject, lines) {
     const { Resend } = require('resend');
     const to = (process.env.GD_ALERT_EMAIL || process.env.GD_TEST_EMAIL || DEFAULT_TO).split(',').map(s => s.trim()).filter(Boolean);
     const list = (lines || []).map(String);
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>', to, subject,
       html: `<p>${list.slice(0, 60).map(esc).join('<br>')}</p>${list.length > 60 ? `<p>…and ${list.length - 60} more. See the Integration settings tab of the admin page.</p>` : ''}`,
     });
+    if (error) { console.warn('[GD alert] email rejected by Resend:', error.message || JSON.stringify(error)); return false; }   // the Resend SDK returns errors instead of throwing
     return true;
   } catch (e) { console.warn('[GD alert] email failed:', e.message); return false; }
 }

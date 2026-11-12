@@ -514,6 +514,14 @@ app.use(['/api/gift', '/api/lookup', '/api/leaderboard', '/api/sync-offline'], (
   res.status(410).json({ error: 'This endpoint has been retired.' });
 });
 
+// The 2025-26 parents campaign ended in June 2026. Its page and /api/parents/* routes are switched off (the page redirects to the
+// Giving Days page) so nothing public still reads parent data or touches Blackbaud for it. A standalone demo copy of the page lives in
+// archive/parents-campaign-demo.html. Setting PARENTS_CAMPAIGN=on on Render brings the old page, routes and offline sync back.
+const PARENTS_ON = String(process.env.PARENTS_CAMPAIGN || '').toLowerCase() === 'on';
+if (!PARENTS_ON) {
+  app.use('/api/parents', (req, res) => res.status(410).json({ error: 'The parents campaign has ended. Thank you!' }));
+}
+
 // The site root (giving.trinityschoolnyc.org) is served by giving-days-donors.js: the pre-launch page until
 // launch, then the Giving Days page. Parents live at /parents.
 
@@ -559,11 +567,25 @@ const BB_TOKEN_URL   = 'https://oauth2.sky.blackbaud.com/token';
 const REDIRECT_URI   = process.env.OAUTH_REDIRECT_URI || `http://localhost:${PORT}/auth/blackbaud/callback`;
 
 // Step A1 — Start the OAuth flow. Visit http://localhost:3001/auth/blackbaud in your browser.
+// Reconnecting the Blackbaud login replaces the saved tokens, so it is locked: the link needs ?key=<SKY_REAUTH_SECRET> (16+ characters,
+// set on Render), and the sign-in is tied to this browser with a one-time "state" value, so a forged callback is refused.
+const reauthKeyOk = req => {
+  const secret = process.env.SKY_REAUTH_SECRET || '', key = String(req.query.key || '');
+  if (secret.length < 16) return false;
+  const a = Buffer.from(key), b = Buffer.from(secret);
+  return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+};
+const stateCookie = req => { const m = String(req.headers.cookie || '').match(/(?:^|;\s*)sky_oauth_state=([a-f0-9]{32})/); return m ? m[1] : ''; };
 app.get('/auth/blackbaud', (req, res) => {
+  if (!process.env.SKY_REAUTH_SECRET || process.env.SKY_REAUTH_SECRET.length < 16) return res.status(503).type('text').send('Reconnecting is turned off. Set SKY_REAUTH_SECRET (at least 16 characters) on Render, then open /auth/blackbaud?key=<that value>.');
+  if (!reauthKeyOk(req)) return res.status(403).type('text').send('Not allowed.');
+  const state = require('crypto').randomBytes(16).toString('hex');
+  res.append('Set-Cookie', `sky_oauth_state=${state}; Path=/auth/blackbaud; Max-Age=600; HttpOnly; Secure; SameSite=Lax`);
   const params = new URLSearchParams({
     client_id:     process.env.SKY_CLIENT_ID,
     response_type: 'code',
     redirect_uri:  REDIRECT_URI,
+    state,
   });
   res.redirect(`${BB_AUTH_URL}?${params}`);
 });
@@ -571,8 +593,11 @@ app.get('/auth/blackbaud', (req, res) => {
 // Step A2 — Blackbaud redirects back here with a ?code= parameter.
 // We exchange it for an access token + refresh token and print them to the console.
 app.get('/auth/blackbaud/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.status(400).send('No code returned from Blackbaud.');
+  const want = stateCookie(req), got = String(state || '');
+  if (!want || want.length !== got.length || !require('crypto').timingSafeEqual(Buffer.from(want), Buffer.from(got))) return res.status(400).send('This sign-in did not start from this browser. Start again from the reconnect link.');
+  res.append('Set-Cookie', 'sky_oauth_state=; Path=/auth/blackbaud; Max-Age=0; HttpOnly; Secure; SameSite=Lax');   // one use only
 
   try {
     const response = await axios.post(BB_TOKEN_URL, new URLSearchParams({
@@ -605,7 +630,7 @@ let skyAuthValid = true; // flips false on invalid_grant; reset to true on succe
 async function refreshAccessToken() {
   if (!tokens.refresh_token) {
     skyAuthValid = false;
-    throw new Error('No refresh token available. Re-authorize at /auth/blackbaud');
+    throw new Error('No refresh token available. Re-authorize at /auth/blackbaud?key=<SKY_REAUTH_SECRET>');
   }
 
   // If a refresh is already underway, wait for it rather than starting a second one.
@@ -652,7 +677,7 @@ async function refreshAccessToken() {
       if (isInvalidGrant) {
         skyAuthValid = false;
         console.error('SKY API refresh token is invalid — manual re-authorization required at /auth/blackbaud');
-        throw new Error('SKY API re-authorization required. Visit /auth/blackbaud to reconnect.');
+        throw new Error('SKY API re-authorization required. Visit /auth/blackbaud?key=<SKY_REAUTH_SECRET> to reconnect.');
       }
       throw err;
     }
@@ -1307,7 +1332,7 @@ if (backgroundAllowed()) setInterval(async () => {
   } catch (err) {
     console.error('Proactive token refresh failed:', err.message);
     // skyAuthValid is already set to false inside refreshAccessToken on invalid_grant
-    try { await require('./giving-days-emails').sendSystemAlert('Blackbaud login could not be renewed', `<p>The server could not renew its Blackbaud (SKY API) login: <code>${String(err.message).replace(/[<>&]/g, '')}</code></p><p>Gifts cannot be captured until this is fixed. Try restarting the service on Render; if that does not help, visit <b>/auth/blackbaud</b> on the live site to reconnect.</p>`, 'sky-token'); } catch (e) { /* alerting must never break the interval */ }
+    try { await require('./giving-days-emails').sendSystemAlert('Blackbaud login could not be renewed', `<p>The server could not renew its Blackbaud (SKY API) login: <code>${String(err.message).replace(/[<>&]/g, '')}</code></p><p>Gifts cannot be captured until this is fixed. Try restarting the service on Render; if that does not help, open <b>/auth/blackbaud?key=</b> followed by your SKY_REAUTH_SECRET (set on Render) on the live site to reconnect.</p>`, 'sky-token'); } catch (e) { /* alerting must never break the interval */ }
   }
 }, 45 * 60 * 1000);
 else console.log('Local copy: Blackbaud login renewal and background syncs are off (set SKY_BACKGROUND=on to enable).');
@@ -1819,7 +1844,7 @@ async function runParentsSyncSafe() {
   try { await syncParentsOfflineGifts(); }
   catch (err) { /* already logged inside syncParentsOfflineGifts */ }
 }
-if (backgroundAllowed()) setTimeout(() => {
+if (PARENTS_ON && backgroundAllowed()) setTimeout(() => {
   runParentsSyncSafe();
   setInterval(runParentsSyncSafe, 30 * 60 * 1000);
 }, 8000); // slight offset from main sync to avoid simultaneous SKY API calls
@@ -2406,11 +2431,12 @@ app.post('/api/parents/gift', async (req, res) => {
 // Health check — confirms Supabase connection and returns gift count
 // ─────────────────────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
-  const { count, error } = await supabase
-    .from('gifts')
-    .select('id', { count: 'exact', head: true });
-  if (error) return res.status(500).json({ ok: false, error: error.message });
-  res.json({ ok: true, gifts_in_db: count });
+  // Public: says only whether the database answers. No error text, no counts.
+  try {
+    const { error } = await supabase.from('gd_settings').select('id').eq('id', 1).limit(1);
+    if (error) return res.status(500).json({ ok: false });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false }); }
 });
 
 app.get('/api/sync-offline', async (req, res) => {
@@ -2443,8 +2469,9 @@ app.get('/admin', (req, res) => {
 });
 
 // Clean URL for the parents giving page
-app.get('/parents', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'parents.html'));
+app.get(['/parents', '/parents.html'], (req, res) => {
+  if (!PARENTS_ON) return res.redirect(302, '/');   // the campaign has ended: send visitors to the Giving Days page
+  res.sendFile(path.join(__dirname, 'archive', 'parents.html'));
 });
 
 // /preview (the Giving Days page; /preview-v2 redirects to it) and personal links (/<code>) are served
@@ -2492,10 +2519,10 @@ app.get('/api/admin/gd/payment-config', requireAdmin, async (req, res) => {
 });
 
 // SKY API auth status — lets the admin dashboard show a re-auth banner if needed
-app.get('/api/admin/sky-status', (req, res) => {
+app.get('/api/admin/sky-status', requireAdmin, (req, res) => {
   res.json({
     ok:        skyAuthValid,
-    reAuthUrl: `${req.protocol}://${req.headers.host}/auth/blackbaud`,
+    reAuthUrl: `${req.protocol}://${req.headers.host}/auth/blackbaud`,   // the page adds ?key= from SKY_REAUTH_SECRET
     message:   skyAuthValid
       ? 'SKY API connection is healthy.'
       : 'SKY API refresh token is invalid. Re-authorization required.',

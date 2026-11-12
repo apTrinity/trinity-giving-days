@@ -1048,7 +1048,8 @@ function enterDashboard(email) {
 
 async function checkSkyStatus() {
   try {
-    const status = await fetch('/api/admin/sky-status').then(r => r.json());
+    const status = await fetch('/api/admin/sky-status', { headers: authHeaders() }).then(r => r.json());
+    if (status.error) return;   // not signed in yet
     const banner = document.getElementById('reauth-banner');
     if (!status.ok) {
       banner.style.display = 'flex';

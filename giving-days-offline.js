@@ -107,9 +107,9 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
       }
       if (!gifts.length && rows.length && !blocking.length) blocking.push('No usable gifts: the query needs the constituent ID, amount and date columns (or just a gift ID).');
 
-      const donors = await fetchAll(() => supabase.from('gd_donors').select('id, re_id, first_name, last_name, email'));
+      const donors = await fetchAll(() => supabase.from('gd_donors').select('id, re_id, first_name, last_name, email').order('id'));
       const byRe = new Map(donors.map(d => [String(d.re_id), d]));
-      const existing = await fetchAll(() => supabase.from('gd_gifts').select('id, transaction_id, amount').like('transaction_id', 're-%'));
+      const existing = await fetchAll(() => supabase.from('gd_gifts').select('id, transaction_id, amount').like('transaction_id', 're-%').order('id'));
       const have = new Map(existing.map(g => [g.transaction_id, g]));
       const adds = [], changes = [], unmatched = [];
       let same = 0;

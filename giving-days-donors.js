@@ -11,7 +11,8 @@ const path = require('path');
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';  // 31 characters: no 0/o, 1/i/l
 const TOKEN_LEN = 6;
 const TOKEN_RE = /^[a-hj-km-np-z2-9]{6}$/i;
-const RESERVED = new Set(['admin', 'parent', 'giving', 'static']);
+// Words that fit the 6-character code shape but are real paths or common scanner probes: never issued as codes, never looked up.
+const RESERVED = new Set(['admin', 'parent', 'giving', 'static', 'status', 'assets', 'search', 'backup', 'events', 'thanks', 'secret', 'secure', 'config', 'stream', 'public', 'images', 'upload']);
 
 function makeToken() {
   for (;;) {
@@ -132,13 +133,12 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
       finish({ ...persona, demo: true });
       data.demo = true;
     } else if (token && !shieldAt && lookupAllowed()) {   // no lookup while the teaser is up (nothing personal is shown then)
-      known = false;
       try {
         const { data: d, error } = await supabase.from('gd_donors')
           .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
-        if (error) throw error;
+        if (error) throw error;   // a database problem is NOT a wrong code: known stays null and no miss is recorded
+        known = !!d;
         if (d) {
-          known = true;
           finish({ first_name: d.first_name, last_name: d.last_name || '', email: d.email || '', tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ly: d.ly_gift != null ? Number(d.ly_gift) : null,
             ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null, leadership: isLeadership(d.appeal_code) });
           data.token = token.toLowerCase();  // the visitor's own code, sent back with their gift so it is linked to their record
@@ -173,8 +173,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
     if (t) {   // /preview?t=<code> shows a real personal page, so it gets the same wrong-code limit as /<code>
       const id = visitorId(req);
-      if (blocked(id)) return res.status(429).type('text').send('Too many attempts. Please try again in a few minutes.');
-      const { html, known } = await renderPage(req, t, demoPersona(req.query.p));
+      const { html, known } = await renderPage(req, blocked(id) ? null : t, demoPersona(req.query.p));
       if (known === false) recordMiss(id);
       return send(res, html);
     }
@@ -202,10 +201,10 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
 
   // Personal link: /<code>. Registered after every real page, so real pages win.
   app.get('/:code', async (req, res, next) => {
-    if (!TOKEN_RE.test(req.params.code)) return next();
+    if (!TOKEN_RE.test(req.params.code) || RESERVED.has(req.params.code.toLowerCase())) return next();
     const id = visitorId(req);
-    if (blocked(id)) return res.status(429).type('text').send('Too many attempts. Please try again in a few minutes.');
-    const { html, known } = await renderPage(req, req.params.code);
+    // A paused address still gets the giving page (so a donor behind a shared network can give), just without a personal lookup.
+    const { html, known } = await renderPage(req, blocked(id) ? null : req.params.code);
     if (known === false) recordMiss(id);
     send(res, html);
   });

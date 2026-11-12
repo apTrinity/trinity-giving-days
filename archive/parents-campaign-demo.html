@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO · Support the 2025-2026 Trinity Fund</title>
+<link rel="icon" type="image/png" href="../public/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --trinity-blue:    rgb(0, 72, 178);
+  --trinity-yellow:  rgb(242, 204, 7);
+  --navy-deep:       color-mix(in srgb, rgb(0, 72, 178) 88%, black);
+  --cream:           #FAFAF7;
+  --ink:             #1A1A1A;
+  --ink-mid:         #444444;
+  --ink-muted:       #787878;
+  --border:          #E4E2DC;
+  --border-lt:       #F0EEE8;
+}
+html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background: var(--cream); }
+
+/* ── Logo header ─────────────────────────────────────── */
+.logo-header {
+  background: #172853;
+  padding: 28px 24px;
+  text-align: center;
+}
+.logo-header img {
+  max-width: 460px; width: 100%; height: auto; display: inline-block;
+}
+
+/* ── Grade chips (known household display) ───────────── */
+.grade-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.grade-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: var(--trinity-blue); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+}
+.grade-chip::before {
+  content: '✓'; font-size: 11px; opacity: .8;
+}
+
+/* ── Stats bar — removed ─────────────────────────────── */
+
+/* ── Progress bar / dot grid ─────────────────────────── */
+.progress-wrap { background: var(--trinity-blue); padding: 36px 32px 32px; }
+.progress-inner { max-width: 1060px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; gap: 48px; align-items: center; }
+.hero-text-col { border-right: 1px solid rgba(255,255,255,.15); padding-right: 48px; }
+.hero-text-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--trinity-yellow); margin-bottom: 14px; opacity: .8; }
+.hero-text-headline { font-family: 'Lora', Georgia, serif; font-size: 22px; font-weight: 600; font-style: italic; color: #fff; margin-bottom: 16px; line-height: 1.4; }
+.hero-text-body { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,.55); }
+.progress-top {
+  display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px;
+}
+.progress-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: rgba(255,255,255,.45); margin-bottom: 6px;
+}
+.progress-num {
+  font-size: 64px; font-weight: 800; color: var(--trinity-yellow);
+  line-height: 1; letter-spacing: -.03em;
+}
+.progress-of  { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.55); margin-left: 10px; }
+.progress-pct-pill {
+  font-size: 48px; font-weight: 800; letter-spacing: -.02em;
+  color: rgba(255,255,255,.22);
+  align-self: flex-end; line-height: 1;
+}
+/* Dot grid */
+.dot-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,.1); flex-shrink: 0;
+}
+.dot.given {
+  background: var(--trinity-yellow);
+  animation: dot-pop .3s ease-out both;
+}
+@keyframes dot-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  65%  { transform: scale(1.35); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (max-width: 500px) {
+  .dot-grid { gap: 3px; }
+  .dot { width: 6px; height: 6px; }
+}
+.progress-footer {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: rgba(255,255,255,.3);
+}
+.btn-give-top {
+  margin-top: 20px;
+  background: var(--trinity-yellow); color: var(--trinity-blue);
+  font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 14px 32px; border: none; cursor: pointer;
+  transition: background .15s; display: block; width: 100%;
+}
+.btn-give-top:hover { background: color-mix(in srgb, rgb(242,204,7) 88%, white); }
+
+/* ── Main layout ─────────────────────────────────────── */
+.page-wrap {
+  max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px;
+  display: grid; grid-template-columns: 1fr 340px; gap: 28px;
+}
+
+
+/* ── Panel ───────────────────────────────────────────── */
+.panel { background: #fff; border: 1px solid var(--border); }
+.panel-head {
+  padding: 0; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title {
+  background: var(--trinity-blue); color: #fff;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  padding: 10px 32px 10px 16px;
+  border-left: 3px solid var(--trinity-yellow);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%);
+}
+
+/* ── Leaderboard ─────────────────────────────────────── */
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table thead tr { background: #F4F2ED; }
+.lb-table th {
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-muted); padding: 10px 16px; text-align: left;
+}
+.lb-table th.th-pct { text-align: right; width: 54px; }
+.lb-table tbody tr { border-top: 1px solid var(--border-lt); transition: background .1s; }
+.lb-table tbody tr:hover { background: var(--cream); }
+.lb-table td { padding: 11px 16px; font-size: 14px; vertical-align: middle; }
+.lb-rank {
+  width: 28px; height: 28px; border-radius: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0;
+}
+.lb-rank-1 { background: var(--trinity-yellow); color: var(--trinity-blue); }
+.lb-rank-2 { background: #A0A0A0; color: #fff; }
+.lb-rank-3 { background: #B87333; color: #fff; }
+.lb-rank-n { background: #EEE;    color: var(--ink-mid); }
+.rank-cell { display: flex; align-items: center; gap: 12px; }
+/* inline % bar */
+.pct-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.pct-bar-track { flex: 1; height: 10px; background: #E8E6E0; overflow: hidden; }
+.pct-bar-fill  { height: 100%; background: var(--trinity-blue); transition: width .6s cubic-bezier(.22,.68,0,1.2); }
+.pct-bar-fill.top-bar { background: var(--trinity-yellow); }
+.pct-label { font-size: 13px; font-weight: 700; color: var(--ink); min-width: 38px; text-align: right; }
+.lb-empty { padding: 40px; text-align: center; color: var(--ink-muted); font-size: 14px; }
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar { display: flex; flex-direction: column; gap: 22px; }
+
+.give-panel {
+  background: var(--trinity-blue);
+  border-top: 3px solid var(--trinity-yellow);
+  padding: 26px 24px; text-align: center;
+}
+.give-panel-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 20px; font-weight: 600; font-style: italic; color: #fff; margin-bottom: 8px;
+}
+.give-panel-sub { font-size: 13px; color: rgba(255,255,255,.6); line-height: 1.6; margin-bottom: 20px; }
+.btn-give-lg {
+  display: block; width: 100%;
+  background: var(--trinity-yellow); color: var(--trinity-blue);
+  font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+  padding: 14px; border: none; cursor: pointer;
+  letter-spacing: .1em; text-transform: uppercase; transition: background .15s;
+}
+.btn-give-lg:hover { background: color-mix(in srgb, rgb(242,204,7) 88%, white); }
+
+/* ── Recent donors ───────────────────────────────────── */
+.recent-list { padding: 4px 0; }
+.recent-item {
+  padding: 11px 20px; border-top: 1px solid var(--border-lt);
+}
+.recent-item:first-child { border-top: none; }
+.recent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.recent-sub  { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.recent-item.entering { animation: slide-down .32s ease-out both; }
+
+
+/* ── 1709 Society sidebar panel ──────────────────────── */
+.society-list { padding: 12px 0; }
+.society-item { padding: 10px 20px; border-top: 1px solid var(--border-lt); }
+.society-item:first-child { border-top: none; }
+.society-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.society-range { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+/* ── Step bar (segmented header border) ──────────────── */
+.step-bar { display: flex; gap: 10px; background: #172853; }
+.step-bar-seg {
+  flex: 1; height: 4px;
+  background: rgba(255,255,255,.13);
+  transition: background .35s ease;
+}
+.step-bar-seg.filled { background: var(--trinity-yellow); }
+
+/* ── Modal ───────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,10,30,.65); z-index: 1000;
+  align-items: flex-start; justify-content: center;
+  padding: 40px 16px; overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: #fff; width: 100%; max-width: 520px;
+  box-shadow: 0 24px 80px rgba(0,30,80,.35);
+  overflow: hidden; position: relative;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.6); font-size: 22px; line-height: 1; padding: 4px;
+  transition: color .12s;
+}
+.modal-close:hover { color: #fff; }
+.modal-header {
+  background: #172853; padding: 22px 36px 20px;
+  text-align: center;
+}
+.modal-logo { max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto; }
+.modal-body { padding: 28px 32px 32px; }
+
+/* ── Form ────────────────────────────────────────────── */
+.f-label {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-mid); margin-bottom: 6px; margin-top: 18px;
+}
+.f-label:first-child { margin-top: 0; }
+.f-input, .f-select {
+  width: 100%; padding: 11px 14px;
+  border: 1px solid var(--border); border-radius: 0;
+  font-family: 'Open Sans', sans-serif; font-size: 15px; color: var(--ink);
+  background: #fff; outline: none; transition: border-color .15s;
+  appearance: none; -webkit-appearance: none;
+}
+.f-input:focus, .f-select:focus { border-color: var(--trinity-blue); box-shadow: 0 0 0 3px rgba(0,72,178,.08); }
+.f-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230048B2' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer;
+}
+.f-row { display: flex; gap: 14px; }
+.f-row > * { flex: 1; }
+
+.amt-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 6px; margin-bottom: 8px; }
+.amt-btn {
+  padding: 11px 6px; border: 1px solid var(--border); border-radius: 0;
+  background: #fff; font-family: 'Open Sans', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--ink); cursor: pointer; transition: all .13s; text-align: center;
+}
+.amt-btn:hover  { border-color: var(--trinity-blue); color: var(--trinity-blue); }
+.amt-btn.active { background: var(--trinity-blue); color: #fff; border-color: var(--trinity-blue); }
+
+.custom-prefix { position: relative; }
+.custom-prefix::before {
+  content: '$'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 15px; color: var(--ink-muted); pointer-events: none;
+}
+.custom-prefix .f-input { padding-left: 26px; }
+
+.divider { border: none; border-top: 1px solid #E8E6E0; margin: 22px 0; }
+
+.btn-submit {
+  width: 100%; padding: 15px; margin-top: 22px;
+  background: var(--trinity-blue); color: #fff;
+  font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; border: none;
+  cursor: pointer; transition: background .15s;
+}
+.btn-submit:hover    { background: var(--navy-deep); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+.secure-note { text-align: center; font-size: 12px; color: var(--ink-muted); margin-top: 10px; line-height: 1.5; }
+
+/* ── Thank you ───────────────────────────────────────── */
+.ty-state { display: none; text-align: center; padding: 48px 36px; }
+.ty-mark {
+  width: 60px; height: 60px;
+  background: var(--trinity-blue); color: var(--trinity-yellow);
+  font-family: 'Lora', Georgia, serif; font-size: 24px; font-weight: 700; font-style: italic;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.ty-title { font-family: 'Lora', Georgia, serif; font-size: 26px; font-weight: 700; color: var(--trinity-blue); margin-bottom: 8px; }
+.ty-sub   { font-size: 14px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 22px; }
+.ty-receipt { background: var(--cream); border: 1px solid var(--border); padding: 16px 20px; text-align: left; margin-bottom: 22px; }
+.ty-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+.ty-row + .ty-row { border-top: 1px solid var(--border); }
+.ty-key { color: var(--ink-muted); }
+.ty-val { font-weight: 600; }
+.btn-close-ty {
+  background: var(--trinity-blue); color: #fff;
+  font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700;
+  padding: 11px 24px; border: none; cursor: pointer;
+  letter-spacing: .1em; text-transform: uppercase; transition: background .15s;
+}
+.btn-close-ty:hover { background: var(--navy-deep); }
+
+@media (max-width: 860px) {
+  .progress-inner { grid-template-columns: 1fr; }
+  .hero-dots-col { order: 1; }
+  .hero-text-col { order: 2; border: none !important; padding: 28px 0 0 0; border-top: 1px solid rgba(255,255,255,.15) !important; }
+  .progress-of { font-size: 13px; display: block; margin-left: 0; margin-top: 4px; }
+  .progress-pct-pill { font-size: 64px; line-height: 1; align-self: flex-start; }
+  .progress-top { align-items: flex-start; }
+  .page-wrap { grid-template-columns: 1fr; }
+  .main-col  { order: 1; }
+  .sidebar   { order: 2; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Logo header ─────────────────────────────────────────────────────────── -->
+<header class="logo-header">
+  <img src="../public/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
+</header>
+
+<!-- ── Progress bar ────────────────────────────────────────────────────────── -->
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="hero-text-col">
+      <p class="hero-text-eyebrow">2025–2026 Trinity Fund</p>
+      <h2 class="hero-text-headline">Providing Support for Our Students</h2>
+      <p class="hero-text-body">Each year, Trinity relies on the generosity of parents, alumni and their families, grandparents, faculty and staff, and friends. The Trinity Fund provides critical, unrestricted support for the basic operations of the school: student financial aid; faculty compensation; professional development; academic and extra-curricular programs; visual and performing arts; and athletics.</p>
+    </div>
+    <div class="hero-dots-col">
+      <div class="progress-eyebrow">Parent families who have given</div>
+      <div class="progress-top">
+        <div>
+          <span class="progress-num" id="prog-donors">—</span>
+          <span class="progress-of">of 772 Trinity families</span>
+        </div>
+        <span class="progress-pct-pill" id="prog-pct-pill" style="display:none"></span>
+      </div>
+      <div class="dot-grid" id="dot-grid" style="margin-top:20px"></div>
+      <div class="progress-footer" style="margin-top:10px">
+        <span id="prog-sub"></span>
+        <span>Goal: 100%</span>
+      </div>
+      <button class="btn-give-top" onclick="openModal()">Make your gift →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main layout ─────────────────────────────────────────────────────────── -->
+<div class="page-wrap">
+
+  <div class="main-col">
+
+    <!-- Parent grades leaderboard -->
+    <div class="panel" style="margin-bottom:22px">
+      <div class="panel-head">
+        <div class="panel-title">Parent Participation by Grade</div>
+      </div>
+      <table class="lb-table">
+        <thead><tr>
+          <th>Grade</th>
+          <th>Participation</th>
+          <th class="th-pct"></th>
+        </tr></thead>
+        <tbody id="parent-rows">
+          <tr><td colspan="2" class="lb-empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="give-panel">
+      <div class="give-panel-title">Your support matters.</div>
+      <div class="give-panel-sub">Every family that gives — any amount — moves your grade up the leaderboard and strengthens our community.</div>
+      <button class="btn-give-lg" onclick="openModal()">Join your grade</button>
+    </div>
+
+    <!-- Recent donors -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Recent Donors</div>
+      </div>
+      <div class="recent-list" id="recent-list">
+        <div class="lb-empty">Loading…</div>
+      </div>
+    </div>
+
+    <!-- 1709 Society -->
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">The 1709 Society</div></div>
+      <div class="society-list">
+        <div class="society-item"><div class="society-name">William Huddleston Circle</div><div class="society-range">$100,000 and above</div></div>
+        <div class="society-item"><div class="society-name">Founders' Circle</div><div class="society-range">$75,000–$99,999</div></div>
+        <div class="society-item"><div class="society-name">Heritage Circle</div><div class="society-range">$50,000–$74,999</div></div>
+        <div class="society-item"><div class="society-name">President's Circle</div><div class="society-range">$25,000–$49,999</div></div>
+        <div class="society-item"><div class="society-name">Head of School's Circle</div><div class="society-range">$15,000–$24,999</div></div>
+        <div class="society-item"><div class="society-name">Cornerstone Circle</div><div class="society-range">$10,000–$14,999</div></div>
+        <div class="society-item"><div class="society-name">Benefactor</div><div class="society-range">$5,000–$9,999</div></div>
+        <div class="society-item"><div class="society-name">Patron</div><div class="society-range">$3,000–$4,999</div></div>
+        <div class="society-item"><div class="society-name">Sponsor</div><div class="society-range">$1,709–$2,999</div></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ── Gift modal ──────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+
+    <!-- Shared header with segmented step bar -->
+    <div class="modal-header">
+      <img class="modal-logo" src="../public/trinity-fund-logo.png" alt="Trinity Fund 2025–2026">
+    </div>
+    <div class="step-bar" id="step-bar">
+      <div class="step-bar-seg" id="sb-1"></div>
+      <div class="step-bar-seg" id="sb-2"></div>
+      <div class="step-bar-seg" id="sb-3"></div>
+    </div>
+
+    <!-- Step 1: identity (non-fid users only) -->
+    <div id="modal-step1" style="display:none">
+      <div class="modal-body">
+        <div class="f-row" style="margin-bottom:14px">
+          <div><input class="f-input" id="s1-first" type="text" autocomplete="given-name"  placeholder="First name"></div>
+          <div><input class="f-input" id="s1-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
+        </div>
+        <input class="f-input" id="s1-email" type="email" autocomplete="email" placeholder="Email address" style="margin-bottom:0">
+        <div id="step1-error" style="display:none;background:#FEF2F2;border:1px solid #FECACA;padding:11px 14px;font-size:13px;color:#B91C1C;margin-top:14px;"></div>
+        <button class="btn-submit" onclick="nextStep()">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: gift form -->
+    <div id="modal-step2" style="display:none">
+      <div class="modal-body">
+
+        <!-- Personalised greeting — only shown for fid arrivals -->
+        <div id="modal-greeting" style="display:none;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)">
+          <span id="modal-greeting-text" style="font-size:17px;font-weight:700;color:var(--ink)"></span>
+          <p id="modal-greeting-email" style="display:none;margin-top:8px;font-size:13px;color:var(--ink-muted);line-height:1.5;">We'll send your receipt to <span id="masked-email-display"></span>. <a href="#" onclick="revealEmailField();return false;" style="color:var(--trinity-blue);text-decoration:underline;">Update here</a></p>
+        </div>
+
+        <label class="f-label">Gift Amount</label>
+        <div class="amt-grid">
+          <button class="amt-btn" onclick="pickAmt(50,this)">$50</button>
+          <button class="amt-btn" onclick="pickAmt(100,this)">$100</button>
+          <button class="amt-btn" onclick="pickAmt(250,this)">$250</button>
+          <button class="amt-btn" onclick="pickAmt(500,this)">$500</button>
+          <button class="amt-btn" onclick="pickAmt(1709,this)">$1,709</button>
+          <button class="amt-btn" onclick="pickAmt(2500,this)">$2,500</button>
+          <button class="amt-btn" onclick="pickAmt(5000,this)">$5,000</button>
+          <button class="amt-btn" onclick="showCustomAmt(this)">Other</button>
+        </div>
+        <div id="custom-wrap" style="display:none;margin-bottom:8px">
+          <div class="custom-prefix">
+            <input class="f-input" id="custom-amt" type="number" min="1" placeholder="Enter amount" oninput="selAmt=parseInt(this.value)||null">
+          </div>
+        </div>
+
+        <!-- 1709 Society accordion -->
+        <div style="margin-top:20px;margin-bottom:16px;">
+          <button type="button" onclick="toggle1709(this)" style="background:#172853;border:none;padding:8px 28px 8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Open Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#fff;border-left:3px solid rgb(242,204,7);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);width:100%;text-align:left;opacity:0.85;transition:opacity 0.15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+            <span id="toggle-1709-arrow" style="display:inline-block;width:7px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);transition:transform 0.2s;flex-shrink:0;margin-bottom:1px;"></span>
+            The 1709 Society Giving Levels
+          </button>
+          <div id="society-accordion" style="display:none;margin-top:6px;border:1px solid #e8e4de;border-radius:6px;overflow:hidden;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <tr style="border-bottom:1px solid #f0ede8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">William Huddleston Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$100,000+</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;background:#fafaf8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Founders' Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$75,000–$99,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Heritage Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$50,000–$74,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;background:#fafaf8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">President's Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$25,000–$49,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Head of School's Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$15,000–$24,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;background:#fafaf8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Cornerstone Circle</td><td style="padding:7px 12px;color:#666;text-align:right;">$10,000–$14,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Benefactor</td><td style="padding:7px 12px;color:#666;text-align:right;">$5,000–$9,999</td></tr>
+              <tr style="border-bottom:1px solid #f0ede8;background:#fafaf8;"><td style="padding:7px 12px;font-weight:600;color:#172853;">Patron</td><td style="padding:7px 12px;color:#666;text-align:right;">$3,000–$4,999</td></tr>
+              <tr><td style="padding:7px 12px;font-weight:600;color:#172853;">Sponsor</td><td style="padding:7px 12px;color:#666;text-align:right;">$1,709–$2,999</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Identity fields — shown for fid users; hidden for step-1 completers -->
+        <div id="identity-section">
+          <hr class="divider">
+          <label class="f-label">Your Information</label>
+          <div class="f-row" style="margin-bottom:14px">
+            <div><input class="f-input" id="m-first" type="text" autocomplete="given-name"  placeholder="First name"></div>
+            <div><input class="f-input" id="m-last"  type="text" autocomplete="family-name" placeholder="Last name"></div>
+          </div>
+          <input class="f-input" id="m-email" type="email" autocomplete="email" placeholder="Email address">
+        </div>
+
+        <!-- Grade display — shown when household is known (chips, pre-selected) -->
+        <div id="grade-display" style="display:none">
+          <hr class="divider">
+          <label class="f-label">Your Child's Grade</label>
+          <div class="grade-chips" id="grade-chips"></div>
+        </div>
+
+        <!-- Grade selector — shown only when household lookup found nothing -->
+        <div id="grade-section" style="display:none">
+          <hr class="divider">
+          <label class="f-label">Your Child's Grade</label>
+          <div id="parent-grades"></div>
+          <button type="button" onclick="addGradeRow('force')" style="margin-top:8px;background:none;border:1.5px solid var(--trinity-blue);color:var(--trinity-blue);border-radius:0;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Open Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;">+ Add another child</button>
+        </div>
+
+        <hr class="divider">
+
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--ink-mid);">
+          <input type="checkbox" id="m-anonymous" style="width:15px;height:15px;accent-color:var(--trinity-blue);flex-shrink:0;">
+          Make my gift anonymous
+        </label>
+
+        <div id="form-error" style="display:none;background:#FEF2F2;border:1px solid #FECACA;padding:11px 14px;font-size:13px;color:#B91C1C;margin-top:14px;"></div>
+        <button class="btn-submit" id="submit-btn" onclick="submitGift()">Complete Gift</button>
+        <div class="secure-note">Secured by Blackbaud Merchant Services. Trinity never stores your card data.</div>
+        <div style="margin-top:16px;padding:12px 16px;background:#f5f4f1;border:1px solid #e8e4de;border-radius:6px;text-align:center;">
+          <p style="font-size:12px;color:var(--ink-muted);margin:0;line-height:1.6;">For wiring instructions or to make a gift of stock, please contact us at <a href="mailto:trinityfund@trinityschoolnyc.org" style="color:var(--trinity-blue);text-decoration:none;">trinityfund@trinityschoolnyc.org</a>.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Thank you state -->
+    <div class="ty-state" id="ty-state">
+      <div class="ty-mark">T</div>
+      <div class="ty-title">Thank you.</div>
+      <div class="ty-sub">Your gift has been processed. Check the leaderboard — your grade just moved up.</div>
+      <div class="ty-receipt">
+        <div class="ty-row"><span class="ty-key">Amount</span><span class="ty-val" id="ty-amt"></span></div>
+        <div class="ty-row"><span class="ty-key">Credited to</span><span class="ty-val" id="ty-class"></span></div>
+      </div>
+      <button class="btn-close-ty" onclick="closeModal()">Back to Leaderboard</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Blackbaud Checkout SDK -->
+<!-- DEMO COPY: nothing here talks to the school's servers or Blackbaud. Sample families, a sample leaderboard, and a simulated payment. -->
+<div style="position:fixed;z-index:99999;top:0;left:0;right:0;background:#F2CC07;color:#172853;font:700 12px/1.3 'Open Sans',Arial,sans-serif;text-align:center;padding:5px 8px;letter-spacing:.04em">DEMO — sample data only. No card is charged and nothing is saved. (Add ?fid=demo to the address to see the personalized version.)</div>
+<script>
+(function () {
+  var raised = 612, extra = [];
+  var G = ['K','1','2','3','4','5','6','7','8','9','10','11','12'], PER = 59;
+  var NAMES = ['The Rivera Family','The Okafor Family','The Chen Family','The Goldberg Family','The Hamilton Family','The Nakamura Family','The Delgado Family','The Whitaker Family','The Moreau Family','The Singh Family'];
+  function board() {
+    var done = Math.min(raised, 772);
+    var parents = G.map(function (g, i) {
+      var d = Math.min(PER, Math.round(PER * (0.55 + ((i * 37) % 40) / 100) * (done / 640)));
+      return { grade: g, donors: d, total: PER, pct: Math.round(d / PER * 100) };
+    }).sort(function (a, b) { return b.pct - a.pct; });
+    return { total_donors: done, parents: parents, recent_gifts: extra.concat(NAMES.map(function (n) { return { name: n, affiliation: '' }; })).slice(0, 10) };
+  }
+  window.fetch = function (url) {
+    url = String(url); var body;
+    if (url.indexOf('/api/parents/leaderboard') === 0) body = board();
+    else if (url.indexOf('/api/parents/lookup') === 0) body = { found: true, household_import_id: 'DEMO-1', first_name: 'Alex', last_name: 'Sample', email: 'alex.sample@example.com', grades: ['5', '9'], ask_a: 250, ask_b: 500, ask_ly: 300 };
+    else if (url.indexOf('/api/parents/gift') === 0) { raised++; extra.unshift({ name: 'The Sample Family', affiliation: '' }); body = { success: true }; }
+    else return Promise.reject(new Error('demo: network disabled'));
+    return Promise.resolve({ ok: true, json: function () { return Promise.resolve(body); } });
+  };
+  function Ev() { var h = []; return { subscribe: function (f) { h.push(f); }, emit: function (e) { h.forEach(function (f) { f(e); }); } }; }
+  window.BlackbaudCheckout = function () {
+    var ready = Ev(), done = Ev(); setTimeout(function () { ready.emit(); }, 50);
+    return { checkoutReady: ready, checkoutComplete: done, checkoutModal: { openPaymentForm: function (p) {
+      if (!confirm('DEMO: no card is charged. Pretend the payment of $' + (p.baseAmount / 100) + ' succeeded?')) return;
+      setTimeout(function () { done.emit({ success: true, transaction: { id: 'demo-' + Date.now(), amountDetails: { total: p.baseAmount } } }); }, 400);
+    } } };
+  };
+})();
+</script>
+
+<script>
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return email;
+  var parts  = email.split('@');
+  var local  = parts[0];
+  var domain = parts[1].split('.');
+  var name   = domain.shift();
+  var tld    = domain.join('.');
+  var maskedLocal  = local.slice(0, 2)  + '*'.repeat(Math.max(3, local.length  - 2));
+  var maskedDomain = name.slice(0, 2) + '*'.repeat(Math.max(3, name.length - 3)) + name.slice(-1);
+  return maskedLocal + '@' + maskedDomain + '.' + tld;
+}
+
+function revealEmailField() {
+  var emailEl   = document.getElementById('m-email');
+  var greetLine = document.getElementById('modal-greeting-email');
+  if (emailEl)   { emailEl.value = ''; emailEl.style.display = ''; emailEl.focus(); }
+  if (greetLine) { greetLine.style.display = 'none'; }
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+var PAYMENT_CONFIG_ID = '8d2a50a3-deb8-41d0-8f0a-01b5955d69d6'; // LIVE
+var PARENT_TOTAL = 772;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var selAmt = null;
+var checkoutService   = null;
+var checkoutReady     = false;
+var dotsBuilt         = false;
+var currentDotCount   = 0;
+var dots              = [];
+var householdImportId = null;  // set from ?fid= lookup or step-1 email lookup
+var gradeSelectNeeded = false; // true only when no household match found
+var identityFromStep1 = false; // true when step-1 collected name/email
+var isFirstPoll       = true;  // for count-up and bar stagger on initial load
+var prevRecentKeys    = [];    // for slide-in diffing
+var prevParentsJSON   = null;  // for leaderboard change detection
+var prevParentsOrder  = null;  // grade order string — rebuild only on rerank
+
+// ── Shared: apply lookup data to modal ───────────────────────────────────────
+function applyLookupData(data, firstName) {
+  // Pre-fill identity fields
+  if (data.first_name || firstName) {
+    document.getElementById('m-first').value = data.first_name || firstName || '';
+  }
+  if (data.last_name)  document.getElementById('m-last').value  = data.last_name;
+  if (data.email)      document.getElementById('m-email').value = data.email;
+
+  // Greeting
+  var name = data.first_name || firstName;
+  var greetingText  = document.getElementById('modal-greeting-text');
+  var greetingEmail = document.getElementById('modal-greeting-email');
+  var greeting      = document.getElementById('modal-greeting');
+  if (name && greeting && greetingText) {
+    greetingText.textContent = 'Hi, ' + name + ' — thank you for your support.';
+    if (data.email && greetingEmail) {
+      document.getElementById('masked-email-display').textContent = maskEmail(data.email);
+      greetingEmail.style.display = 'block';
+      document.getElementById('m-email').style.display = 'none';
+    }
+    greeting.style.display = 'block';
+  }
+
+  // Grade chips
+  if (data.grades && data.grades.length > 0) {
+    buildGradeChips(data.grades);
+  }
+
+  // Custom ask amounts — replace standard buttons when present
+  if (data.ask_a || data.ask_b || data.ask_ly) {
+    renderAskAmounts(data.ask_a, data.ask_b, data.ask_ly);
+  }
+}
+
+function renderAskAmounts(askA, askB, askLy) {
+  var grid = document.querySelector('.amt-grid');
+  if (!grid) return;
+
+  // Build the list of non-zero, non-duplicate ask amounts + Other
+  var amounts = [];
+  [askLy, askA, askB].forEach(function(a) {
+    var n = parseFloat(a);
+    if (n > 0 && amounts.indexOf(n) === -1) amounts.push(n);
+  });
+  amounts.sort(function(a, b) { return a - b; });
+
+  grid.innerHTML = amounts.map(function(amt) {
+    var label = '$' + amt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return '<button class="amt-btn" onclick="pickAmt(' + amt + ',this)">' + label + '</button>';
+  }).join('') + '<button class="amt-btn" onclick="showCustomAmt(this)">Other</button>';
+
+  // Pre-select the middle amount
+  var midIdx = Math.floor((amounts.length - 1) / 2);
+  var midAmt = amounts[midIdx];
+  var midBtn = grid.querySelectorAll('.amt-btn')[midIdx];
+  if (midAmt && midBtn) pickAmt(midAmt, midBtn);
+}
+
+function buildGradeChips(grades) {
+  var chipsEl  = document.getElementById('grade-chips');
+  var displayEl = document.getElementById('grade-display');
+  chipsEl.innerHTML = grades.map(function(g) {
+    return '<span class="grade-chip">' + gradeLabel(g) + '</span>';
+  }).join('');
+  displayEl.style.display = '';
+  document.getElementById('grade-section').style.display = 'none';
+}
+
+// ── Step bar: initialise to step 1 on load ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() { setStepBar(1); });
+
+// ── ?fid= personalisation ─────────────────────────────────────────────────────
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var fid    = params.get('fid');
+  if (!fid) return;
+
+  fetch('/api/parents/lookup?fid=' + encodeURIComponent(fid))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.found && !data.household_import_id) return;
+      householdImportId = data.household_import_id;
+      applyLookupData(data, null);
+    })
+    .catch(function() {});
+})();
+
+// ── Build dot grid (once) ─────────────────────────────────────────────────────
+function buildDotGrid() {
+  var grid = document.getElementById('dot-grid');
+  for (var i = 0; i < PARENT_TOTAL; i++) {
+    var d = document.createElement('div');
+    d.className = 'dot';
+    grid.appendChild(d);
+    dots.push(d);
+  }
+  dotsBuilt = true;
+}
+
+// ── Animate dots up to target count ──────────────────────────────────────────
+function animateDots(target) {
+  var start = currentDotCount;
+  if (target <= start) return;
+  // First load: stagger all at once; subsequent: just pop the new ones
+  var isFirstLoad = (start === 0);
+  for (var i = start; i < target; i++) {
+    (function(idx, delay) {
+      setTimeout(function() {
+        if (dots[idx]) dots[idx].classList.add('given');
+      }, delay);
+    })(i, isFirstLoad ? (i < 100 ? i * 2 : 200 + (i - 100) * 3.1) : 0);
+  }
+  currentDotCount = target;
+}
+
+// ── Leaderboard polling ───────────────────────────────────────────────────────
+function pollLeaderboard() {
+  fetch('/api/parents/leaderboard')
+    .then(function(r) { return r.json(); })
+    .then(renderLeaderboard)
+    .catch(function(e) { console.error('Leaderboard error:', e); });
+}
+
+function gradeLabel(g) {
+  if (!g) return '—';
+  if (g === 'K') return 'Kindergarten';
+  var n = parseInt(g);
+  var s = n===1?'st':n===2?'nd':n===3?'rd':'th';
+  return n + s + ' Grade';
+}
+
+// ── Count-up animation ────────────────────────────────────────────────────────
+function countUp(el, target, duration) {
+  var start = parseInt(el.textContent.replace(/,/g, ''), 10) || 0;
+  if (start === target) return;
+  var t0 = null;
+  function step(ts) {
+    if (!t0) t0 = ts;
+    var p = Math.min((ts - t0) / duration, 1);
+    var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = Math.round(start + eased * (target - start)).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── Recent donors: build HTML ─────────────────────────────────────────────────
+function buildRecentHTML(gifts, newKeys) {
+  return gifts.map(function(g) {
+    var key = (g.name || '') + '|' + (g.affiliation || '');
+    var isNew = newKeys.indexOf(key) !== -1;
+    return '<div class="recent-item' + (isNew ? ' entering' : '') + '">' +
+      '<div class="recent-name">' + (g.name || '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderLeaderboard(data) {
+  if (data.error) {
+    document.getElementById('parent-rows').innerHTML = '<tr><td colspan="3" class="lb-empty">Leaderboard coming soon.</td></tr>';
+    document.getElementById('recent-list').innerHTML = '<div class="lb-empty">Coming soon.</div>';
+    return;
+  }
+
+  var donors = data.total_donors || 0;
+  var pct    = Math.min(100, Math.round(donors / PARENT_TOTAL * 100));
+  var needed = Math.max(0, PARENT_TOTAL - donors);
+
+  // Hero number — count-up on first load, instant update thereafter
+  var progEl = document.getElementById('prog-donors');
+  if (isFirstPoll) {
+    countUp(progEl, donors, 900);
+  } else {
+    progEl.textContent = donors.toLocaleString();
+  }
+
+  // Percentage pill
+  var pillEl = document.getElementById('prog-pct-pill');
+  if (pillEl) {
+    pillEl.textContent = pct + '%';
+    pillEl.style.display = '';
+  }
+
+  document.getElementById('prog-sub').textContent = donors >= PARENT_TOTAL
+    ? 'Goal reached — 100% parent participation!'
+    : needed + ' more ' + (needed === 1 ? 'family' : 'families') + ' to reach 100%';
+
+  // Dot grid
+  if (!dotsBuilt) buildDotGrid();
+  animateDots(Math.min(donors, PARENT_TOTAL));
+
+
+  // Parent grades table — sorted by participation %
+  var pr = document.getElementById('parent-rows');
+  if (!data.parents || data.parents.length === 0) {
+    pr.innerHTML = '<tr><td colspan="3" class="lb-empty">No gifts yet — be the first!</td></tr>';
+    prevParentsJSON = null; prevParentsOrder = null;
+  } else {
+    var parentsJSON  = JSON.stringify(data.parents);
+    var newOrder     = data.parents.map(function(r) { return r.grade || r.class_year; }).join(',');
+    var dataChanged  = (parentsJSON  !== prevParentsJSON);
+    var orderChanged = (newOrder     !== prevParentsOrder);
+    prevParentsJSON  = parentsJSON;
+    prevParentsOrder = newOrder;
+
+    if (isFirstPoll || orderChanged) {
+      // Full rebuild — stagger-animate on first load, instant snap on re-rank
+      pr.innerHTML = data.parents.map(function(row, i) {
+        var rankClass = i===0?'lb-rank-1':i===1?'lb-rank-2':i===2?'lb-rank-3':'lb-rank-n';
+        var barClass  = i===0 ? 'pct-bar-fill top-bar' : 'pct-bar-fill';
+        var label     = row.grade
+          ? gradeLabel(row.grade)
+          : (row.class_year ? "Class of '" + String(row.class_year).slice(-2) + ' Parents' : '—');
+        var rowPct  = row.pct != null ? row.pct : 0;
+        var subtext = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
+        var initW   = isFirstPoll ? '0' : rowPct + '%';
+        return '<tr>' +
+          '<td><div class="rank-cell"><div class="lb-rank ' + rankClass + '">' + (i+1) + '</div>' +
+          '<div><div style="font-size:14px;font-weight:600">' + label + '</div>' +
+          '<div class="lb-subtext" style="font-size:11px;color:var(--ink-muted);margin-top:1px">' + subtext + '</div></div>' +
+          '</div></td>' +
+          '<td><div class="pct-bar-wrap"><div class="pct-bar-track">' +
+          '<div class="' + barClass + '" style="width:' + initW + '" data-pct="' + rowPct + '"></div>' +
+          '</div></div></td>' +
+          '<td class="th-pct"><span class="pct-label">' + rowPct + '%</span></td>' +
+          '</tr>';
+      }).join('');
+
+      if (isFirstPoll) {
+        var fills = pr.querySelectorAll('.pct-bar-fill');
+        fills.forEach(function(fill, i) {
+          var target = fill.getAttribute('data-pct') + '%';
+          setTimeout(function() { fill.style.width = target; }, 120 + i * 70);
+        });
+      }
+
+    } else if (dataChanged) {
+      // Same rank order, values updated — update in-place so CSS transition animates bars
+      var rows = pr.querySelectorAll('tr');
+      data.parents.forEach(function(row, i) {
+        var tr = rows[i]; if (!tr) return;
+        var rowPct  = row.pct != null ? row.pct : 0;
+        var subtext = row.total ? row.donors + ' of ' + row.total + ' families' : row.donors + ' families';
+        var fill     = tr.querySelector('.pct-bar-fill');
+        var pctLabel = tr.querySelector('.pct-label');
+        var subtextEl = tr.querySelector('.lb-subtext');
+        if (fill)      fill.style.width      = rowPct + '%';
+        if (pctLabel)  pctLabel.textContent  = rowPct + '%';
+        if (subtextEl) subtextEl.textContent = subtext;
+      });
+    }
+    // Data unchanged: leave DOM alone
+  }
+
+  // Recent donors — diff against previous list for slide-in
+  var rl = document.getElementById('recent-list');
+  if (!data.recent_gifts || data.recent_gifts.length === 0) {
+    prevRecentKeys = [];
+    rl.innerHTML = '<div class="lb-empty">No gifts yet.</div>';
+  } else {
+    var newKeys = data.recent_gifts.map(function(g) {
+      return (g.name || '') + '|' + (g.affiliation || '');
+    });
+    var addedKeys = newKeys.filter(function(k) { return prevRecentKeys.indexOf(k) === -1; });
+    prevRecentKeys = newKeys;
+
+    // Only rebuild if something changed (avoids DOM churn on quiet polls)
+    if (addedKeys.length > 0 || !rl.querySelector('.recent-item')) {
+      rl.innerHTML = buildRecentHTML(data.recent_gifts, isFirstPoll ? [] : addedKeys);
+    }
+  }
+
+  isFirstPoll = false;
+}
+
+pollLeaderboard();
+setInterval(pollLeaderboard, 10000);
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (householdImportId) {
+    // Case 1: fid arrival — go straight to step 2, bar at 2/3
+    showStep2(false);
+    setStepBar(2);
+  } else {
+    // Cases 2 & 3: two-step flow
+    showStep(1);
+  }
+}
+
+function setStepBar(n) {
+  for (var i = 1; i <= 3; i++) {
+    var seg = document.getElementById('sb-' + i);
+    if (seg) seg.className = 'step-bar-seg' + (i <= n ? ' filled' : '');
+  }
+}
+
+function showStep(n) {
+  document.getElementById('modal-step1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('modal-step2').style.display = n === 2 ? '' : 'none';
+  document.getElementById('ty-state').style.display    = 'none';
+  setStepBar(n);
+}
+
+function showStep2(hideIdentity) {
+  showStep(2);
+  document.getElementById('identity-section').style.display = hideIdentity ? 'none' : '';
+  // Grade section vs display managed by applyLookupData / addGradeRow — don't override here
+  if (gradeSelectNeeded) {
+    document.getElementById('grade-section').style.display  = '';
+    document.getElementById('grade-display').style.display  = 'none';
+  }
+}
+
+function nextStep() {
+  var first = document.getElementById('s1-first').value.trim();
+  var last  = document.getElementById('s1-last').value.trim();
+  var email = document.getElementById('s1-email').value.trim();
+  var errEl = document.getElementById('step1-error');
+  errEl.style.display = 'none';
+
+  if (!first || !last)                { errEl.textContent = 'Please enter your first and last name.'; errEl.style.display='block'; return; }
+  if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.';   errEl.style.display='block'; return; }
+
+  // Copy identity to step-2 fields
+  document.getElementById('m-first').value = first;
+  document.getElementById('m-last').value  = last;
+  document.getElementById('m-email').value = email;
+  identityFromStep1 = true;
+
+  // Silent email lookup
+  fetch('/api/parents/lookup?email=' + encodeURIComponent(email))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.found && data.household_import_id) {
+        householdImportId = data.household_import_id;
+        gradeSelectNeeded = false;
+        applyLookupData(data, first); // show greeting + grade chips
+      } else {
+        gradeSelectNeeded = true;
+        addGradeRow();
+      }
+      showStep2(true); // identity captured in step 1 — hide those fields
+    })
+    .catch(function() {
+      gradeSelectNeeded = true;
+      addGradeRow();
+      showStep2(true);
+    });
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  // Reset step-1 fields and errors for next open
+  ['s1-first','s1-last','s1-email'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('step1-error').style.display = 'none';
+  document.getElementById('form-error').style.display  = 'none';
+  identityFromStep1 = false;
+  setStepBar(householdImportId ? 2 : 1);
+}
+function overlayClick(e) { if (e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+// ── Amount buttons ────────────────────────────────────────────────────────────
+function toggle1709(btn) {
+  var panel = document.getElementById('society-accordion');
+  var arrow = document.getElementById('toggle-1709-arrow');
+  var open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(45deg)' : 'rotate(-45deg)';
+}
+
+function pickAmt(amt, btn) {
+  selAmt = amt;
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('custom-wrap').style.display = 'none';
+  document.getElementById('custom-amt').value = '';
+}
+function showCustomAmt(btn) {
+  selAmt = null;
+  document.querySelectorAll('.amt-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('custom-wrap').style.display = 'block';
+  document.getElementById('custom-amt').focus();
+}
+
+// ── Grade rows ────────────────────────────────────────────────────────────────
+var GRADE_OPTIONS = ['K','1','2','3','4','5','6','7','8','9','10','11','12'];
+function gradeOptionsHTML() {
+  return '<option value="">Select grade…</option>' +
+    GRADE_OPTIONS.map(function(g) {
+      var label = g==='K' ? 'Kindergarten' : g + (g==='1'?'st':g==='2'?'nd':g==='3'?'rd':'th') + ' Grade';
+      return '<option value="' + g + '">' + label + '</option>';
+    }).join('');
+}
+function addGradeRow() {
+  var container = document.getElementById('parent-grades');
+  // Don't add if a row already exists (avoids duplicates when called multiple times)
+  if (container.querySelectorAll('.grade-select').length > 0 &&
+      arguments[0] !== 'force') return;
+  var div = document.createElement('div');
+  div.style.marginBottom = '8px';
+  div.innerHTML = '<select class="f-select grade-select" style="margin-bottom:0">' + gradeOptionsHTML() + '</select>';
+  container.appendChild(div);
+}
+
+// ── Build affiliations ────────────────────────────────────────────────────────
+function buildAffiliations() {
+  var list = [];
+  document.querySelectorAll('.grade-select').forEach(function(sel) {
+    if (sel.value) list.push({ type: 'current_parent', grade: sel.value });
+  });
+  if (list.length === 0) list.push({ type: 'current_parent', grade: null });
+  return list;
+}
+function affilLabel() {
+  var sel = document.querySelector('.grade-select');
+  var g = sel ? sel.value : null;
+  return g ? gradeLabel(g) + ' Parent' : 'Current Parent';
+}
+
+// ── Validation and submit ─────────────────────────────────────────────────────
+function showError(msg) {
+  var el = document.getElementById('form-error');
+  el.textContent = msg; el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function clearError() { document.getElementById('form-error').style.display = 'none'; }
+
+function submitGift() {
+  clearError();
+  var amt = selAmt || (parseInt(document.getElementById('custom-amt').value) || null);
+  if (!amt || amt < 1) { showError('Please select or enter a gift amount.'); return; }
+
+  var first = document.getElementById('m-first').value.trim();
+  var last  = document.getElementById('m-last').value.trim();
+  var email = document.getElementById('m-email').value.trim();
+  if (!first || !last)               { showError('Please enter your first and last name.'); return; }
+  if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
+
+  if (gradeSelectNeeded) {
+    var grades = document.querySelectorAll('.grade-select');
+    var hasGrade = false;
+    grades.forEach(function(s){ if (s.value) hasGrade = true; });
+    if (!hasGrade) { showError('Please select your child\'s grade.'); return; }
+  }
+
+  if (!checkoutService || !checkoutReady) {
+    showError('Payment system is still loading. Please try again in a moment.'); return;
+  }
+
+  selAmt = amt;
+  checkoutService.checkoutModal.openPaymentForm({
+    baseAmount: amt * 100,
+    billingDetails: { name: first + ' ' + last, email: email },
+  });
+}
+
+// ── Blackbaud Checkout SDK ────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+
+  if (typeof window.BlackbaudCheckout !== 'function') {
+    console.warn('BlackbaudCheckout SDK did not load.');
+    return;
+  }
+
+  checkoutService = window.BlackbaudCheckout({
+    paymentConfigurationId: PAYMENT_CONFIG_ID,
+    workflowMode: 'modal',
+  });
+
+  checkoutService.checkoutReady.subscribe(function() { checkoutReady = true; });
+
+  checkoutService.checkoutComplete.subscribe(function(e) {
+    if (!e || !e.success) return;
+
+    var txnId = e.transaction.id;
+    var total = e.transaction.amountDetails.total;
+
+    var first  = document.getElementById('m-first').value.trim();
+    var last   = document.getElementById('m-last').value.trim();
+    var email  = document.getElementById('m-email').value.trim();
+    var affils = buildAffiliations();
+
+    document.getElementById('ty-amt').textContent   = '$' + (selAmt || (total/100)).toLocaleString();
+    document.getElementById('ty-class').textContent = affilLabel();
+    document.getElementById('modal-step1').style.display = 'none';
+    document.getElementById('modal-step2').style.display = 'none';
+    document.getElementById('ty-state').style.display    = 'block';
+    setStepBar(3);
+
+    fetch('/api/parents/gift', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_id:      txnId,
+        amount:              total / 100,
+        first_name:          first,
+        last_name:           last,
+        email:               email,
+        affiliations:        affils,
+        household_import_id: householdImportId || null,
+        anonymous:           document.getElementById('m-anonymous').checked,
+        fund:                'Annual Fund',
+      }),
+    })
+    .then(function() { pollLeaderboard(); })
+    .catch(function(err) { console.error('Gift save error:', err); });
+  });
+});
+</script>
+</body>
+</html>

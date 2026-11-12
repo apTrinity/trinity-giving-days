@@ -1,5 +1,10 @@
 node_modules/
 .env
+# Donor and family data never goes to GitHub
+*.csv
+*.tsv
+*.xlsx
+.claude/
 *.log
 .DS_Store
 .superpowers/
