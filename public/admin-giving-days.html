@@ -151,6 +151,33 @@
     .badge.notyet { background: #eceae4; color: var(--mute); } .badge.test { background: #fdebd0; color: #8a5a00; }
     .re-tools { margin-top: 18px; } .re-tools summary { cursor: pointer; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
     .locked { background: #f4f2ed; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
+
+    /* Raiser's Edge tab */
+    .re-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .tile { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 13px 16px; display: flex; gap: 12px; align-items: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .tile-name { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--mute); }
+    .tile-word { font-weight: 700; font-size: 15px; color: var(--ink); margin-top: 2px; }
+    .tile-detail { font-size: 12.5px; color: var(--mute); margin-top: 1px; line-height: 1.4; }
+    .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; background: #b5b0a5; }
+    .dot.ok { background: var(--green); box-shadow: 0 0 0 4px #e4f3ea; }
+    .dot.warn { background: #d19a00; box-shadow: 0 0 0 4px #fbf1d0; }
+    .dot.bad { background: var(--red); box-shadow: 0 0 0 4px #fde8e6; }
+    .dot.idle { background: #b5b0a5; box-shadow: 0 0 0 4px #efece6; }
+    .dot.run { background: var(--navy); box-shadow: 0 0 0 4px #e6eaf5; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    @media (prefers-reduced-motion: reduce) { .dot.run { animation: none; } }
+    .pill { display: inline-block; border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .pill.ok { background: #e4f3ea; color: var(--green); } .pill.warn { background: #fbf1d0; color: #8a5a00; }
+    .pill.bad { background: #fde8e6; color: var(--red); } .pill.idle { background: #efece6; color: var(--mute); } .pill.run { background: #e6eaf5; color: var(--navy); }
+    .rc { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .rc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+    .rc h3 { font-family: Georgia, 'Lora', serif; font-size: 17px; font-weight: 600; color: var(--navy); }
+    .rc-last { font-size: 13px; color: var(--ink); margin: 8px 0 0; }
+    .rc-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 4px; }
+    .rc-bar input { width: auto; padding: 6px 10px; font-size: 14px; }
+    .rc-tool summary { cursor: pointer; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; list-style-position: inside; }
+    .rc-tool[open] summary { margin-bottom: 4px; }
+    #sync-out:not(:empty), #mc-out:not(:empty), #off-out:not(:empty), #qt-out:not(:empty) { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 4px; }
   </style>
 </head>
 <body>
@@ -258,37 +285,42 @@
     </section>
 
     <section class="panel" id="panel-re">
-      <div class="head-row"><div><h2>Raiser's Edge</h2><p class="hint">How the platform stays in step with RE: the constituent list, and offline gifts (checks, cash, stock) entered in RE.</p></div></div>
-      <div id="qt-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
-        <div class="head-row" style="margin-bottom:6px">
-          <div><b>Test an RE query</b><p class="hint" style="margin:2px 0 0">Runs the query and shows the columns it returns. Read-only: nothing is saved.</p></div>
-          <div style="display:flex;gap:8px;align-items:center"><input type="text" id="qt-id" value="-648898" style="width:110px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
-        </div>
-        <div id="qt-out"></div>
+      <div class="head-row"><div><h2>Raiser's Edge</h2><p class="hint">How the platform stays in step with RE and Mailchimp. Each night the RE sync runs first, then Mailchimp.</p></div></div>
+
+      <div class="re-status" aria-label="Nightly status">
+        <div class="tile" data-st="sync"><span class="dot idle"></span><div><div class="tile-name">RE sync · 3 a.m.</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
+        <div class="tile" data-st="mc"><span class="dot idle"></span><div><div class="tile-name">Mailchimp · 4 a.m.</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
+        <div class="tile" data-st="off"><span class="dot idle"></span><div><div class="tile-name">Offline gifts · every 30 min</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
       </div>
-      <div id="sync-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
-        <div class="head-row" style="margin-bottom:6px">
-          <div><b>Sync from Raiser's Edge</b><p class="hint" id="sync-hint" style="margin:2px 0 0">Reads RE query <span id="sync-qid">…</span> and keeps this list up to date. A preview changes nothing.</p></div>
-          <div style="display:flex;gap:8px"><button class="btn small" id="sync-now">Sync now</button><button class="btn small" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
-        </div>
-        <p id="sync-last" class="hint" style="margin:8px 0 0"></p>
-      <div id="sync-out"></div>
+
+      <div class="rc" id="sync-card">
+        <div class="rc-head"><h3>Sync from Raiser's Edge</h3><span class="pill idle" data-st="sync">Checking…</span></div>
+        <p class="hint" id="sync-hint">Reads RE query <span id="sync-qid">…</span> and keeps this list up to date: names, emails, class years and asks. A preview changes nothing.</p>
+        <p id="sync-last" class="rc-last"></p>
+        <div class="rc-bar"><button class="btn small" id="sync-now">Sync now</button><button class="btn small ghost" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
+        <div id="sync-out"></div>
       </div>
-      <div id="mc-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
-        <div class="head-row" style="margin-bottom:6px">
-          <div><b>Mailchimp</b><p class="hint" style="margin:2px 0 0">Compares this list with your Mailchimp audience. A preview changes nothing. Apply adds new contacts, sets the Gave 26-27 and Appeal tags, and saves RE IDs. It never touches unsubscribed contacts or existing names.</p></div>
-          <div style="display:flex;gap:8px"><button class="btn small ghost" id="mc-quick" title="Tags new givers only. Takes seconds.">Quick: tag new givers</button><button class="btn small" id="mc-preview">Preview (no changes)</button><button class="btn small danger" id="mc-apply" style="display:none">Apply to Mailchimp</button></div>
-        </div>
-        <p id="mc-sched" class="hint" style="margin:6px 0"></p>
+
+      <div class="rc" id="mc-card">
+        <div class="rc-head"><h3>Mailchimp</h3><span class="pill idle" data-st="mc">Checking…</span></div>
+        <p class="hint">Compares this list with your Mailchimp audience. Apply adds new contacts, sets the Gave 26-27 and Appeal tags, saves RE IDs and removes old Appeal tags from people who left the list. It never touches unsubscribed contacts or existing names.</p>
+        <p id="mc-sched" class="rc-last"></p>
+        <div class="rc-bar"><button class="btn small" id="mc-preview">Preview (no changes)</button><button class="btn small ghost" id="mc-quick" title="Tags new givers only. Takes seconds.">Quick: tag new givers</button><button class="btn small danger" id="mc-apply" style="display:none">Apply to Mailchimp</button></div>
         <div id="mc-out"></div>
       </div>
-      <div id="off-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
-        <div class="head-row" style="margin-bottom:6px">
-          <div><b>Offline gifts from Raiser's Edge</b><p class="hint" style="margin:2px 0 0">Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list are recorded automatically and count like online gifts. A gift from someone who is not on the list is never recorded: it is flagged in red at the top of this page and emailed to staff. The query decides which gifts qualify (gift date from the launch, fund, and so on).</p></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="text" id="off-id" placeholder="RE query ID" style="width:120px" aria-label="Offline gifts query ID"><button class="btn small ghost" id="off-preview">Check only</button><button class="btn small" id="off-apply">Sync now</button></div>
-        </div>
+
+      <div class="rc" id="off-card">
+        <div class="rc-head"><h3>Offline gifts from Raiser's Edge</h3><span class="pill idle" data-st="off">Checking…</span></div>
+        <p class="hint">Checks, cash and stock gifts entered in RE. Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list count like online gifts. A gift from someone who is not on the list is not recorded: it shows in red at the top of this page and is emailed to staff.</p>
+        <div class="rc-bar"><input type="text" id="off-id" placeholder="RE query ID" style="width:140px" aria-label="Offline gifts query ID"><button class="btn small" id="off-apply">Sync now</button><button class="btn small ghost" id="off-preview">Check only</button></div>
         <div id="off-out"></div>
       </div>
+
+      <details class="rc rc-tool" id="qt-card">
+        <summary><h3>Test an RE query</h3><span class="hint">Read-only: runs a query and shows its columns. Nothing is saved.</span></summary>
+        <div class="rc-bar"><input type="text" id="qt-id" value="-648898" style="width:130px" aria-label="Query ID"><button class="btn small" id="qt-run">Test query</button></div>
+        <div id="qt-out"></div>
+      </details>
     </section>
 
     <section class="panel" id="panel-gifts">
@@ -931,6 +963,17 @@ $('qt-out').addEventListener('click', e => { const a = e.target.closest('a[data-
 $('qt-run').addEventListener('click', async () => {
   try { await api('POST', '/api/admin/gd/query-test/start', { query_id: $('qt-id').value.trim() }); pollQt(); } catch (e) { toast(e.message, true); }
 });
+// ── Status lights (strip at top of the Raiser's Edge tab + a pill on each card) ──
+function setStatus(key, level, word, detail) {
+  document.querySelectorAll(`[data-st="${key}"]`).forEach(el => {
+    if (el.classList.contains('tile')) {
+      el.querySelector('.dot').className = 'dot ' + level;
+      el.querySelector('.tile-word').textContent = word;
+      el.querySelector('.tile-detail').textContent = detail || '';
+    } else { el.className = 'pill ' + level; el.textContent = word; }
+  });
+}
+const agoText = iso => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + ' min ago' : m < 2880 ? Math.round(m / 60) + ' hours ago' : Math.round(m / 1440) + ' days ago'; };
 // ── Sync from RE ──
 let syncTimer = null, syncPreviewed = false;
 function renderSync(r) {
@@ -938,7 +981,13 @@ function renderSync(r) {
   const run = r.state === 'running';
   $('sync-preview').disabled = run; $('sync-apply').disabled = run; $('sync-now').disabled = run;
   const ago = r.last_synced ? Math.max(0, Math.round((Date.now() - new Date(r.last_synced)) / 60000)) : null;
-  $('sync-last').innerHTML = (r.last_synced ? `<b>Last synced:</b> ${esc(new Date(r.last_synced).toLocaleString())} (${ago < 60 ? ago + ' min ago' : ago < 2880 ? Math.round(ago / 60) + ' hours ago' : Math.round(ago / 1440) + ' days ago'})` : '<b>Last synced:</b> never') + ` · <b>Nightly sync (3 a.m. ET):</b> ${r.schedule ? 'on' : 'off'}`;
+  $('sync-last').innerHTML = (r.last_synced ? `<b>Last synced:</b> ${esc(new Date(r.last_synced).toLocaleString())} (${agoText(r.last_synced)})` : '<b>Last synced:</b> never') + ` · <b>Nightly sync (3 a.m. ET):</b> ${r.schedule ? 'on' : 'off'}`;
+  { const hrs = r.last_synced ? (Date.now() - new Date(r.last_synced)) / 3600000 : null;
+    if (run) setStatus('sync', 'run', 'Running', 'The RE query takes a minute or two.');
+    else if (r.state === 'error') setStatus('sync', 'bad', 'Last sync failed', 'Open the card for the error.');
+    else if (!r.schedule) setStatus('sync', 'idle', 'Nightly sync off', r.last_synced ? 'Last synced ' + agoText(r.last_synced) : 'Never synced');
+    else if (hrs != null && hrs <= 30) setStatus('sync', 'ok', 'On schedule', 'Last synced ' + agoText(r.last_synced));
+    else setStatus('sync', 'warn', 'Overdue', r.last_synced ? 'Last synced ' + agoText(r.last_synced) : 'Never synced'); }
   if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
   if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Sync failed: ${esc(r.error)}</div>`; return; }
   if (r.state !== 'done' || !r.result) { out.innerHTML = ''; return; }
@@ -992,9 +1041,15 @@ function renderMc(r) {
   $('mc-apply').style.display = (r.state === 'done' && r.mode === 'preview' && !(r.result && r.result.blocking && r.result.blocking.length)) ? '' : 'none';
   window.mcNewStatus = r.new_status;
   const ln = r.last_nightly;
+  if (r.configured === false) setStatus('mc', 'bad', 'Not set up', 'Missing: ' + (r.missing || []).join(', '));
+  else if (run) setStatus('mc', 'run', 'Running', 'Reading the whole audience takes about 3.5 minutes.');
+  else if (!r.schedule) setStatus('mc', 'idle', 'Nightly run off', 'Set GD_MAILCHIMP_SCHEDULE=on on Render.');
+  else if (!ln) setStatus('mc', 'warn', 'Waiting for first run', 'No nightly run since the server last started.');
+  else if (ln.outcome === 'applied') setStatus('mc', 'ok', 'Last run applied', agoText(ln.at) + ' · ' + ln.note);
+  else setStatus('mc', 'bad', ln.outcome === 'blocked' ? 'Last run blocked' : 'Last run failed', agoText(ln.at) + ' · ' + ln.note.slice(0, 90));
   $('mc-sched').innerHTML = r.configured === false ? '' : (r.schedule
-    ? `<b style="color:#166534">Nightly run: ON</b> (4 a.m. ET, after the RE sync). ${ln ? `Last run ${esc(new Date(ln.at).toLocaleString())}: <b style="color:${ln.outcome === 'applied' ? '#166534' : '#b91c1c'}">${esc(ln.outcome)}</b>${ln.note ? ' · ' + esc(ln.note) : ''}` : 'No run since the server last started.'}`
-    : '<b>Nightly run: OFF</b> (set GD_MAILCHIMP_SCHEDULE=on on Render to turn it on).');
+    ? (ln ? `<b>Last nightly run:</b> ${esc(new Date(ln.at).toLocaleString())} · ${esc(ln.outcome)}${ln.note ? ' · ' + esc(ln.note) : ''}` : '<b>Nightly run (4 a.m. ET):</b> on. No run since the server last started.')
+    : '<b>Nightly run:</b> off. Set GD_MAILCHIMP_SCHEDULE=on on Render to turn it on.');
   if (r.configured === false) { out.innerHTML = `<div class="empty">Not set on the server yet: ${esc((r.missing || []).join(', '))}</div>`; return; }
   if (r.state === 'idle') { out.innerHTML = ''; return; }
   if (run) { out.innerHTML = '<div class="empty">Reading Mailchimp…</div>'; return; }
@@ -1046,6 +1101,11 @@ const usd = n => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractio
 function renderOff(r) {
   const out = $('off-out'), run = r.state === 'running';
   if (r.query_id && !$('off-id').value) $('off-id').value = r.query_id;
+  if (run) setStatus('off', 'run', 'Running', 'The RE query takes a minute or two.');
+  else if (r.state === 'error') setStatus('off', 'bad', 'Last sync failed', 'Open the card for the error.');
+  else if (!r.query_id || !r.schedule) setStatus('off', 'idle', 'Not set up', 'Needs a query ID set on the server.');
+  else if (r.alert && r.alert.count) setStatus('off', 'warn', 'Needs a look', 'Some gifts are not on the list.');
+  else setStatus('off', 'ok', 'On schedule', r.finished ? 'Last run ' + agoText(r.finished) : 'Runs every 30 minutes.');
   $('off-preview').disabled = run; $('off-apply').disabled = run;
   if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
   if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Offline gift sync failed: ${esc(r.error)}</div>`; return; }
