@@ -51,9 +51,11 @@ function giftTime(v) {
 
 module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, skyRequest }) {
   let run = { state: 'idle' };
-  let lastId = null, alert = { count: 0, total: 0, gifts: [] }, emailed = new Set();
+  let alert = { count: 0, total: 0, gifts: [] }, emailed = new Set();
+  // A query ID typed in the admin is used for that one run only. The automatic 30-minute import always follows the
+  // GD_OFFLINE_QUERY_ID setting on the server, so trying out another query can never re-point it.
   const queryId = body => {
-    const raw = body && body.query_id != null && body.query_id !== '' ? body.query_id : (lastId != null ? lastId : process.env.GD_OFFLINE_QUERY_ID);
+    const raw = body && body.query_id != null && body.query_id !== '' ? body.query_id : process.env.GD_OFFLINE_QUERY_ID;
     const n = parseInt(raw, 10); return isFinite(n) && n !== 0 ? n : null;
   };
 
@@ -66,7 +68,7 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
       const j = await skyRequest({ method: 'get', url: 'https://api.sky.blackbaud.com/query/jobs/' + jobId, params: { product: 'RE', module: 'None', include_read_url: 1 } });
       const st = j.data && j.data.status;
       if (st === 'Completed') {
-        const csv = (await axios.get(j.data.sas_uri, { responseType: 'text' })).data;
+        const csv = (await axios.get(j.data.sas_uri, { responseType: 'text', timeout: 120000 })).data;
         return parse(csv, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
       }
       if (['Failed', 'Cancelled'].includes(st)) throw new Error('The RE query job ' + st.toLowerCase() + '.');
@@ -165,13 +167,12 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
     const id = queryId(req.body);
     if (!id) return res.status(400).json({ error: 'Enter the RE query ID for the offline gifts first.' });
     const apply = !!(req.body && req.body.apply);
-    lastId = id;
     execute(apply, 'admin', id);
     res.status(202).json({ started: true });
   });
   const { backgroundAllowed } = require('./sky-instance');
   const scheduled = () => backgroundAllowed() && !!queryId({}) && String(process.env.GD_OFFLINE_SCHEDULE || 'on').toLowerCase() !== 'off' && process.env.SKIP_RE_RESOLUTION !== 'true';
-  app.get('/api/admin/gd/offline/status', requireAdmin, (req, res) => res.json({ ...run, query_id: run.query_id || queryId({}), schedule: scheduled(), alert }));
+  app.get('/api/admin/gd/offline/status', requireAdmin, (req, res) => res.json({ ...run, query_id: run.query_id || queryId({}), configured_id: queryId({}), schedule: scheduled(), alert }));
 
   // Automatic: 90 seconds after the server starts, then every 30 minutes (only when a query ID is set).
   const tick = () => { const id = queryId({}); if (scheduled() && run.state !== 'running') execute(true, 'automatic', id); };

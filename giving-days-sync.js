@@ -205,7 +205,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       const j = await skyRequest({ method: 'get', url: 'https://api.sky.blackbaud.com/query/jobs/' + jobId, params: { product: 'RE', module: 'None', include_read_url: 1 } });
       const st = j.data && j.data.status;
       if (st === 'Completed') {
-        const csv = (await axios.get(j.data.sas_uri, { responseType: 'text' })).data;
+        const csv = (await axios.get(j.data.sas_uri, { responseType: 'text', timeout: 120000 })).data;
         return parse(csv, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
       }
       if (['Failed', 'Cancelled'].includes(st)) throw new Error('The RE query job ' + st.toLowerCase() + '.');

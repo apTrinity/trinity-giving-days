@@ -46,7 +46,7 @@ module.exports = function mountQueryTest(app, { requireAdmin, skyRequest }) {
         else if (['Failed', 'Cancelled'].includes(last)) throw new Error('The RE query job ' + last.toLowerCase() + '.');
       }
       if (!sas) throw new Error('The RE query took longer than 4 minutes (last status: ' + last + ').');
-      const csv = (await axios.get(sas, { responseType: 'text' })).data;
+      const csv = (await axios.get(sas, { responseType: 'text', timeout: 120000 })).data;
       const rows = parse(csv, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
       const headers = rows.length ? Object.keys(rows[0]) : [];
       // How full each column is, so you can see at a glance what is usable.

@@ -666,6 +666,7 @@ async function refreshAccessToken() {
 // Step A4 — Wrapper that retries once with a fresh token if we get a 401
 // Pass subscriptionKey to override the default (e.g. for Payments API calls)
 async function skyRequest(config, subscriptionKey) {
+  if (config.timeout == null) config.timeout = 90000;   // a stalled Blackbaud call must fail, not hang a run on "running" until a restart
   config.headers = {
     ...config.headers,
     'Authorization':          `Bearer ${tokens.access_token}`,

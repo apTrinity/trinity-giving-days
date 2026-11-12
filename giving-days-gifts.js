@@ -304,6 +304,12 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
 
   app.delete('/api/admin/gd/gifts/:id', requireAdmin, async (req, res) => {
     try {
+      const { data: g, error: readErr } = await supabase.from('gd_gifts').select('is_test').eq('id', req.params.id).maybeSingle();
+      if (readErr) throw readErr;
+      if (!g) return res.status(404).json({ error: 'Gift not found.' });
+      // A real gift has money behind it in Blackbaud (or RE). Deleting the record would leave a charged donor with no gift here,
+      // and an offline gift would simply be re-imported. Use Edit > "Don't count this gift" instead.
+      if (!g.is_test) return res.status(400).json({ error: "Real gifts can't be deleted. Open the gift with Edit and choose not to count it: the record stays, and it is left out of the totals." });
       const { error } = await supabase.from('gd_gifts').delete().eq('id', req.params.id);
       if (error) throw error;
       invalidate();

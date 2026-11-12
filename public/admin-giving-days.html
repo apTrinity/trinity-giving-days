@@ -560,6 +560,7 @@ async function login() {
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
   loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor(); checkOffAlert();
+  if (!offAlertTimer) offAlertTimer = setInterval(checkOffAlert, 5 * 60 * 1000);
   // Before launch the public page is a teaser; this pass lets the preview below (and /preview) show the real page.
   api('POST', '/api/admin/gd/preview-pass').then(() => { frameReady = false; $('aud-frame').src = '/preview?demo=1'; }).catch(() => {});
 }
@@ -1023,10 +1024,17 @@ function renderSync(r) {
     <details><summary><b>First 5 people</b></summary><ul>${li(x.sample.map(p => esc([p.first_name, p.last_name].filter(Boolean).join(' ') + ' · ' + (p.email || 'no email') + ' · RE ' + p.re_id + (p.class_year ? ' · class of ' + p.class_year : '') + (p.grades && p.grades.length ? ' · grades ' + p.grades.join(',') : '') + ((p.import_tags || []).length ? ' · ' + p.import_tags.join(', ') : '') + (p.ask_a != null ? ' · asks $' + p.ask_a + '/$' + p.ask_b : ''))))}</ul></details>
     <p class="hint">${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}${r.schedule ? ' · nightly sync is on' : ''}</p>`;
 }
+let syncWatching = false;
 async function pollSync() {
   clearTimeout(syncTimer);
-  try { const r = await api('GET', '/api/admin/gd/sync/status'); renderSync(r); if (r.state === 'running') syncTimer = setTimeout(pollSync, 4000); else if (r.state === 'done' && r.mode === 'apply') loadDonors && loadDonors(); }
-  catch (e) { $('sync-out').innerHTML = `<div class="empty">Could not read sync status: ${esc(e.message)}</div>`; }
+  try {
+    const r = await api('GET', '/api/admin/gd/sync/status'); renderSync(r);
+    if (r.state === 'running') { syncWatching = true; syncTimer = setTimeout(pollSync, 4000); }
+    else { if (syncWatching && r.state === 'done' && r.mode === 'apply') loadDonors && loadDonors(); syncWatching = false; }   // reload donors once, when a run we were watching finishes
+  } catch (e) {
+    $('sync-out').innerHTML = `<div class="empty">Could not read sync status: ${esc(e.message)}</div>`;
+    if (syncWatching) syncTimer = setTimeout(pollSync, 10000);   // a network blip while a run was in progress: look again
+  }
 }
 async function startSync(apply, now) {
   try { await api('POST', '/api/admin/gd/sync/start', { apply, now }); pollSync(); } catch (e) { toast(e.message, true); }
@@ -1088,10 +1096,11 @@ function renderMc(r) {
     <details><summary><b>Not subscribed (skipped)</b></summary><ul>${li(x.examples.skipped_not_subscribed)}</ul></details>
     <p class="hint">Examples show up to 15 each · ${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}</p>`;
 }
+let mcWatching = false;
 async function pollMc() {
   clearTimeout(mcTimer);
-  try { const r = await api('GET', '/api/admin/gd/mailchimp/status'); renderMc(r); if (r.state === 'running') mcTimer = setTimeout(pollMc, 4000); }
-  catch (e) { $('mc-out').innerHTML = `<div class="empty">Could not read Mailchimp status: ${esc(e.message)}</div>`; }
+  try { const r = await api('GET', '/api/admin/gd/mailchimp/status'); renderMc(r); mcWatching = r.state === 'running'; if (mcWatching) mcTimer = setTimeout(pollMc, 4000); }
+  catch (e) { $('mc-out').innerHTML = `<div class="empty">Could not read Mailchimp status: ${esc(e.message)}</div>`; if (mcWatching) mcTimer = setTimeout(pollMc, 10000); }
 }
 $('mc-apply').addEventListener('click', async () => { if (!confirm('Apply to Mailchimp? This adds new contacts as ' + (window.mcNewStatus || 'subscribed') + ', sets tags and RE IDs, and archives replaced old addresses. Unsubscribed contacts and existing names are not touched.')) return; try { await api('POST', '/api/admin/gd/mailchimp/apply'); pollMc(); } catch (e) { toast(e.message, true); } });
 $('mc-quick').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/quick'); pollMc(); } catch (e) { toast(e.message, true); } });
@@ -1101,6 +1110,7 @@ let offTimer = null;
 const usd = n => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 function renderOff(r) {
   const out = $('off-out'), run = r.state === 'running';
+  if (r.configured_id != null) offConfiguredId = r.configured_id || '';
   if (r.query_id && !$('off-id').value) $('off-id').value = r.query_id;
   if (run) setStatus('off', 'run', 'Running', 'The RE query takes a minute or two.');
   else if (r.state === 'error') setStatus('off', 'bad', 'Last sync failed', 'Open the card for the error.');
@@ -1123,20 +1133,33 @@ function renderOff(r) {
     <details><summary><b>First 5 new gifts</b></summary><ul>${li(x.sample.map(g => esc(g.who + ' · ' + usd(g.amount) + (g.at ? ' · ' + new Date(g.at).toLocaleDateString('en-US', { timeZone: ET }) : ''))))}</ul></details>
     <p class="hint">${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}${r.schedule ? ' · automatic every 30 minutes' : ' · automatic runs are off (no query ID set on the server)'}</p>`;
 }
+let offWatching = false;
 async function pollOff() {
   clearTimeout(offTimer);
-  try { const r = await api('GET', '/api/admin/gd/offline/status'); renderOff(r); checkOffAlert(); if (r.state === 'running') offTimer = setTimeout(pollOff, 4000); else if (r.state === 'done' && r.mode === 'apply') { loadDonors(); loadGifts(); } }
-  catch (e) { $('off-out').innerHTML = `<div class="empty">Could not read status: ${esc(e.message)}</div>`; }
+  try {
+    const r = await api('GET', '/api/admin/gd/offline/status'); renderOff(r); showOffAlert(r);   // one request feeds both the card and the red banner
+    if (r.state === 'running') { offWatching = true; offTimer = setTimeout(pollOff, 4000); }
+    else { if (offWatching && r.state === 'done' && r.mode === 'apply') { loadDonors(); loadGifts(); } offWatching = false; }
+  } catch (e) {
+    $('off-out').innerHTML = `<div class="empty">Could not read status: ${esc(e.message)}</div>`;
+    if (offWatching) offTimer = setTimeout(pollOff, 10000);
+  }
 }
+let offConfiguredId = '';
 async function startOff(apply) {
-  try { await api('POST', '/api/admin/gd/offline/start', { apply, query_id: $('off-id').value.trim() }); pollOff(); } catch (e) { toast(e.message, true); }
+  const typed = $('off-id').value.trim();
+  if (apply && !confirm(typed && String(typed) !== String(offConfiguredId)
+    ? `RE query ${typed} is not the one set on the server (${offConfiguredId || 'none'}). Record the gifts it returns now? The automatic import keeps using the server's query.`
+    : 'Record the gifts from the RE query now? Gifts already recorded are not repeated.')) return;
+  try { await api('POST', '/api/admin/gd/offline/start', { apply, query_id: typed }); pollOff(); } catch (e) { toast(e.message, true); }
 }
 $('off-preview').addEventListener('click', () => startOff(false));
 $('off-apply').addEventListener('click', () => startOff(true));
 // Red banner on every tab while any offline gift could not be matched to a donor on the list.
-async function checkOffAlert() {
+async function checkOffAlert() { try { showOffAlert(await api('GET', '/api/admin/gd/offline/status')); } catch {} }
+function showOffAlert(r) {
   try {
-    const r = await api('GET', '/api/admin/gd/offline/status'), a = r.alert || { count: 0 }, el = $('off-alert');
+    const a = r.alert || { count: 0 }, el = $('off-alert');
     if (!a.count) { el.hidden = true; return; }
     el.hidden = false;
     el.innerHTML = `<b>${a.count} offline gift${a.count === 1 ? '' : 's'} (${usd(a.total)}) from Raiser's Edge could not be matched to a donor on the list, so ${a.count === 1 ? 'it is' : 'they are'} not counted yet.</b> `
@@ -1144,7 +1167,7 @@ async function checkOffAlert() {
       + (a.gifts.length > 10 ? ' …' : '') + ' <span style="opacity:.8">Add or sync the person and it is picked up on the next run.</span>';
   } catch {}
 }
-setInterval(checkOffAlert, 5 * 60 * 1000);
+let offAlertTimer = null;   // started in enter(), after sign-in (before that, the call would reload the login page)
 // ── Gifts ──
 let gifts = [], editingGift = null;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
@@ -1227,7 +1250,7 @@ function renderGifts() {
       <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
         <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
         <div>${tags}</div></div>
-      <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button><button class="btn small danger" data-act="del">Delete</button></div>
+      <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button>${g.is_test ? '<button class="btn small danger" data-act="del">Delete</button>' : ''}</div>
     </div>`;
   }).join('');
 }
