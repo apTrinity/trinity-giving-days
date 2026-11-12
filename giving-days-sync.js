@@ -16,6 +16,7 @@ const { parse } = require('csv-parse/sync');
 const { TAGS } = require('./giving-days-admin');
 const { makeToken } = require('./giving-days-donors');
 const { fetchAll } = require('./giving-days-progress');
+const { alertStaff } = require('./giving-days-alert');
 
 const QUERY_ID = () => parseInt(process.env.GD_SYNC_QUERY_ID || '-648898', 10);
 const norm = h => String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -176,6 +177,16 @@ function toPeople(rows, roles) {
 }
 
 const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code'];
+// A field is only touched when the query still has the column(s) it comes from. Without this, deleting a column from the RE query
+// would blank that field for everyone on the next sync.
+const FIELD_ROLES = {
+  first_name: ['first', 'nick'], last_name: ['last'], email: ['email'], class_year: ['class_year'], ly_gift: ['ly_gift'], ask_a: ['ask_a'], ask_b: ['ask_b'],
+  giving_ytd: ['giving_ytd'], grades: ['student_classes'], import_tags: ['current_parent', 'alumni_flag'], addressee: ['addressee'], salutation: ['salutation'],
+  alumni_addressee: ['alumni_addressee'], alumni_salutation: ['alumni_salutation'], appeal_code: ['appeal_code'],
+};
+const fieldInQuery = (f, roles) => !FIELD_ROLES[f] || FIELD_ROLES[f].some(r => roles[r] && (!Array.isArray(roles[r]) || roles[r].length));
+// Safety: a sync that would hide more than this share of the active list (min 25 people) stops and asks a person to look.
+const maxNewlyInactive = activeCount => Math.max(25, Math.ceil(activeCount * (parseFloat(process.env.GD_SYNC_MAX_INACTIVE_PCT || '5') / 100)));
 const BASE_COLS = 'id, re_id, first_name, last_name, email, class_year, ly_gift, ask_a, ask_b, grades, import_tags';
 const NEW_COLS = ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id, appeal_code';
 const same = (a, b) => (Array.isArray(a) || Array.isArray(b)) ? JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort())
@@ -212,8 +223,8 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       const { people, issues, examples, unknownTags, codes } = toPeople(rows, roles);
       // Columns added by sql/gd-13-sync.sql may not exist yet (a preview works either way): fall back to the older set.
       let have;
-      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS)); }
-      catch (e) { if (e && e.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS)); else throw e; }
+      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS).order('id')); }
+      catch (e) { if (e && e.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS).order('id')); else throw e; }
       const byId = new Map(have.map(d => [String(d.re_id), d]));
       const seen = new Set(people.map(p => p.re_id));
       const { data: st } = await supabase.from('gd_settings').select('starts_at').eq('id', 1).single();
@@ -226,6 +237,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
         const patch = {};
         for (const f of fields) {
           if ((f === 'ask_a' || f === 'ask_b') && frozen) continue;
+          if (!fieldInQuery(f, roles)) continue;   // the query no longer returns this column: leave the stored value alone
           if (p[f] === undefined || d[f] === undefined) continue;   // not in the query, or the column is not in the table yet
           if (f === 'email' && !p.email && d.email) { blankKept.email++; continue; }   // never blank out an email we have
           if (!same(p[f], d[f])) patch[f] = p[f];
@@ -233,6 +245,9 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
         if (Object.keys(patch).length) changes.push({ id: d.id, re_id: p.re_id, patch });
       }
       const missing = have.filter(d => !seen.has(String(d.re_id)));
+      const activeNow = have.filter(d => d.active !== false);
+      const newlyGone = missing.filter(d => d.active !== false);
+      const stillBlank = Object.keys(FIELD_ROLES).filter(f => !fieldInQuery(f, roles));
       const changedBy = {};
       for (const c of changes) for (const f of Object.keys(c.patch)) changedBy[f] = (changedBy[f] || 0) + 1;
       const result = {
@@ -240,9 +255,13 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
         headers, matched: Object.fromEntries(Object.entries(roles).map(([r, h]) => [ROLE_LABEL[r], h])),
         missing_roles: Object.keys(ALIASES).filter(r => !roles[r]).map(r => ROLE_LABEL[r]), unmatched_columns: unmatched,
         issues, examples, primary_codes: codes, unknown_tags: unknownTags, asks_frozen: !!frozen,
+        skipped_fields: stillBlank, newly_inactive: newlyGone.length, inactive_limit: maxNewlyInactive(activeNow.length),
         would: { add: adds.length, update: changes.length, unchanged: people.length - adds.length - changes.length, missing_from_query: missing.length, changed_fields: changedBy, blank_email_kept: blankKept.email },
         sample: people.slice(0, 5),
-        blocking: [!roles.re_id && 'The query has no RE ID column.', !(roles.first || roles.nick) && !roles.last && 'The query has no name columns.', !roles.email && 'The query has no email column.'].filter(Boolean),
+        blocking: [!roles.re_id && 'The query has no RE ID column.', !(roles.first || roles.nick) && !roles.last && 'The query has no name columns.', !roles.email && 'The query has no email column.',
+          !people.length && 'The query returned no people.',
+          newlyGone.length > maxNewlyInactive(activeNow.length) && `${newlyGone.length} people would be marked inactive, more than the safety limit of ${maxNewlyInactive(activeNow.length)} (${process.env.GD_SYNC_MAX_INACTIVE_PCT || '5'}% of the active list). That many usually means the RE query came back short or its filter changed: check the query, then raise GD_SYNC_MAX_INACTIVE_PCT on Render if it is right.`,
+        ].filter(Boolean),
       };
       if (!apply) { previewed = true; run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result }; return; }
 
@@ -251,7 +270,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       if (probe.error) throw new Error('Not applied: run sql/gd-13-sync.sql and sql/gd-15-appeal-code.sql in Supabase first (they add the active, synced_at, giving_ytd, addressee, household and appeal_code columns).');
       const now = new Date().toISOString();
       // New people: a fresh personal-link code each.
-      const taken = new Set((await fetchAll(() => supabase.from('gd_donors').select('token'))).map(d => d.token));
+      const taken = new Set((await fetchAll(() => supabase.from('gd_donors').select('token').order('id'))).map(d => d.token));
       const fresh = () => { for (;;) { const t = makeToken(); if (!taken.has(t)) { taken.add(t); return t; } } };
       for (let i = 0; i < adds.length; i += 200) {
         const chunk = adds.slice(i, i + 200).map(p => {
@@ -271,14 +290,15 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       }
       // Everyone seen is active and stamped; everyone who left the query is marked inactive (kept, with their history).
       const seenIds = people.map(p => p.re_id).filter(id => byId.has(id));
-      for (let i = 0; i < seenIds.length; i += 200) await supabase.from('gd_donors').update({ active: true, synced_at: now }).in('re_id', seenIds.slice(i, i + 200));
+      for (let i = 0; i < seenIds.length; i += 200) { const { error } = await supabase.from('gd_donors').update({ active: true, synced_at: now }).in('re_id', seenIds.slice(i, i + 200)); if (error) throw error; }
       const goneIds = missing.map(d => d.re_id);
-      for (let i = 0; i < goneIds.length; i += 200) await supabase.from('gd_donors').update({ active: false }).in('re_id', goneIds.slice(i, i + 200));
-      console.log(`[GD sync] applied by ${by}: +${adds.length} new, ${changes.length} updated, ${missing.length} inactive`);
+      for (let i = 0; i < goneIds.length; i += 200) { const { error } = await supabase.from('gd_donors').update({ active: false }).in('re_id', goneIds.slice(i, i + 200)); if (error) throw error; }
+      console.log(`[GD sync] applied by ${by}: +${adds.length} new, ${changes.length} updated, ${newlyGone.length} newly inactive (${missing.length} in total are not in the query)${stillBlank.length ? '; columns missing from the query, left alone: ' + stillBlank.join(', ') : ''}`);
       run = { state: 'done', mode: 'apply', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result };
     } catch (err) {
       const detail = err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 200)}` : (err.message || String(err));
       console.error('[GD sync] failed:', detail);
+      if (by === 'nightly') alertStaff('Giving Days nightly RE sync did not run', [detail, 'Mailchimp tonight will not run on stale data: it checks that the sync is recent first.']);
       run = { state: 'error', mode: apply ? 'apply' : 'preview', started: run.started, finished: new Date().toISOString(), error: detail };
     }
   }
@@ -309,4 +329,4 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
   }
 };
 
-module.exports._test = { mapHeaders, toPeople };
+module.exports._test = { mapHeaders, toPeople, fieldInQuery, maxNewlyInactive };

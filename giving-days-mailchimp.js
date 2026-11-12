@@ -18,6 +18,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { fetchAll } = require('./giving-days-progress');
+const { alertStaff } = require('./giving-days-alert');
 
 const GAVE_TAG = 'Gave 26-27';
 const APPEAL_PREFIX = 'Appeal: ';
@@ -30,8 +31,9 @@ function config() {
   const missing = [!key && 'MAILCHIMP_API_KEY', !dc && 'MAILCHIMP_SERVER_PREFIX', !list && 'MAILCHIMP_AUDIENCE_ID'].filter(Boolean);
   const newStatus = ['subscribed', 'pending'].includes(lc(process.env.MAILCHIMP_NEW_STATUS)) ? lc(process.env.MAILCHIMP_NEW_STATUS) : 'subscribed';
   const maxAdds = parseInt(process.env.MAILCHIMP_MAX_ADDS || '500', 10), maxArchives = parseInt(process.env.MAILCHIMP_MAX_ARCHIVES || '100', 10);
-  const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10);
-  return { key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale };
+  const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10), maxUntag = parseInt(process.env.MAILCHIMP_MAX_UNTAG || '200', 10);
+  const maxSyncAgeH = parseFloat(process.env.MAILCHIMP_MAX_SYNC_AGE_H || '6');
+  return { key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
 }
 
 const base = c => `https://${c.dc}.api.mailchimp.com/3.0/lists/${c.list}`;
@@ -73,6 +75,7 @@ async function fetchMembers(c) {
 // donors: active gd_donors rows. gaveHouseholds: Set of household ids who have given this year.
 function plan(donors, gaveHouseholds, members, limits = {}) {
   const hh = d => d.household_re_id || d.re_id;
+  donors = [...donors].sort((x, y) => String(x.re_id).localeCompare(String(y.re_id), 'en', { numeric: true }));   // fixed order: a couple sharing an email gets the same RE ID and code every night
   const byEmail = new Map();
   let noEmail = 0;
   for (const d of donors) {
@@ -157,6 +160,8 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     }
   }
   if (limits.maxAdds != null && actions.adds.length > limits.maxAdds) r.blocking.push(`${actions.adds.length} new contacts is more than the safety limit of ${limits.maxAdds} (MAILCHIMP_MAX_ADDS). Check the list, then raise the limit on Render.`);
+  if (limits.maxUntag != null && r.would_untag_gave > limits.maxUntag) r.blocking.push(`${r.would_untag_gave} people would lose the Gave 26-27 tag, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). A drop like that usually means the giving column went missing from the RE query: check the sync first.`);
+  if (limits.maxUntag != null && r.would_untag_appeal > limits.maxUntag) r.blocking.push(`${r.would_untag_appeal} Appeal tags would be removed from people still on the list, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). Check that the Appeal Code column is still in the RE query.`);
   if (limits.maxStale != null && r.would_untag_stale > limits.maxStale) r.blocking.push(`${r.would_untag_stale} people who left the list would lose their Appeal tag, more than the safety limit of ${limits.maxStale} (MAILCHIMP_MAX_STALE). That many at once usually means the RE query came back short: check the sync first.`);
   if (limits.maxArchives != null && actions.archives.length > limits.maxArchives) r.blocking.push(`${actions.archives.length} archives is more than the safety limit of ${limits.maxArchives} (MAILCHIMP_MAX_ARCHIVES).`);
   return { report: r, actions };
@@ -195,23 +200,9 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   let lastNightly = null;   // { at, outcome: 'applied' | 'blocked' | 'error', note }
   const scheduleOn = () => String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on';
 
-  // Email staff (Resend) when the nightly run finds something worth a look.
-  async function alertStaff(subject, lines) {
-    try {
-      if (!process.env.RESEND_API_KEY) { console.warn('[GD mailchimp] alert not sent, RESEND_API_KEY missing:', subject); return; }
-      const { Resend } = require('resend');
-      const to = process.env.GD_ALERT_EMAIL || process.env.GD_TEST_EMAIL || 'andrew.peterson@trinityschoolnyc.org';
-      const esc = v => String(v).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
-      await new Resend(process.env.RESEND_API_KEY).emails.send({
-        from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>', to, subject,
-        html: `<p>${lines.slice(0, 60).map(esc).join('<br>')}</p>${lines.length > 60 ? `<p>…and ${lines.length - 60} more. See the Integration settings tab of the admin page.</p>` : ''}`,
-      });
-    } catch (e) { console.warn('[GD mailchimp] alert email failed:', e.message); }
-  }
-
   async function loadLocal() {
     const [donors, gifts] = await Promise.all([
-      fetchAll(() => supabase.from('gd_donors').select('id, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true)),
+      fetchAll(() => supabase.from('gd_donors').select('id, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true).order('id')),
       fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded')),
     ]);
     const byId = new Map(donors.map(d => [d.id, d]));
@@ -238,8 +229,19 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
     const scrub = s => (cfg.key ? String(s).split(cfg.key).join('***') : String(s));
     try {
       if (cfg.missing.length) throw new Error('Not set on the server: ' + cfg.missing.join(', '));
+      if (by === 'nightly') {   // never push tags from donor data that the RE sync did not refresh tonight
+        const { data: last } = await supabase.from('gd_donors').select('synced_at').not('synced_at', 'is', null).order('synced_at', { ascending: false }).limit(1);
+        const at = last && last[0] ? new Date(last[0].synced_at).getTime() : 0;
+        if (!at || Date.now() - at > cfg.maxSyncAgeH * 3600000) {
+          const why = `The RE sync has not run in the last ${cfg.maxSyncAgeH} hours (last: ${at ? new Date(at).toISOString() : 'never'}), so tonight's Mailchimp run was skipped.`;
+          lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: why };
+          run = { state: 'error', mode: 'apply', started: run.started, finished: new Date().toISOString(), error: why };
+          await alertStaff('Mailchimp nightly sync skipped: RE sync is not recent', [why]);
+          return;
+        }
+      }
       const { members, donors, gave } = await load(cfg);
-      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale });
+      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag });
       lastBlocking = report.blocking;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
@@ -247,7 +249,10 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report };
         return;
       }
-      if (report.blocking.length) throw new Error('Not applied: ' + report.blocking.join(' '));
+      if (report.blocking.length) {
+        if (by === 'nightly') { run = { state: 'error', mode: 'apply', started: run.started, finished: new Date().toISOString(), error: 'Not applied: ' + report.blocking.join(' ') }; return; }   // already recorded and emailed above
+        throw new Error('Not applied: ' + report.blocking.join(' '));
+      }
       const summary = { created: 0, updated: 0, errors: 0, error_examples: [], tags_removed: 0, archived: 0, merge_field_created: false };
       summary.merge_field_created = await ensureReIdField(cfg);
       const upserts = [
@@ -270,7 +275,9 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         lastNightly = { at: new Date().toISOString(), outcome: 'applied', note: `${summary.created} added, ${summary.updated} updated, ${summary.tags_removed} tags removed, ${summary.archived} archived, ${summary.errors} errors` };
         const stale = actions.removals.filter(x => x.stale).map(x => `${x.email}: lost ${x.remove.join(', ')}`);
         if (stale.length) await alertStaff(`Mailchimp nightly sync: ${stale.length} stale appeal tag${stale.length === 1 ? '' : 's'} removed`, ['These people left the giving list in Raiser\'s Edge, so their old Appeal tag was removed in Mailchimp:', ...stale]);
-        if (summary.errors) await alertStaff(`Mailchimp nightly sync: ${summary.errors} error${summary.errors === 1 ? '' : 's'}`, summary.error_examples);
+        // Contacts Mailchimp will never accept (permanently deleted, invalid address) fail the same way every night: not worth an email.
+        const real = summary.error_examples.filter(e => !/permanently deleted|looks fake or invalid/i.test(e));
+        if (real.length) await alertStaff(`Mailchimp nightly sync: ${real.length} new error${real.length === 1 ? '' : 's'}`, real);
       }
       console.log(`[GD mailchimp] applied by ${by}: +${summary.created} new, ${summary.updated} updated, ${summary.tags_removed} tags removed, ${summary.archived} archived, ${summary.errors} errors`);
       run = { state: 'done', mode: 'apply', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report, applied: summary };

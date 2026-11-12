@@ -1001,6 +1001,7 @@ function renderSync(r) {
       ${applied ? 'Added' : 'Would add'} <b>${w.add}</b>, ${applied ? 'updated' : 'would update'} <b>${w.update}</b> (changed fields — ${ch}), ${w.unchanged} unchanged, ${w.missing_from_query} on the list but not in the query (${applied ? 'marked inactive' : 'would be marked inactive'}).</p>
     ${x.blocking.length ? `<p style="color:#b91c1c"><b>Cannot apply:</b> ${esc(x.blocking.join(' '))}</p>` : ''}
     ${x.asks_frozen ? '<p class="hint">Giving Days have started, so Ask A/B are frozen for existing donors.</p>' : ''}
+    ${(x.skipped_fields || []).length ? `<p class="hint" style="color:#8a5a00">Left alone because the query no longer returns their columns: ${esc(x.skipped_fields.join(', '))}. Stored values are not changed.</p>` : ''}
     <details open><summary><b>Columns the sync understood</b></summary><ul>${li(Object.entries(x.matched).map(([k, v]) => `${esc(k)} ← <code>${esc(v)}</code>`))}</ul></details>
     <details><summary><b>Not in the query</b> (${x.missing_roles.length}) and <b>columns not used</b> (${x.unmatched_columns.length})</summary>
       <p class="hint">Fields the platform can use that this query does not have: ${esc(x.missing_roles.join(', ') || 'none')}</p>
