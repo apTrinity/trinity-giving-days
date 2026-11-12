@@ -30,7 +30,8 @@ function config() {
   const missing = [!key && 'MAILCHIMP_API_KEY', !dc && 'MAILCHIMP_SERVER_PREFIX', !list && 'MAILCHIMP_AUDIENCE_ID'].filter(Boolean);
   const newStatus = ['subscribed', 'pending'].includes(lc(process.env.MAILCHIMP_NEW_STATUS)) ? lc(process.env.MAILCHIMP_NEW_STATUS) : 'subscribed';
   const maxAdds = parseInt(process.env.MAILCHIMP_MAX_ADDS || '500', 10), maxArchives = parseInt(process.env.MAILCHIMP_MAX_ARCHIVES || '100', 10);
-  return { key, dc, list, missing, newStatus, maxAdds, maxArchives };
+  const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10);
+  return { key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale };
 }
 
 const base = c => `https://${c.dc}.api.mailchimp.com/3.0/lists/${c.list}`;
@@ -96,9 +97,9 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_archive: 0, mailchimp_only: 0,
+    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, blocking: [],
-    examples: { would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [] } };
+    examples: { would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
   const push = (k, v) => { if (r.examples[k].length < 15) r.examples[k].push(v); };
   for (const m of members) r.status_counts[m.status] = (r.status_counts[m.status] || 0) + 1;
@@ -140,14 +141,23 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     if (want.has(e)) continue;   // someone here still uses this address
     r.mailchimp_only++; push('mailchimp_only', `${m.email_address} (${m.status})`);
     const rid = m.merge_fields && m.merge_fields.RE_ID ? String(m.merge_fields.RE_ID) : '';
-    if (m.status !== 'subscribed' || !rid) continue;
-    const d = donorByReId.get(rid);
+    if (m.status !== 'subscribed') continue;
+    const d = rid ? donorByReId.get(rid) : null;
     if (d && lc(d.email) && lc(d.email) !== e) {
       r.would_archive++; push('would_archive', `${m.email_address} -> ${d.email}`);
       actions.archives.push({ email: m.email_address, replacedBy: d.email });
+      continue;
+    }
+    // Left the list (no appeal code / filtered out in RE): drop their old Appeal tags. Gave 26-27 is never removed here,
+    // because someone who gave and then left the query still gave.
+    const stale = (m.tags || []).map(t => t.name).filter(t => t.startsWith(APPEAL_PREFIX));
+    if (stale.length) {
+      r.would_untag_stale++; push('stale_tags', `${m.email_address}: ${stale.join(', ')}`);
+      actions.removals.push({ email: m.email_address, remove: stale, stale: true });
     }
   }
   if (limits.maxAdds != null && actions.adds.length > limits.maxAdds) r.blocking.push(`${actions.adds.length} new contacts is more than the safety limit of ${limits.maxAdds} (MAILCHIMP_MAX_ADDS). Check the list, then raise the limit on Render.`);
+  if (limits.maxStale != null && r.would_untag_stale > limits.maxStale) r.blocking.push(`${r.would_untag_stale} people who left the list would lose their Appeal tag, more than the safety limit of ${limits.maxStale} (MAILCHIMP_MAX_STALE). That many at once usually means the RE query came back short: check the sync first.`);
   if (limits.maxArchives != null && actions.archives.length > limits.maxArchives) r.blocking.push(`${actions.archives.length} archives is more than the safety limit of ${limits.maxArchives} (MAILCHIMP_MAX_ARCHIVES).`);
   return { report: r, actions };
 }
@@ -183,9 +193,22 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   let previewed = false, appliedOnce = false;
   let lastBlocking = [];
 
-  async function load(cfg) {
-    const [members, donors, gifts] = await Promise.all([
-      fetchMembers(cfg),
+  // Email staff (Resend) when the nightly run finds something worth a look.
+  async function alertStaff(subject, lines) {
+    try {
+      if (!process.env.RESEND_API_KEY) { console.warn('[GD mailchimp] alert not sent, RESEND_API_KEY missing:', subject); return; }
+      const { Resend } = require('resend');
+      const to = process.env.GD_ALERT_EMAIL || process.env.GD_TEST_EMAIL || 'andrew.peterson@trinityschoolnyc.org';
+      const esc = v => String(v).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+      await new Resend(process.env.RESEND_API_KEY).emails.send({
+        from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>', to, subject,
+        html: `<p>${lines.slice(0, 60).map(esc).join('<br>')}</p>${lines.length > 60 ? `<p>…and ${lines.length - 60} more. See the Raiser's Edge tab of the admin page.</p>` : ''}`,
+      });
+    } catch (e) { console.warn('[GD mailchimp] alert email failed:', e.message); }
+  }
+
+  async function loadLocal() {
+    const [donors, gifts] = await Promise.all([
       fetchAll(() => supabase.from('gd_donors').select('id, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true)),
       fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded')),
     ]);
@@ -199,7 +222,11 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       const d = byId.get(g.donor_id) || (g.email && byEmailD.get(lc(g.email)));
       if (d) gave.add(d.household_re_id || d.re_id);
     }
-    return { members, donors, gave };
+    return { donors, gave };
+  }
+  async function load(cfg) {
+    const [members, local] = await Promise.all([fetchMembers(cfg), loadLocal()]);
+    return { members, ...local };
   }
 
   async function execute(apply, by) {
@@ -210,8 +237,9 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
     try {
       if (cfg.missing.length) throw new Error('Not set on the server: ' + cfg.missing.join(', '));
       const { members, donors, gave } = await load(cfg);
-      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives });
+      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale });
       lastBlocking = report.blocking;
+      if (by === 'nightly' && report.blocking.length) await alertStaff('Mailchimp nightly sync NOT applied', report.blocking);
       if (!apply) {
         previewed = true;
         run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report };
@@ -236,14 +264,66 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         catch (e) { summary.errors++; if (summary.error_examples.length < 10) summary.error_examples.push(`${x.email}: ${scrub(e.message)}`); }
       });
       appliedOnce = true;
+      if (by === 'nightly') {
+        const stale = actions.removals.filter(x => x.stale).map(x => `${x.email}: lost ${x.remove.join(', ')}`);
+        if (stale.length) await alertStaff(`Mailchimp nightly sync: ${stale.length} stale appeal tag${stale.length === 1 ? '' : 's'} removed`, ['These people left the giving list in Raiser\'s Edge, so their old Appeal tag was removed in Mailchimp:', ...stale]);
+        if (summary.errors) await alertStaff(`Mailchimp nightly sync: ${summary.errors} error${summary.errors === 1 ? '' : 's'}`, summary.error_examples);
+      }
       console.log(`[GD mailchimp] applied by ${by}: +${summary.created} new, ${summary.updated} updated, ${summary.tags_removed} tags removed, ${summary.archived} archived, ${summary.errors} errors`);
       run = { state: 'done', mode: 'apply', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result: report, applied: summary };
     } catch (err) {
+      if (by === 'nightly') alertStaff('Mailchimp nightly sync failed', [scrub(err.message || String(err))]);
       const detail = scrub(err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 300)}` : (err.message || String(err)));
       console.error('[GD mailchimp] failed:', detail);
       run = { state: 'error', mode: apply ? 'apply' : 'preview', started: run.started, finished: new Date().toISOString(), error: detail };
     }
   }
+
+  // Quick refresh: tag new givers only. Reads just the (small) Gave 26-27 tag segment from Mailchimp, not the whole audience.
+  async function quick(by) {
+    const t0 = Date.now();
+    run = { state: 'running', mode: 'quick', started: new Date().toISOString(), by };
+    const cfg = config();
+    const scrub = s => (cfg.key ? String(s).split(cfg.key).join('***') : String(s));
+    try {
+      if (cfg.missing.length) throw new Error('Not set on the server: ' + cfg.missing.join(', '));
+      const { donors, gave } = await loadLocal();
+      const wantGave = new Map();   // email -> name
+      for (const d of donors) if (lc(d.email) && gave.has(d.household_re_id || d.re_id) && !wantGave.has(lc(d.email))) wantGave.set(lc(d.email), `${d.first_name || ''} ${d.last_name || ''}`.trim());
+      const tg = await withRetry(() => axios.get(`${base(cfg)}/tag-search`, { auth: authOf(cfg), params: { name: GAVE_TAG }, timeout: 60000 }), 'find Gave tag');
+      const tagRow = (tg.data.tags || []).find(t => t.name === GAVE_TAG);
+      const have = new Set();
+      if (tagRow) for (let offset = 0; ; offset += 1000) {
+        const r = await withRetry(() => axios.get(`${base(cfg)}/segments/${tagRow.id}/members`, { auth: authOf(cfg), params: { count: 1000, offset, fields: 'total_items,members.email_address' }, timeout: 90000 }), 'read Gave segment');
+        for (const m of (r.data.members || [])) have.add(lc(m.email_address));
+        if (!r.data.members || r.data.members.length < 1000) break;
+      }
+      const missing = [...wantGave.keys()].filter(e => !have.has(e));
+      const out = { gave_here: wantGave.size, already_tagged: wantGave.size - missing.length, tagged: [], not_in_mailchimp: [], not_subscribed: [], errors: [] };
+      if (missing.length > 300) throw new Error(`${missing.length} people to tag is unusually many for a quick refresh. Run the full Preview and Apply instead.`);
+      await pool(missing, 6, async e => {
+        try {
+          let st;
+          try { st = (await withRetry(() => axios.get(`${base(cfg)}/members/${hashOf(e)}`, { auth: authOf(cfg), params: { fields: 'status' }, timeout: 60000 }), 'check member')).data.status; }
+          catch (er) { if (er.response && er.response.status === 404) { out.not_in_mailchimp.push(`${wantGave.get(e)} <${e}>`); return; } throw er; }
+          if (st !== 'subscribed') { out.not_subscribed.push(`${e} (${st})`); return; }
+          await withRetry(() => axios.post(`${base(cfg)}/members/${hashOf(e)}/tags`, { tags: [{ name: GAVE_TAG, status: 'active' }] }, { auth: authOf(cfg), timeout: 60000 }), 'add Gave tag');
+          out.tagged.push(`${wantGave.get(e)} <${e}>`);
+        } catch (er) { out.errors.push(`${e}: ${scrub(er.message)}`); }
+      });
+      console.log(`[GD mailchimp] quick refresh by ${by}: ${out.tagged.length} tagged, ${out.not_in_mailchimp.length} not in Mailchimp`);
+      run = { state: 'done', mode: 'quick', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), quick: out };
+    } catch (err) {
+      const detail = scrub(err.response ? `${err.response.status} ${JSON.stringify(err.response.data || '').slice(0, 300)}` : (err.message || String(err)));
+      console.error('[GD mailchimp] quick failed:', detail);
+      run = { state: 'error', mode: 'quick', started: run.started, finished: new Date().toISOString(), error: detail };
+    }
+  }
+  app.post('/api/admin/gd/mailchimp/quick', requireAdmin, (req, res) => {
+    if (run.state === 'running') return res.status(409).json({ error: 'A Mailchimp run is already in progress.' });
+    quick('admin');
+    res.status(202).json({ started: true });
+  });
 
   app.post('/api/admin/gd/mailchimp/preview', requireAdmin, (req, res) => {
     if (run.state === 'running') return res.status(409).json({ error: 'A Mailchimp run is already in progress.' });

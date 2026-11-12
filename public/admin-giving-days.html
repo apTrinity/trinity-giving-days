@@ -277,7 +277,7 @@
       <div id="mc-card" style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#fff">
         <div class="head-row" style="margin-bottom:6px">
           <div><b>Mailchimp</b><p class="hint" style="margin:2px 0 0">Compares this list with your Mailchimp audience. A preview changes nothing. Apply adds new contacts, sets the Gave 26-27 and Appeal tags, and saves RE IDs. It never touches unsubscribed contacts or existing names.</p></div>
-          <div style="display:flex;gap:8px"><button class="btn small" id="mc-preview">Preview (no changes)</button><button class="btn small danger" id="mc-apply" style="display:none">Apply to Mailchimp</button></div>
+          <div style="display:flex;gap:8px"><button class="btn small ghost" id="mc-quick" title="Tags new givers only. Takes seconds.">Quick: tag new givers</button><button class="btn small" id="mc-preview">Preview (no changes)</button><button class="btn small danger" id="mc-apply" style="display:none">Apply to Mailchimp</button></div>
         </div>
         <div id="mc-out"></div>
       </div>
@@ -987,15 +987,28 @@ $('sync-apply').addEventListener('click', () => { if (confirm('Apply the sync? T
 let mcTimer = null;
 function renderMc(r) {
   const out = $('mc-out'), run = r.state === 'running';
-  $('mc-preview').disabled = run; $('mc-apply').disabled = run;
+  $('mc-preview').disabled = run; $('mc-apply').disabled = run; $('mc-quick').disabled = run;
   $('mc-apply').style.display = (r.state === 'done' && r.mode === 'preview' && !(r.result && r.result.blocking && r.result.blocking.length)) ? '' : 'none';
   window.mcNewStatus = r.new_status;
   if (r.configured === false) { out.innerHTML = `<div class="empty">Not set on the server yet: ${esc((r.missing || []).join(', '))}</div>`; return; }
   if (r.state === 'idle') { out.innerHTML = ''; return; }
   if (run) { out.innerHTML = '<div class="empty">Reading Mailchimp…</div>'; return; }
   if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Mailchimp preview failed: ${esc(r.error)}</div>`; return; }
-  const x = r.result, n = v => Number(v || 0).toLocaleString();
+  const n = v => Number(v || 0).toLocaleString();
   const li = a => (a || []).map(v => `<li>${esc(v)}</li>`).join('') || '<li>none</li>';
+  if (r.mode === 'quick' && r.quick) {
+    const q = r.quick;
+    out.innerHTML = `<ul style="margin:8px 0"><li><b>${n(q.gave_here)}</b> people here have given this year · <b>${n(q.already_tagged)}</b> already tagged in Mailchimp</li>
+      <li><b>${n(q.tagged.length)}</b> newly tagged "Gave 26-27"</li>
+      <li><b>${n(q.not_in_mailchimp.length)}</b> not in Mailchimp (run Preview and Apply to add them) · <b>${n(q.not_subscribed.length)}</b> not subscribed (skipped) · <b>${n(q.errors.length)}</b> errors</li></ul>
+      <details ${q.tagged.length ? 'open' : ''}><summary><b>Newly tagged</b></summary><ul>${li(q.tagged)}</ul></details>
+      <details><summary><b>Not in Mailchimp</b></summary><ul>${li(q.not_in_mailchimp)}</ul></details>
+      <details><summary><b>Not subscribed</b></summary><ul>${li(q.not_subscribed)}</ul></details>
+      ${q.errors.length ? `<details open><summary><b>Errors</b></summary><ul>${li(q.errors)}</ul></details>` : ''}
+      <p class="hint">Quick refresh · ${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}. It reads gifts already in this system: for gifts new in Raiser's Edge, run "Sync now" in the card above first.</p>`;
+    return;
+  }
+  const x = r.result;
   const ap = r.applied ? `<div class="hint" style="margin:8px 0;color:#166534"><b>Applied.</b> ${n(r.applied.created)} added, ${n(r.applied.updated)} updated, ${n(r.applied.tags_removed)} tags removed, ${n(r.applied.archived)} archived, ${n(r.applied.errors)} errors${r.applied.error_examples.length ? ': ' + esc(r.applied.error_examples.join('; ')) : ''}</div>` : '';
   const bl = (x.blocking || []).map(b => `<div class="hint" style="margin:8px 0;color:#b91c1c">${esc(b)}</div>`).join('');
   out.innerHTML = ap + bl + `<ul style="margin:8px 0">
@@ -1005,7 +1018,8 @@ function renderMc(r) {
       <li><b>${n(x.skipped_not_subscribed)}</b> in Mailchimp but not subscribed: never touched</li>
       <li><b>${n(x.gave_total)}</b> households have given this year: <b>${n(x.would_tag_gave)}</b> would get the "Gave 26-27" tag, ${n(x.would_untag_gave)} would lose it</li>
       <li><b>${n(x.would_tag_appeal)}</b> would get an appeal-code tag (${n(x.would_untag_appeal)} old appeal tags removed) · <b>${n(x.would_set_reid)}</b> would get their RE ID saved · <b>${n(x.would_archive)}</b> old addresses would be archived · <b>${n(x.name_differs)}</b> names differ (left as they are in Mailchimp)</li>
-      <li><b>${n(x.mailchimp_only)}</b> in Mailchimp but not in this list: left alone</li></ul>
+      <li><b>${n(x.mailchimp_only)}</b> in Mailchimp but not in this list: left alone${x.would_untag_stale ? `, except <b style="color:#b91c1c">${n(x.would_untag_stale)}</b> who would lose an old Appeal tag` : ''}</li></ul>
+    ${x.would_untag_stale ? `<details open><summary><b style="color:#b91c1c">Stale appeal tags (left the list)</b></summary><ul>${li(x.examples.stale_tags)}</ul></details>` : ''}
     <details><summary><b>Would be added</b></summary><ul>${li(x.examples.would_add)}</ul></details>
     <details><summary><b>Old addresses that would be archived</b></summary><ul>${li(x.examples.would_archive)}</ul></details>
     <details><summary><b>Names that differ (informational)</b></summary><ul>${li(x.examples.name_differs)}</ul></details>
@@ -1019,6 +1033,7 @@ async function pollMc() {
   catch (e) { $('mc-out').innerHTML = `<div class="empty">Could not read Mailchimp status: ${esc(e.message)}</div>`; }
 }
 $('mc-apply').addEventListener('click', async () => { if (!confirm('Apply to Mailchimp? This adds new contacts as ' + (window.mcNewStatus || 'subscribed') + ', sets tags and RE IDs, and archives replaced old addresses. Unsubscribed contacts and existing names are not touched.')) return; try { await api('POST', '/api/admin/gd/mailchimp/apply'); pollMc(); } catch (e) { toast(e.message, true); } });
+$('mc-quick').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/quick'); pollMc(); } catch (e) { toast(e.message, true); } });
 $('mc-preview').addEventListener('click', async () => { try { await api('POST', '/api/admin/gd/mailchimp/preview'); pollMc(); } catch (e) { toast(e.message, true); } });
 // ── Offline gifts from RE ──
 let offTimer = null;
