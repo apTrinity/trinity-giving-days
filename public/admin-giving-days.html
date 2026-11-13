@@ -31,8 +31,9 @@
     .banner.alert a { color: inherit; font-weight: 700; }
     .banner { background: #fff7cc; border-bottom: 1px solid #e8d96b; padding: 8px 24px; font-size: 13px; }
     main { max-width: 1320px; margin: 0 auto; padding: 24px 16px 80px; }
-    .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--line); margin-bottom: 20px; }
-    .tab { background: none; border: 0; padding: 10px 18px; font-weight: 600; color: var(--mute); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--line); margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }   /* on a phone the tabs scroll sideways instead of running off the screen */
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: none; white-space: nowrap; background: none; border: 0; padding: 10px 18px; font-weight: 600; color: var(--mute); border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .tab.active { color: var(--navy); border-bottom-color: var(--yellow); }
     .panel { display: none; } .panel.active { display: block; }
     h2 { font-size: 18px; color: var(--navy); }
@@ -96,7 +97,7 @@
     .pv .go { margin-top: 10px; color: var(--yellow); font-weight: 700; }
 
     #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; }
-    #toast.show { opacity: 1; } #toast.bad { background: var(--red); }
+    #toast.show { opacity: 1; } #toast.bad { background: var(--red); pointer-events: auto; cursor: pointer; }
     .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 22px; max-width: 640px; }
     label.check { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); cursor: pointer; }
     label.check input { width: auto; }
@@ -117,6 +118,10 @@
     .chips.small label { padding: 3px 10px; font-size: 13px; }
 
     /* Gifts */
+    .gf > div:first-child { min-width: 0; overflow-wrap: anywhere; }   /* long names and emails wrap inside the card */
+    @media (pointer: coarse) { .btn.small { min-height: 40px; } }
+    .banner.live { background: #e4f3ea; border-bottom: 1px solid #9bd0b0; color: #14532d; }
+    #g-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; } #g-tools input { max-width: 340px; }
     .gf { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
     .gf.off { background: #faf8f3; border-style: dashed; }
     .gf .who { font-weight: 700; color: var(--navy); } .gf .amt { font-weight: 700; margin-left: 8px; }
@@ -202,7 +207,8 @@
     <span id="nav-email"></span>
     <button class="link" id="signout">Sign out</button>
   </nav>
-  <div class="banner" id="mode-banner">Test mode — gifts on the Giving Days page do not charge cards; they are saved as test gifts. Live mode stays locked until the go-live review.</div>
+  <div class="banner" id="mode-banner">Checking payment mode…</div>
+  <div class="banner alert" id="count-banner" hidden>Live mode is on, but "Test gifts count toward progress" is still switched on in Campaign settings. Switch it off so test gifts do not count.</div>
 
   <div class="banner alert" id="off-alert" hidden></div>
   <main>
@@ -291,6 +297,7 @@
       <div class="re-status" aria-label="Nightly status">
         <div class="tile" data-st="sync"><span class="dot idle"></span><div><div class="tile-name">RE sync · 3 a.m.</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
         <div class="tile" data-st="mc"><span class="dot idle"></span><div><div class="tile-name">Mailchimp · 4 a.m.</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
+        <div class="tile" data-st="mode"><span class="dot idle"></span><div><div class="tile-name">Payments</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
         <div class="tile" data-st="off"><span class="dot idle"></span><div><div class="tile-name">Offline gifts · every 30 min</div><div class="tile-word">Checking…</div><div class="tile-detail"></div></div></div>
       </div>
 
@@ -298,7 +305,7 @@
         <div class="rc-head"><h3>Sync from Raiser's Edge</h3><span class="pill idle" data-st="sync">Checking…</span></div>
         <p class="hint" id="sync-hint">Reads RE query <span id="sync-qid">…</span> and keeps this list up to date: names, emails, class years and asks. A preview changes nothing.</p>
         <p id="sync-last" class="rc-last"></p>
-        <div class="rc-bar"><button class="btn small" id="sync-now">Sync now</button><button class="btn small ghost" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
+        <div class="rc-bar"><button class="btn small" id="sync-now">Sync and apply now</button><button class="btn small ghost" id="sync-preview">Preview (no changes)</button><button class="btn small danger" id="sync-apply" style="display:none">Apply sync</button></div>
         <div id="sync-out"></div>
       </div>
 
@@ -313,7 +320,7 @@
       <div class="rc" id="off-card">
         <div class="rc-head"><h3>Offline gifts from Raiser's Edge</h3><span class="pill idle" data-st="off">Checking…</span></div>
         <p class="hint">Checks, cash and stock gifts entered in RE. Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list count like online gifts. A gift from someone who is not on the list is not recorded: it shows in red at the top of this page and is emailed to staff.</p>
-        <div class="rc-bar"><input type="text" id="off-id" placeholder="RE query ID" style="width:140px" aria-label="Offline gifts query ID"><button class="btn small" id="off-apply">Sync now</button><button class="btn small ghost" id="off-preview">Check only</button></div>
+        <div class="rc-bar"><input type="text" id="off-id" placeholder="RE query ID" style="width:140px" aria-label="Offline gifts query ID"><button class="btn small" id="off-apply">Record gifts now</button><button class="btn small ghost" id="off-preview">Check only</button></div>
         <div id="off-out"></div>
       </div>
 
@@ -338,6 +345,7 @@
       </div>
       <div id="g-unlinked" style="margin-bottom:18px"></div>
       <div id="g-sources" style="margin-bottom:18px"></div>
+      <div id="g-tools"><input type="search" id="g-search" placeholder="Search gifts by name, email or amount" aria-label="Search gifts"></div>
       <div id="g-list"></div>
     </section>
 
@@ -365,7 +373,7 @@
             <label class="check">±<input type="number" id="s-ask-steps" min="1" max="5" style="width:64px"> levels when there is no Ask A or B</label>
           </div>
         </div>
-        <div class="field"><label>Payment mode</label><div class="locked">Test — locked. Live mode will be switched on after the go-live review.</div></div>
+        <div class="field"><label>Payment mode</label><div class="locked" id="s-mode">Checking…</div></div>
         <button class="btn" id="s-save">Save settings</button>
         <div class="err" id="s-error"></div>
       </div>
@@ -534,7 +542,8 @@ function etToISO(local) {
 
 // ── Toast / API ──
 let toastTimer;
-function toast(msg, bad) { const t = $('toast'); t.textContent = msg; t.className = 'show' + (bad ? ' bad' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = '', 3200); }
+function toast(msg, bad) { const t = $('toast'); t.setAttribute('role', bad ? 'alert' : 'status'); t.textContent = msg; t.className = 'show' + (bad ? ' bad' : ''); clearTimeout(toastTimer); if (!bad) toastTimer = setTimeout(() => t.className = '', 3200); }   // an error stays until it is clicked
+$('toast').addEventListener('click', () => { $('toast').className = ''; });
 async function api(method, path, body) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.reload(); throw new Error('Signed out'); }
@@ -566,7 +575,7 @@ async function login() {
 }
 function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
-  loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor(); checkOffAlert();
+  showMode(); loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor(); checkOffAlert();
   if (!offAlertTimer) offAlertTimer = setInterval(checkOffAlert, 5 * 60 * 1000);
   // Before launch the public page is a teaser; this pass lets the preview below (and /preview) show the real page.
   api('POST', '/api/admin/gd/preview-pass').then(() => { frameReady = false; $('aud-frame').src = '/preview?demo=1'; }).catch(() => {});
@@ -610,7 +619,7 @@ $('ch-list').addEventListener('click', async e => {
   const id = btn.closest('.ch').dataset.id, i = challenges.findIndex(c => c.id === id), c = challenges[i], act = btn.dataset.act;
   try {
     if (act === 'edit') return openEditor(c);
-    if (act === 'pub') { await api('PUT', '/api/admin/gd/challenges/' + id, { published: !c.published }); toast(c.published ? 'Unpublished' : 'Published'); }
+    if (act === 'pub') { if (!confirm(c.published ? `Unpublish "${c.name}"? It disappears from the public page right away.` : `Publish "${c.name}"? It appears on the public Giving Days page right away.`)) return; await api('PUT', '/api/admin/gd/challenges/' + id, { published: !c.published }); toast(c.published ? 'Unpublished' : 'Published'); }
     if (act === 'del') { if (!confirm(`Delete "${c.name}"? This can't be undone.`)) return; await api('DELETE', '/api/admin/gd/challenges/' + id); toast('Deleted'); }
     if (act === 'up' || act === 'down') {
       const j = act === 'up' ? i - 1 : i + 1, ids = challenges.map(x => x.id); [ids[i], ids[j]] = [ids[j], ids[i]];
@@ -672,7 +681,7 @@ async function loadSettings() {
   try {
     const { settings: s } = await api('GET', '/api/admin/gd/settings');
     $('s-goal').value = s.goal_donors; $('s-start').value = isoToET(s.starts_at); $('s-end').value = isoToET(s.ends_at); $('s-video').value = s.video_url || '';
-    $('s-from').value = isoToET(s.gifts_count_from); $('s-testcount').checked = !!s.test_gifts_count;
+    $('s-from').value = isoToET(s.gifts_count_from); $('s-testcount').checked = !!s.test_gifts_count; testCountsOn = !!s.test_gifts_count; countBanner();
     $('s-ask-on').checked = s.ask_personalize !== false; $('s-ask-steps').value = s.ask_steps || 2; queuePreview();
   } catch (e) { toast('Could not load settings: ' + e.message, true); }
 }
@@ -684,6 +693,7 @@ $('s-save').onclick = async () => {
       gifts_count_from: etToISO($('s-from').value), test_gifts_count: $('s-testcount').checked,
       ask_personalize: $('s-ask-on').checked, ask_steps: $('s-ask-steps').value,
     });
+    testCountsOn = $('s-testcount').checked; countBanner();
     toast('Settings saved');
     loadGifts(); loadChallenges();
   } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
@@ -723,7 +733,7 @@ $('aud-list').addEventListener('click', async e => {
   const id = btn.closest('.au').dataset.id, i = auds.findIndex(a => a.id === id), a = auds[i], act = btn.dataset.act;
   try {
     if (act === 'edit') return openAud(a);
-    if (act === 'pub') await api('PUT', '/api/admin/gd/audiences/' + id, { published: !a.published });
+    if (act === 'pub') { if (!confirm(a.published ? `Unpublish "${a.name}"? Visitors stop seeing this audience text right away.` : `Publish "${a.name}"? Matching visitors see this text on the public page right away.`)) return; await api('PUT', '/api/admin/gd/audiences/' + id, { published: !a.published }); }
     if (act === 'del') { if (!confirm(`Delete "${a.name}"? This can't be undone.`)) return; await api('DELETE', '/api/admin/gd/audiences/' + id); if (editingAud === id) closeAud(); }
     if (act === 'up' || act === 'down') {
       const j = act === 'up' ? i - 1 : i + 1, ids = auds.map(x => x.id); [ids[i], ids[j]] = [ids[j], ids[i]];
@@ -981,7 +991,32 @@ function setStatus(key, level, word, detail) {
     } else { el.className = 'pill ' + level; el.textContent = word; }
   });
 }
-const agoText = iso => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + ' min ago' : m < 2880 ? Math.round(m / 60) + ' hours ago' : Math.round(m / 1440) + ' days ago'; };
+const agoText = iso => {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)), plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's') + ' ago';
+  return m < 60 ? m + ' min ago' : m < 2880 ? plural(Math.round(m / 60), 'hour') : plural(Math.round(m / 1440), 'day');
+};
+const trunc = (t, n) => { t = String(t || ''); if (t.length <= n) return t; const cut = t.slice(0, n), sp = cut.lastIndexOf(' '); return (sp > n * 0.6 ? cut.slice(0, sp) : cut) + '…'; };
+// The most recent time a nightly job should have started (hour:00 Eastern), as a real moment in time.
+function lastScheduled(hour) {
+  const now = new Date(), et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })), t = new Date(et);
+  t.setHours(hour, 0, 0, 0); if (t > et) t.setDate(t.getDate() - 1);
+  return new Date(now.getTime() - (et.getTime() - t.getTime()));
+}
+// Payment mode (test or live) straight from the server, shown in the banner, the Payments tile and Campaign settings.
+let gdMode = null;
+async function showMode() {
+  try {
+    const j = await (await fetch('/api/gd/config')).json(); gdMode = j.mode;
+    const live = j.mode === 'live', b = $('mode-banner');
+    b.className = 'banner' + (live ? ' live' : '');
+    b.textContent = live ? 'LIVE — gifts on the Giving Days page charge real cards and are saved as real gifts.' : 'Test mode — gifts on the Giving Days page do not charge cards; they are saved as test gifts. Live mode is switched on at go-live.';
+    $('s-mode').textContent = live ? 'Live — real cards are charged.' : 'Test — no cards are charged. Live mode is switched on at go-live.';
+    setStatus('mode', live ? 'ok' : 'idle', live ? 'LIVE' : 'Test mode', live ? 'Real cards are charged' : 'No cards are charged');
+    countBanner();
+  } catch (e) { $('mode-banner').textContent = 'Could not read the payment mode.'; setStatus('mode', 'warn', 'Unknown', 'Could not read the payment mode'); }
+}
+let testCountsOn = false;
+function countBanner() { $('count-banner').hidden = !(gdMode === 'live' && testCountsOn); }
 // ── Sync from RE ──
 let syncTimer = null, syncPreviewed = false;
 function renderSync(r) {
@@ -993,7 +1028,7 @@ function renderSync(r) {
   { const hrs = r.last_synced ? (Date.now() - new Date(r.last_synced)) / 3600000 : null;
     if (run) setStatus('sync', 'run', 'Running', 'The RE query takes a minute or two.');
     else if (r.state === 'error') setStatus('sync', 'bad', 'Last sync failed', 'Open the card for the error.');
-    else if (!r.schedule) setStatus('sync', 'idle', 'Nightly sync off', r.last_synced ? 'Last synced ' + agoText(r.last_synced) : 'Never synced');
+    else if (!r.schedule) setStatus('sync', 'warn', 'Nightly sync is off', r.last_synced ? 'Last synced ' + agoText(r.last_synced) : 'Never synced');
     else if (hrs != null && hrs <= 30) setStatus('sync', 'ok', 'On schedule', 'Last synced ' + agoText(r.last_synced));
     else setStatus('sync', 'warn', 'Overdue', r.last_synced ? 'Last synced ' + agoText(r.last_synced) : 'Never synced'); }
   if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
@@ -1057,19 +1092,22 @@ function renderMc(r) {
   $('mc-apply').style.display = (r.state === 'done' && r.mode === 'preview' && !(r.result && r.result.blocking && r.result.blocking.length)) ? '' : 'none';
   window.mcNewStatus = r.new_status;
   const ln = r.last_nightly;
-  if (r.configured === false) setStatus('mc', 'bad', 'Not set up', 'Missing: ' + (r.missing || []).join(', '));
+  const expected = lastScheduled(4), restarted = r.server_started ? new Date(r.server_started) : null;
+  if (r.configured === false) setStatus('mc', 'warn', 'Not set up yet', 'The Mailchimp settings are missing on the server: ' + (r.missing || []).join(', '));
   else if (run) setStatus('mc', 'run', 'Running', 'Reading the whole audience takes about 3.5 minutes.');
-  else if (!r.schedule) setStatus('mc', 'idle', 'Nightly run off', 'Set GD_MAILCHIMP_SCHEDULE=on on Render.');
-  else if (!ln) setStatus('mc', 'warn', 'Waiting for first run', 'No nightly run since the server last started.');
+  else if (r.state === 'error') setStatus('mc', r.mode === 'apply' ? 'bad' : 'warn', r.mode === 'apply' ? 'Last apply failed' : 'Last preview failed', agoText(r.finished) + ' · ' + trunc(r.error, 90));   // the latest manual run counts too
+  else if (!r.schedule) setStatus('mc', 'warn', 'Nightly run is off', 'Set GD_MAILCHIMP_SCHEDULE=on on Render.');
+  else if (!ln && restarted && restarted < expected && Date.now() > expected.getTime() + 30 * 60000) setStatus('mc', 'warn', 'Did not run at 4 a.m.', 'No nightly run was recorded since the 4 a.m. start.');
+  else if (!ln) setStatus('mc', 'idle', 'No run since the server restarted', 'The next nightly run is at 4 a.m. ET.');
   else if (ln.outcome === 'applied') setStatus('mc', 'ok', 'Last run applied', agoText(ln.at) + ' · ' + ln.note);
-  else setStatus('mc', 'bad', ln.outcome === 'blocked' ? 'Last run blocked' : 'Last run failed', agoText(ln.at) + ' · ' + ln.note.slice(0, 90));
+  else setStatus('mc', 'bad', ln.outcome === 'blocked' ? 'Last run blocked' : 'Last run failed', agoText(ln.at) + ' · ' + trunc(ln.note, 90));
   $('mc-sched').innerHTML = r.configured === false ? '' : (r.schedule
     ? (ln ? `<b>Last nightly run:</b> ${esc(new Date(ln.at).toLocaleString())} · ${esc(ln.outcome)}${ln.note ? ' · ' + esc(ln.note) : ''}` : '<b>Nightly run (4 a.m. ET):</b> on. No run since the server last started.')
     : '<b>Nightly run:</b> off. Set GD_MAILCHIMP_SCHEDULE=on on Render to turn it on.');
   if (r.configured === false) { out.innerHTML = `<div class="empty">Not set on the server yet: ${esc((r.missing || []).join(', '))}</div>`; return; }
   if (r.state === 'idle') { out.innerHTML = ''; return; }
   if (run) { out.innerHTML = '<div class="empty">Reading Mailchimp…</div>'; return; }
-  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Mailchimp preview failed: ${esc(r.error)}</div>`; return; }
+  if (r.state === 'error') { out.innerHTML = `<div class="empty" style="color:#b91c1c">Mailchimp ${r.mode === 'apply' ? 'apply' : r.mode === 'quick' ? 'quick tagging' : 'preview'} failed: ${esc(r.error)}</div>`; return; }
   const n = v => Number(v || 0).toLocaleString();
   const li = a => (a || []).map(v => `<li>${esc(v)}</li>`).join('') || '<li>none</li>';
   if (r.mode === 'quick' && r.quick) {
@@ -1143,8 +1181,9 @@ function renderOff(r) {
   if (r.query_id && !$('off-id').value) $('off-id').value = r.query_id;
   if (run) setStatus('off', 'run', 'Running', 'The RE query takes a minute or two.');
   else if (r.state === 'error') setStatus('off', 'bad', 'Last sync failed', 'Open the card for the error.');
-  else if (!r.query_id || !r.schedule) setStatus('off', 'idle', 'Not set up', 'Needs a query ID set on the server.');
+  else if (!r.query_id || !r.schedule) setStatus('off', 'warn', 'Not set up yet', 'Needs the offline gifts query ID set on the server.');
   else if (r.alert && r.alert.count) setStatus('off', 'warn', 'Needs a look', 'Some gifts are not on the list.');
+  else if (r.finished && Date.now() - new Date(r.finished) > 90 * 60000) setStatus('off', 'warn', 'Overdue', 'Last run ' + agoText(r.finished) + ' (it should run every 30 minutes).');
   else setStatus('off', 'ok', 'On schedule', r.finished ? 'Last run ' + agoText(r.finished) : 'Runs every 30 minutes.');
   $('off-preview').disabled = run; $('off-apply').disabled = run;
   if (run) { out.innerHTML = `<p class="hint">Running ${esc(r.mode)}… the RE query takes a minute or two.</p>`; return; }
@@ -1266,24 +1305,29 @@ async function loadSources() {
       j.sources.map(r => `<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px"><b>${esc(r.source)}</b></td><td>${r.visits}</td><td>${r.gifts}</td><td>${money(r.raised)}</td><td>${pct(r.conversion)}</td><td>${r.test_gifts || ''}</td></tr>`).join('') + '</table>';
   } catch (e) { el.innerHTML = `<div class="empty">Could not load link tracking: ${esc(e.message)}</div>`; }
 }
+let gSearch = '', gShown = 100;
+$('g-search').addEventListener('input', e => { gSearch = e.target.value.trim().toLowerCase(); gShown = 100; renderGifts(); });
 function renderGifts() {
   const el = $('g-list');
+  const list = gSearch ? gifts.filter(g => [g.first_name, g.last_name, g.email, String(g.amount), money(g.amount)].join(' ').toLowerCase().includes(gSearch)) : gifts;
   if (!gifts.length) { el.innerHTML = '<div class="empty">No gifts yet. Gifts made on the Giving Days page appear here.</div>'; return; }
   const label = k => (TAGS.find(t => t.key === k) || {}).label || k;
-  el.innerHTML = gifts.map(g => {
+  if (!list.length) { el.innerHTML = '<div class="empty">No gifts match that search.</div>'; return; }
+  el.innerHTML = list.slice(0, gShown).map(g => {
     const [cls, txt] = STATUS[g.status] || ['off', g.status];
     const name = [g.first_name, g.last_name].filter(Boolean).join(' ') || '(no name)';
     const tags = g.tags.map(t => `<span class="tg ${g.tag_sources[t] === 'declared' ? '' : g.tag_sources[t]}">${esc(label(t))}</span>`).join('') || '<span class="hint">No affiliations</span>';
     const extra = [g.class_year ? 'Class of ' + g.class_year : '', g.grades.length ? 'Grades ' + g.grades.join(', ') : ''].filter(Boolean).join(' · ');
     return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}">
       <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
-        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test && g.status !== 'test' ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
         <div>${tags}</div></div>
       <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button>${g.is_test ? '<button class="btn small danger" data-act="del">Delete</button>' : ''}</div>
     </div>`;
-  }).join('');
+  }).join('') + (list.length > gShown ? `<div style="text-align:center;margin:12px"><button class="btn small ghost" id="g-more">Show 100 more (${list.length - gShown} not shown)</button></div>` : '');
 }
 $('g-list').addEventListener('click', async e => {
+  if (e.target.id === 'g-more') { gShown += 100; renderGifts(); return; }
   const btn = e.target.closest('button[data-act]'); if (!btn) return;
   const g = gifts.find(x => x.id === btn.closest('.gf').dataset.id);
   if (btn.dataset.act === 'edit') return openGift(g);

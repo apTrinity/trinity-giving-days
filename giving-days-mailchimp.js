@@ -193,6 +193,7 @@ async function pool(items, size, fn) {
   }));
 }
 
+const STARTED = new Date().toISOString();
 module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin }) {
   let run = { state: 'idle' };
   let previewed = false, appliedOnce = false;
@@ -350,7 +351,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   app.get('/api/admin/gd/mailchimp/status', requireAdmin, (req, res) => {
     const cfg = config();
     res.json({ ...run, configured: !cfg.missing.length, missing: cfg.missing, new_status: cfg.newStatus,
-      schedule: scheduleOn(), last_nightly: lastNightly });
+      schedule: scheduleOn(), last_nightly: lastNightly, server_started: STARTED });
   });
 
   // Opt-in nightly apply at 4 a.m. Eastern (after the 3 a.m. RE sync). No hand-apply needed first: the safety limits

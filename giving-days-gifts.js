@@ -217,11 +217,16 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       if (error) throw error;
       const byLast = new Map();
       const lasts = [...new Set((gifts || []).map(g => (g.last_name || '').trim().toLowerCase()).filter(Boolean))];
-      for (const ln of lasts) {
-        const { data } = await supabase.from('gd_donors').select('id, first_name, last_name, email, re_id, class_year')
-          .ilike('last_name', ln.replace(/[\\%_]/g, '\\$&')).limit(25);
-        byLast.set(ln, data || []);
-      }
+      // One query per distinct last name, eight at a time (they used to run one after another, which took seconds).
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(8, lasts.length) }, async () => {
+        while (next < lasts.length) {
+          const ln = lasts[next++];
+          const { data } = await supabase.from('gd_donors').select('id, first_name, last_name, email, re_id, class_year')
+            .ilike('last_name', ln.replace(/[\\%_]/g, '\\$&')).limit(25);
+          byLast.set(ln, data || []);
+        }
+      }));
       const norm = v => (v || '').trim().toLowerCase();
       const out = (gifts || []).map(g => {
         const f = norm(g.first_name);

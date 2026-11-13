@@ -49,6 +49,7 @@ function giftTime(v) {
   return new Date(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00-05:00`).toISOString();
 }
 
+const STARTED = new Date().toISOString();
 module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, skyRequest }) {
   let run = { state: 'idle' };
   let alert = { count: 0, total: 0, gifts: [] }, emailed = new Set();
@@ -133,7 +134,8 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
         unmatched_all: unmatched.slice(0, 50).map(g => ({ re_id: g.re_id, gift_id: g.gift_id, amount: g.amount, name: g.name, date: g.at ? g.at.slice(0, 10) : '' })),
         blocking,
       };
-      alert = { count: unmatched.length, total: sum(unmatched), gifts: result.unmatched_all, at: new Date().toISOString() };
+      // The red banner follows the real query (the automatic run, or the server's configured ID). Trying out another query ID in the admin never changes it.
+      if (by !== 'admin' || String(id) === String(queryId({}))) alert = { count: unmatched.length, total: sum(unmatched), gifts: result.unmatched_all, at: new Date().toISOString() };
       if (!apply) { run = { state: 'done', mode: 'preview', started: run.started, finished: new Date().toISOString(), seconds: Math.round((Date.now() - t0) / 1000), result }; return; }
       if (blocking.length) throw new Error('Not applied: ' + blocking.join(' '));
 
@@ -150,7 +152,7 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
       if (adds.length || changes.length) invalidate();
       const fresh = unmatched.filter(g => !emailed.has(g.gift_id));
       if (fresh.length) {
-        try { await sendOfflineUnmatchedAlert(alert.gifts.filter(g => fresh.some(f => f.gift_id === g.gift_id))); fresh.forEach(g => emailed.add(g.gift_id)); }
+        try { const sent = await sendOfflineUnmatchedAlert(result.unmatched_all.filter(g => fresh.some(f => f.gift_id === g.gift_id))); if (sent !== false) fresh.forEach(g => emailed.add(g.gift_id)); }
         catch (e) { console.error('[GD offline] alert email failed:', e.message); }
       }
       console.log(`[GD offline] applied by ${by}: +${adds.length} gifts, ${changes.length} amounts updated, ${unmatched.length} unmatched`);
@@ -172,7 +174,7 @@ module.exports = function mountGivingDaysOffline(app, { supabase, requireAdmin, 
   });
   const { backgroundAllowed } = require('./sky-instance');
   const scheduled = () => backgroundAllowed() && !!queryId({}) && String(process.env.GD_OFFLINE_SCHEDULE || 'on').toLowerCase() !== 'off' && process.env.SKIP_RE_RESOLUTION !== 'true';
-  app.get('/api/admin/gd/offline/status', requireAdmin, (req, res) => res.json({ ...run, query_id: run.query_id || queryId({}), configured_id: queryId({}), schedule: scheduled(), alert }));
+  app.get('/api/admin/gd/offline/status', requireAdmin, (req, res) => res.json({ ...run, query_id: run.query_id || queryId({}), configured_id: queryId({}), schedule: scheduled(), alert, server_started: STARTED }));
 
   // Automatic: 90 seconds after the server starts, then every 30 minutes (only when a query ID is set).
   const tick = () => { const id = queryId({}); if (scheduled() && run.state !== 'running') execute(true, 'automatic', id); };
