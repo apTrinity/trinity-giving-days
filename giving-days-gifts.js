@@ -48,14 +48,26 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
 
   // Public: called by the gift form once Blackbaud Checkout reports success.
   // Captures the payment first (no money moves if that fails), then records the gift.
-  // Generous per-address limit (a whole table of donors can share one school network); it stops scripts, not people.
-  app.post('/api/gd/gift', require('./giving-days-ratelimit').limiter(60, 10 * 60 * 1000, 'Too many requests. Please wait a few minutes and try again.'), async (req, res) => {
+  // Order matters: (1) a gift we already saved is answered right away, so a donor's retry is never refused; (2) a generous per-address
+  // limit (a whole assembly can share one school network) that stops scripts, not people; (3) the real work.
+  const TX_RE = /^[A-Za-z0-9_-]{8,64}$/;   // Blackbaud transaction ids are UUIDs; anything else is refused before it can reach a Blackbaud URL
+  const alreadySaved = async (req, res, next) => {
+    const tid = req.body && typeof req.body.transaction_id === 'string' ? req.body.transaction_id.trim() : '';
+    if (!TX_RE.test(tid)) return next();
+    try {
+      const { data: g } = await supabase.from('gd_gifts').select('id').eq('transaction_id', tid).maybeSingle();
+      if (g) return res.json({ success: true, gift_id: g.id });
+    } catch (e) { /* fall through: the main handler checks again and reports a database problem properly */ }
+    next();
+  };
+  const gate = require('./giving-days-ratelimit').limiter(300, 10 * 60 * 1000, 'Too many requests. Please wait a few minutes and try again.');
+  app.post('/api/gd/gift', alreadySaved, gate, async (req, res) => {
     const b = req.body || {};
     const transaction_id = str(b.transaction_id, 120);
     const amount = Number(b.amount);
     const email = str(b.email, 200).toLowerCase();
     if (!transaction_id) return res.status(400).json({ error: 'transaction_id is required.' });
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transaction_id)) return res.status(400).json({ error: 'transaction_id is not valid.' });   // Blackbaud ids are UUIDs: do not spend a Blackbaud call on anything else
+    if (!TX_RE.test(transaction_id)) return res.status(400).json({ error: 'transaction_id is not valid.' });
     if (!isFinite(amount) || amount <= 0 || amount > 1000000) return res.status(400).json({ error: 'amount must be between 0 and 1,000,000.' });
     if (email && !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'email is not valid.' });
 
@@ -64,6 +76,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       if (already) return res.json({ success: true, gift_id: already.id });
     } catch (err) { return fail(res, err); }
 
+    let captureErr = null;
     try {
       const r = await skyRequest({
         method: 'post',
@@ -72,13 +85,29 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         headers: { 'Content-Type': 'application/json' },
       }, process.env.BBMS_API_KEY);
       console.log(`[GD] Payment captured: ${transaction_id} state: ${r.data && r.data.state || r.status}`);
-    } catch (err) {
+    } catch (err) { captureErr = err; }
+    if (captureErr) {
+      // A retry can arrive after an earlier attempt already captured the payment (a slow answer, a lost reply). Before treating this as a failure,
+      // look again for the saved gift, then ask Blackbaud for the transaction's state: "Processed" is what a successful capture returns.
+      try {
+        const { data: g } = await supabase.from('gd_gifts').select('id').eq('transaction_id', transaction_id).maybeSingle();
+        if (g) return res.json({ success: true, gift_id: g.id });
+      } catch (e) { /* carry on */ }
+      let alreadyCaptured = false;
+      try {
+        const t = await skyRequest({ method: 'get', url: `https://api.sky.blackbaud.com/payments/v1/transactions/${encodeURIComponent(transaction_id)}` }, process.env.BBMS_API_KEY);
+        alreadyCaptured = /^(processed|captured|settled|completed)$/i.test(String(t.data && t.data.state || ''));
+        console.log(`[GD] capture failed but transaction ${transaction_id} is in state: ${t.data && t.data.state}`);
+      } catch (e) { /* cannot tell: treat as a real failure */ }
+      if (!alreadyCaptured) {
+      const err = captureErr;
       console.error('[GD] BBMS capture failed:', err.response && err.response.status, JSON.stringify(err.response && err.response.data || err.message));
       // Tell the team right away (at most one email an hour): a donor just saw "could not confirm your gift".
       try {
         await sendSystemAlert('A gift payment could not be captured', `<p><strong>A donor's payment could not be completed on the Giving Days page.</strong> If this keeps happening, gifts are failing.</p><p>Amount: ${esc(String(amount))}<br>Transaction: <code>${esc(transaction_id)}</code><br>Reason: <code>${esc(String((err.response && err.response.data && (err.response.data.message || err.response.data.error)) || err.message || 'unknown').slice(0, 300))}</code></p><p>Check the Render logs for "[GD] BBMS capture failed". If it mentions re-authorization, restart the service on Render, or visit /auth/blackbaud on the live site.</p>`, 'capture');
       } catch (alertErr) { console.error('[GD] capture alert failed:', alertErr.message || alertErr); }
       return res.status(502).json({ error: 'Payment capture failed.' });
+      }
     }
 
     // Payment is captured from here on: a database failure must not turn into an error for the donor.

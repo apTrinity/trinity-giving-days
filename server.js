@@ -506,7 +506,45 @@ let parentsLeaderboardCache = null;
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+app.disable('x-powered-by');
 app.use(express.json());
+
+// ── Security headers ─────────────────────────────────────────────────────────
+// Safe ones are on. The Content-Security-Policy is REPORT-ONLY for now: browsers note what it would have blocked (printed in the
+// logs as "[CSP]") but block nothing, so the gift form cannot break. Once a full test gift shows a clean log it can be enforced.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://*.blackbaud.com https://*.blackbaudcdn.net https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net https://player.vimeo.com https://f.vimeocdn.com https://*.doublethedonation.com https://*.360matchpro.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.blackbaud.com https://*.blackbaudcdn.net",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: https:",
+  "frame-src https://*.blackbaud.com https://www.google.com https://player.vimeo.com https://*.doublethedonation.com https://*.360matchpro.com",
+  "connect-src 'self' https://*.blackbaud.com https://*.supabase.co https://*.doublethedonation.com https://*.360matchpro.com https://vimeo.com https://*.vimeo.com",
+  "media-src 'self' https://*.vimeocdn.com",
+  "object-src 'none'", "base-uri 'self'", "form-action 'self' https://*.blackbaud.com",
+  'report-uri /api/csp-report',
+].join('; ');
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Strict-Transport-Security': 'max-age=15552000',
+    'Content-Security-Policy-Report-Only': CSP,
+  });
+  // The admin pages must not be shown inside another site's frame (clickjacking). The public page stays embeddable.
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) res.set('X-Frame-Options', 'SAMEORIGIN');
+  next();
+});
+let cspLogged = 0;
+app.post('/api/csp-report', express.json({ type: ['application/json', 'application/csp-report'], limit: '10kb' }), (req, res) => {
+  const r = (req.body && (req.body['csp-report'] || req.body)) || {};
+  if (cspLogged++ < 200) console.log('[CSP]', String(r['violated-directive'] || r.effectiveDirective || '').slice(0, 60), '| blocked:', String(r['blocked-uri'] || r.blockedURL || '').slice(0, 120), '| page:', String(r['document-uri'] || r.documentURL || '').slice(0, 80).replace(/\?.*/, ''));
+  res.status(204).end();
+});
+// Crawlers: keep search engines out (the pages also send noindex) but let social sites build link previews.
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(['facebookexternalhit', 'Facebot', 'Twitterbot', 'LinkedInBot', 'Slackbot', 'WhatsApp', 'Applebot'].map(b => `User-agent: ${b}\nAllow: /\n`).join('\n') + '\nUser-agent: *\nDisallow: /\n');
+});
 
 // Retired prototype routes — their tables were removed from the Giving Days database.
 // (Parents routes live under /api/parents/* and are unaffected.)
@@ -2963,6 +3001,14 @@ if (gdAdmin) {
     console.error('Giving Days donor routes failed to load:', err.message);
   }
 }
+
+// Last stop for errors (for example a malformed JSON body): a plain message, never a stack trace or internals.
+app.use((err, req, res, next) => {
+  console.error('Request error:', req.method, req.path, err && err.message);
+  if (res.headersSent) return next(err);
+  const status = err && err.status >= 400 && err.status < 500 ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'Something went wrong. Please try again.' : 'That request could not be read.' });
+});
 
 app.listen(PORT, () => {
   console.log(`\nTrinity Giving Days server running at http://localhost:${PORT}`);
