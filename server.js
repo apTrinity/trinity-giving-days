@@ -518,7 +518,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.blackbaud.com https://*.blackbaudcdn.net",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "frame-src https://*.blackbaud.com https://www.google.com https://player.vimeo.com https://*.doublethedonation.com https://*.360matchpro.com",
+  "frame-src 'self' https://*.blackbaud.com https://www.google.com https://player.vimeo.com https://*.doublethedonation.com https://*.360matchpro.com",
   "connect-src 'self' https://*.blackbaud.com https://*.supabase.co https://*.doublethedonation.com https://*.360matchpro.com https://vimeo.com https://*.vimeo.com",
   "media-src 'self' https://*.vimeocdn.com",
   "object-src 'none'", "base-uri 'self'", "form-action 'self' https://*.blackbaud.com",
@@ -529,7 +529,8 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Strict-Transport-Security': 'max-age=15552000',
-    'Content-Security-Policy-Report-Only': CSP,
+    // Report-only by default. Setting GD_CSP=enforce on Render turns the same policy into a blocking one (no deploy needed).
+    [String(process.env.GD_CSP).toLowerCase() === 'enforce' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only']: CSP,
   });
   // The admin pages must not be shown inside another site's frame (clickjacking). The public page stays embeddable.
   if (req.path === '/admin' || req.path.startsWith('/admin/')) res.set('X-Frame-Options', 'SAMEORIGIN');
