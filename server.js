@@ -515,8 +515,8 @@ app.use(express.json());
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://*.blackbaud.com https://*.blackbaudcdn.net https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net https://player.vimeo.com https://f.vimeocdn.com https://*.doublethedonation.com https://*.360matchpro.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.blackbaud.com https://*.blackbaudcdn.net",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://*.blackbaud.com https://*.blackbaudcdn.net",
+  "font-src 'self' data:",
   "img-src 'self' data: https:",
   "frame-src 'self' https://*.blackbaud.com https://www.google.com https://player.vimeo.com https://*.doublethedonation.com https://*.360matchpro.com",
   "connect-src 'self' https://*.blackbaud.com https://*.supabase.co https://*.doublethedonation.com https://*.360matchpro.com https://vimeo.com https://*.vimeo.com",
@@ -564,6 +564,8 @@ if (!PARENTS_ON) {
 // The site root (giving.trinityschoolnyc.org) is served by giving-days-donors.js: the pre-launch page until
 // launch, then the Giving Days page. Parents live at /parents.
 
+// Font files never change under the same name: let browsers keep them for a month.
+app.use('/fonts', express.static(path.join(__dirname, 'public', 'fonts'), { maxAge: '30d', immutable: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Token state ──────────────────────────────────────────────────────────────
