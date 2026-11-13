@@ -32,7 +32,7 @@
   --paper-2:        #F4F2ED;
   --ink:            #1A1A1A;
   --ink-mid:        #444444;
-  --ink-muted:      #787878;
+  --ink-muted:      #6B6B6B;   /* was #787878: now 4.8:1 or better on the page's light backgrounds */
   --border:         #E4E2DC;
   --border-lt:      #F0EEE8;
   --navy-10:        color-mix(in srgb, var(--navy) 9%, white);
@@ -375,7 +375,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .sx-rows li { display: grid; grid-template-columns: 30px minmax(0, 1fr) 90px 40px; gap: 10px; align-items: center; padding: 9px 18px; border-bottom: 1px solid var(--border-lt); font-size: 13.5px; }
 .sx-rows li:nth-child(-n+3) .sx-rank { background: var(--trinity-yellow); color: var(--navy); }
 .sx-rows li:nth-child(2) .sx-rank { background: #C5CAD3; }
-.sx-rows li:nth-child(3) .sx-rank { background: #A8683A; color: #fff; }
+.sx-rows li:nth-child(3) .sx-rank { background: #9A5B30; color: #fff; }
 .sx-rank { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: var(--paper-2); color: var(--ink-mid); }
 .sx-bar { height: 6px; background: var(--paper-2); }
 .sx-bar i { display: block; height: 100%; background: var(--navy); }
@@ -389,7 +389,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .pd-step { background: var(--navy); color: #fff; padding: 18px 16px 16px; text-align: center; border-top: 5px solid rgba(255,255,255,.25); }
 .pd-step.first { background: var(--trinity-yellow); color: var(--navy); border-top-color: var(--navy); padding: 26px 16px 22px; }
 .pd-step.second { background: #C5CAD3; color: var(--navy); border-top-color: #8F97A6; }
-.pd-step.third { background: #A8683A; color: #fff; border-top-color: #6E4222; }
+.pd-step.third { background: #9A5B30; color: #fff; border-top-color: #6E4222; }   /* deeper bronze: white text reads at 5.4:1 */
 .pd-place { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
 .pd-name { font-family: 'Lora', serif; font-size: 22px; font-weight: 600; margin: 6px 0 4px; }
 .pd-step.first .pd-name { font-size: 27px; }
@@ -878,6 +878,8 @@ main:focus, #gm-thanks-title:focus { outline: none; }
 /* Live updates: bars glide to their new width */
 .ub-bar i, .sx-bar i { transition: width .9s cubic-bezier(.2,.8,.2,1); }
 @media (prefers-reduced-motion: reduce) { .ub-bar i, .sx-bar i, .prog-bar i, .d-fill { transition: none; } }
+/* The smallest labels are at least 11 px. */
+.cw-glabel, .wk-days div, .wk-group, .nw-kicker { font-size: 11px; }
 </style>
 </head>
 <body>
@@ -1742,7 +1744,7 @@ function gmUpdate() {
   const a = gm.amount, L = gmLevels(a);
   // Phone-only line under the amounts: every level this gift earns (young alumni at $1,709+ earn two)
   const earned = L.sections.filter(sec => L.hit[sec.key] !== undefined)
-    .map(sec => `${sec.key === 'society' ? '1709 Society' : sec.key === 'bluegold' ? 'Blue & Gold Club' : 'Friends of Trinity'}: ${sec.tiers[L.hit[sec.key]][0]}`);
+    .map(sec => `${sec.key === 'society' ? '1709 Society' : sec.key === 'bluegold' ? 'Blue & Gold Club' : 'Friends of Trinity'}, ${sec.tiers[L.hit[sec.key]][0]} level`);
   $gm('gm-levelline').textContent = earned.length ? 'Your gift: ' + earned.join(' · ') : '';
   $gm('gm-levelline').classList.toggle('in', L.hit.society !== undefined || L.hit.bluegold !== undefined);
   $gm('gm-levels-intro').textContent = gmLead() ? 'Your gift of $1,709 or more includes membership in the 1709 Society.' : L.young
