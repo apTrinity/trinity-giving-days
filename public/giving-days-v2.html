@@ -444,7 +444,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .nw-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 .nw-chip.on b { color: var(--trinity-yellow); }
 .nw-names { font-family: 'Lora', serif; font-size: 18px; line-height: 1.9; color: var(--ink); max-width: 900px; margin: 0 auto; }
-.nw-names span { white-space: nowrap; }
+.nw-names span { overflow-wrap: anywhere; }   /* a very long name wraps instead of pushing the page wider than the screen */
 .nw-names span + span::before { content: '·'; color: var(--trinity-yellow); font-weight: 700; margin: 0 .5em; }
 .nw-names .new { color: var(--trinity-blue); font-style: italic; }
 .nw-names .new::after { content: 'just now'; font-family: 'Open Sans', sans-serif; font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; background: var(--trinity-yellow); color: var(--navy); padding: 2px 6px; margin-left: 6px; vertical-align: 3px; }
@@ -814,6 +814,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .gm-rung.on::before { background: var(--trinity-yellow); border-color: var(--navy); width: 14px; height: 14px; left: -21px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--trinity-yellow) 35%, transparent); }
 
 .gm-thanks { grid-column: 1 / -1; padding: 48px 32px 52px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gm-spin { width: 34px; height: 34px; border: 4px solid #d9dde8; border-top-color: var(--navy); border-radius: 50%; animation: gmspin .9s linear infinite; }
+@keyframes gmspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gm-spin { animation: none; } }
 .gm-thanks h2 { font-family: 'Lora', serif; font-size: 28px; font-weight: 600; color: var(--navy); }
 .gm-thanks p { font-size: 14px; color: var(--ink-mid); max-width: 460px; line-height: 1.6; }
 .gm-thanks .gm-pay { max-width: 280px; margin-top: 8px; }
@@ -871,6 +874,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 </style>
 </head>
 <body>
+<noscript><div style="background:#fff7cc;border-bottom:2px solid #F2CC07;padding:14px 18px;font:15px/1.5 'Open Sans',Arial,sans-serif;color:#172853;text-align:center"><b>Online giving needs JavaScript.</b> You can still give: call the Advancement Office at <a href="tel:+12129326860" style="white-space:nowrap">(212) 932-6860</a>, email <a href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a>, or mail a check payable to Trinity School to the Trinity School Advancement Office, 139 West 91st Street, New York, NY 10024.</div></noscript>
 
 <div class="mock-flag" id="test-flag" hidden><b>Test mode</b>Gifts use Blackbaud's test system: use card 4242 4242 4242 4242 with any future date and any CVC. Nothing is charged.</div>
 
@@ -889,7 +893,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         <div class="video-cap"><b>Why I Give</b>Trinity Giving Days · 2 min</div>
       </div>
       <div class="prog">
-        <div class="prog-day"><span>Day 3 · Wednesday</span><span class="pips"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></span></div>
+        <div class="prog-day"><span id="prog-day-label">Giving Days</span><span class="pips" id="prog-pips"></span></div>
         <div class="prog-cap">Let’s do this together.</div>
         <div class="prog-fig"><div class="d-seal" role="img" aria-label="Trinity seal filling toward the gift goal"><div class="d-empty"></div><div class="d-fill" id="seal-fill"></div></div></div>
         <div class="prog-nums">
@@ -910,7 +914,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   <div id="cm" class="cm"></div>
   <div id="ab" class="ab"></div>
 <!--/SHIELD:BODY-->
-  <footer class="ft"><div class="ft-id"><img class="ft-seal" src="/seal-reverse.png" alt="" width="42" height="44"><div><b>Trinity School</b>139 West 91st Street · New York, NY 10024</div></div><div>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> · (212) 932-6860</div></footer>
+  <footer class="ft"><div class="ft-id"><img class="ft-seal" src="/seal-reverse.png" alt="" width="42" height="44"><div><b>Trinity School</b>139 West 91st Street · New York, NY 10024</div></div><div>Questions? <a href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> · <a href="tel:+12129326860" style="color:inherit;white-space:nowrap">(212) 932-6860</a></div></footer>
 </div>
 
 <div class="sticky-give" id="sticky-give"><button class="btn-give">Make your gift →</button></div>
@@ -929,7 +933,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <div class="gm-amts" id="gm-amts"></div>
           <div class="gm-lyhint" id="gm-lyhint" hidden></div>
           <div class="gm-levelline" id="gm-levelline"></div>
-          <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="1" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
+          <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="0.01" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
           <div class="gm-fielderr" id="gm-amt-err" hidden></div>
         </div>
         <div>
@@ -970,7 +974,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
           <small class="gm-empnote" id="gm-employer-note" hidden>This is just for our records. To check a company, use the lookup above.</small>
         </div>
         <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
-        <div class="gm-error" id="gm-error" hidden></div>
+        <div class="gm-error" id="gm-error" hidden role="alert"></div>
         <button type="button" class="gm-pay" id="gm-pay">Complete <span id="gm-pay-amt">$2,500</span> gift</button>
         <div class="gm-secure">Secure payment processed by Blackbaud Merchant Services</div>
       </div>
@@ -998,8 +1002,9 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
         </div>
       </div>
     </div>
-    <div class="gm-body" id="gm-done" hidden>
+    <div class="gm-body" id="gm-done" hidden aria-live="polite">
       <div class="gm-thanks">
+        <div class="gm-spin" id="gm-spin" hidden aria-hidden="true"></div>
         <h2 id="gm-thanks-title">Thank you!</h2>
         <p id="gm-thanks-text"></p>
         <button type="button" class="gm-pay" id="gm-done-close">Back to Giving Days</button>
@@ -1008,12 +1013,13 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
   </div>
 </div>
 
-<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+<script src="https://pay.blackbaud.com/scripts/checkout" async></script>
 
 <script>
 const stage = document.getElementById('stage');
 const $ = n => '$' + Math.round(n).toLocaleString();
-const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmt$ = n => '$' + (Math.abs(n - Math.round(n)) < 0.005 ? Math.round(n).toLocaleString('en-US') : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));   // whole dollars stay plain; $20.24 keeps its cents
+const cents = v => Math.round(parseFloat(v) * 100) / 100;   // exact dollars and cents, never rounded to a whole dollar
 // Live data from the admin (written into the page by the server). With nothing published, the sample data below stays.
 const GD = window.__GD || {};
 let ME = GD.me || null;
@@ -1047,6 +1053,23 @@ C.forEach((c, i) => { c.from = FROM[i]; c.days = c.soon ? [4, 4] : [0, 4]; });
 const DETAIL = [];
 C.forEach((c, i) => Object.assign(c, DETAIL[i]));
 const escT = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// The hero's "Day 3 · Wednesday" label and progress pips come from the campaign's own start and end dates (Eastern time).
+function renderDay() {
+  const st = (GD.campaign && GD.campaign.settings) || S0, lab = document.getElementById('prog-day-label'), pips = document.getElementById('prog-pips');
+  if (!lab || !pips || !st.starts_at || !st.ends_at) return;
+  const tz = st.timezone || 'America/New_York', ymd = d => new Date(d).toLocaleDateString('en-CA', { timeZone: tz });   // YYYY-MM-DD
+  const dayNo = d => Math.round(Date.parse(ymd(d) + 'T00:00:00Z') / 86400000);
+  const total = Math.min(10, Math.max(1, dayNo(st.ends_at) - dayNo(st.starts_at) + 1)), n = dayNo(Date.now()) - dayNo(st.starts_at) + 1;
+  const wd = new Date(Date.now()).toLocaleDateString('en-US', { timeZone: tz, weekday: 'long' });
+  lab.textContent = n < 1 ? 'Giving Days begin soon' : n > total ? 'Giving Days complete · thank you' : `Day ${n} · ${wd}`;
+  pips.innerHTML = Array.from({ length: total }, (_, i) => `<i class="${n > total || i < n - 1 ? 'done' : i === n - 1 ? 'now' : ''}"></i>`).join('');
+}
+// Words for when a not-yet-started challenge opens, taken from its own start date ("Friday", "Fri", "12/4", "Friday, December 4").
+function startWords(iso) {
+  const tz = (S0 && S0.timezone) || 'America/New_York', f = o => new Date(iso).toLocaleDateString('en-US', { timeZone: tz, ...o });
+  if (!iso || isNaN(new Date(iso))) return { startDay: 'Friday', startDayShort: 'Fri', startMD: '12/4', startLong: 'Friday, December 4' };
+  return { startDay: f({ weekday: 'long' }), startDayShort: f({ weekday: 'short' }), startMD: f({ month: 'numeric', day: 'numeric' }), startLong: f({ weekday: 'long', month: 'long', day: 'numeric' }) };
+}
 function applyChallenges(camp) {
   if (!(camp && camp.challenges && camp.challenges.length)) return;
   const now = Date.now();
@@ -1057,6 +1080,7 @@ function applyChallenges(camp) {
     C.push({
       id: x.id, name: x.name, unit: x.unit || 'donors', target: Number(x.target), cur: Number(x.current_value), prize: Number(x.prize || 0),
       match: x.kind === 'match', gifts: !!x.counts_gifts, mystery: !!x.mystery, teaser: x.teaser || {}, who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
+      ...startWords(x.starts_at),
       desc: paras(x.description, x.name),
       counts: x.who_counts, when: x.when_text || 'All week', from: x.sponsor || 'Trinity supporters',
       you: !x.mystery && !!(ME && qual(x, ME)),
@@ -1069,7 +1093,7 @@ applyChallenges(GD.campaign);
 let detailMode = 'flip';
 const factsHTML = c => {
   const d = isDone(c);
-  const progress = c.mystery ? 'Revealed Friday, December 4' : c.soon ? 'Opens Friday, December 4' : c.match ? `${$(c.cur)} of ${$(c.target)} matched` : `${c.cur} of ${c.target} ${c.unit}${d ? ' · unlocked!' : ` · ${c.target - c.cur} to go`}`;
+  const progress = c.mystery ? `Revealed ${c.startLong}` : c.soon ? `Opens ${c.startLong}` : c.match ? `${$(c.cur)} of ${$(c.target)} matched` : `${c.cur} of ${c.target} ${c.unit}${d ? ' · unlocked!' : ` · ${c.target - c.cur} to go`}`;
   return `<dl class="ub-facts">
       <div><dt>Who counts</dt><dd>${c.counts}</dd></div>
       <div><dt>When</dt><dd>${c.when}</dd></div>
@@ -1116,8 +1140,8 @@ function wireBand() {
 const pct = c => Math.min(c.cur / c.target, 1);
 const rule = c => c.mystery ? 'A surprise challenge, revealed when it starts.' : c.match
   ? `Every gift from ${c.who} is <b>matched dollar for dollar</b>, up to ${$(c.target)}.`
-  : c.gifts ? `When we receive ${c.target} new gifts, <b>${$(c.prize)}</b> is unlocked${c.soon ? ' — Friday only' : ''}.`
-  : `When ${c.target} ${c.unit} give, <b>${$(c.prize)}</b> is unlocked${c.soon ? ' — Friday only' : ''}.`;
+  : c.gifts ? `When we receive ${c.target} new gifts, <b>${$(c.prize)}</b> is unlocked${c.soon ? ' — ' + c.startDay + ' only' : ''}.`
+  : `When ${c.target} ${c.unit} give, <b>${$(c.prize)}</b> is unlocked${c.soon ? ' — ' + c.startDay + ' only' : ''}.`;
 
 const CHAL = {
   ub: () => {
@@ -1125,10 +1149,10 @@ const CHAL = {
     const order = [...C].sort((x, y) => stage(x) - stage(y));
     const card = c => {
       const d = isDone(c), lead = c === C[0], w = Math.min(c.cur / c.target, 1) * 100;
-      const pill = d ? '✓ Goal met' : c.mystery ? escT(c.teaser.pill || 'Revealed Fri 12/4') : c.soon ? 'Starts Fri 12/4' : c.match ? 'Matching' : 'In progress';
-      const rule = c.mystery ? (c.teaser.front ? escT(c.teaser.front) : 'A <b>secret challenge</b> is waiting. Come back Friday to see what it unlocks.') : c.match ? `Gifts <b>matched</b> dollar for dollar`
-        : c.gifts ? `When we receive <b>${c.target} new gifts</b>${c.soon ? ' on Friday' : ''}`
-        : c.soon ? `When <b>${c.target} ${c.unit}</b> give on Friday` : `When <b>${c.target} ${c.unit}</b> give`;
+      const pill = d ? '✓ Goal met' : c.mystery ? escT(c.teaser.pill || 'Revealed ' + c.startDayShort + ' ' + c.startMD) : c.soon ? `Starts ${c.startDayShort} ${c.startMD}` : c.match ? 'Matching' : 'In progress';
+      const rule = c.mystery ? (c.teaser.front ? escT(c.teaser.front) : `A <b>secret challenge</b> is waiting. Come back ${c.startDay} to see what it unlocks.`) : c.match ? `Gifts <b>matched</b> dollar for dollar`
+        : c.gifts ? `When we receive <b>${c.target} new gifts</b>${c.soon ? ' on ' + c.startDay : ''}`
+        : c.soon ? `When <b>${c.target} ${c.unit}</b> give on ${c.startDay}` : `When <b>${c.target} ${c.unit}</b> give`;
       const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
         : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
       return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}${c.mystery ? ' mystery' : ''}${c.you ? ' you' : ''}${c.mystery && c.teaser.flip === false ? ' noflip' : ''}"${c.mystery && c.teaser.flip === false ? '' : ` role="button" tabindex="0" aria-pressed="false" aria-label="${c.mystery ? 'Mystery challenge' : c.name}: show more"`}>
@@ -1163,12 +1187,12 @@ const CHAL = {
         return `<div class="med${d ? ' done' : ''}${c.soon ? ' soon' : ''}">
           <div class="med-ring"><svg viewBox="0 0 124 124"><circle class="track" cx="62" cy="62" r="${r}" fill="none" stroke-width="9"/>
             <circle class="fill" cx="62" cy="62" r="${r}" fill="none" stroke-width="9" stroke-dasharray="${L}" stroke-dashoffset="${L * (1 - pct(c))}"/></svg>
-            <div class="med-center"><div class="med-num${c.match ? ' sm' : ''}">${c.soon ? 'Fri' : c.match ? $(c.cur) : c.cur}</div>
+            <div class="med-center"><div class="med-num${c.match ? ' sm' : ''}">${c.soon ? c.startDayShort : c.match ? $(c.cur) : c.cur}</div>
             <div class="med-of">${c.soon ? 'opens 12/4' : 'of ' + (c.match ? $(c.target) : c.target)}</div></div></div>
           <div class="med-name">${c.name}</div>
           ${c.you ? '<div class="med-you">✓ You count toward this</div>' : ''}
           <div class="med-rule">${rule(c)}</div>
-          ${d ? `<div class="med-pill">${$(c.prize)} unlocked</div>` : c.soon ? '<div class="med-pill soon">Coming Friday</div>' : ''}
+          ${d ? `<div class="med-pill">${$(c.prize)} unlocked</div>` : c.soon ? `<div class="med-pill soon">Coming ${c.startDay}</div>` : ''}
           <div class="med-foot">Made possible by ${c.from}</div>
         </div>`;
       }).join('')}</div></section>`,
@@ -1176,7 +1200,7 @@ const CHAL = {
   wk: () => {
     const lanes = C.map(c => {
       const d = isDone(c), cls = d ? ' done' : c.soon ? ' soon' : '';
-      const txt = c.mystery ? 'Revealed Friday' : c.soon ? 'Opens Friday' : c.match ? `${$(c.cur)} of ${$(c.target)} matched` : `${c.cur} of ${c.target} ${c.unit}`;
+      const txt = c.mystery ? `Revealed ${c.startDay}` : c.soon ? `Opens ${c.startDay}` : c.match ? `${$(c.cur)} of ${$(c.target)} matched` : `${c.cur} of ${c.target} ${c.unit}`;
       return { c, bar: `<div class="wk-bar${cls}" style="width:100%"><i style="width:${pct(c) * 100}%"></i><span>${txt}</span></div>` };
     });
     const grid = `<div class="wk-grid">
@@ -1286,7 +1310,8 @@ const LB = {
 function renderLB() {
   const el = document.getElementById('lb');
   el.className = 'lb';
-  el.innerHTML = LB[lbView]();
+  const nobody = ![...RA, ...RP].some(r => r.donors > 0);   // before the first gift, do not crown a class with 0 donors
+  el.innerHTML = nobody ? head('Leader<em>boards</em>', 'Ranked by number of donors') + '<div class="lb-card" style="text-align:center;padding:28px 18px"><b>Be the first class on the board.</b><br>Every gift moves your class up.</div>' : LB[lbView]();
   el.querySelectorAll('[data-b]').forEach(b => b.addEventListener('click', () => { lbBoard = b.dataset.b; renderLB(); }));
   // Class wall: tap a tile for its rank; search highlights a class
   const info = document.getElementById('cw-info');
@@ -1549,7 +1574,7 @@ applyHero(GD.campaign);
 function renderHero() {
   heroText('donor-count', String(heroDonors));
   document.getElementById('goal-label').textContent = 'of ' + GOAL.toLocaleString('en-US') + ' gifts';
-  heroText('stat-raised', fmt$(heroRaised));
+  heroText('stat-raised', fmt$(Math.round(heroRaised)));   // a campaign total reads best in whole dollars (an individual gift keeps its cents)
   heroText('stat-togo', String(Math.max(GOAL - heroDonors, 0)));
   const pctDone = Math.min(heroDonors / GOAL, 1) * 100;
   document.getElementById('seal-fill').style.height = pctDone + '%';
@@ -1613,7 +1638,7 @@ function gmAmountList() {
 function gmBuildAmounts() {
   const ly = ME && ME.ly, list = gmAmountList();
   const asks = (ME && (ME.ask_a || ME.ask_b)) ? gmAsks() : [];
-  gm.amount = asks.length ? asks[Math.floor((asks.length - 1) / 2)] : ASK.on && ly ? ly : 2500;   // the middle ask is pre-selected
+  gm.amount = asks.length ? asks[Math.floor((asks.length - 1) / 2)] : ASK.on && ly ? ly : 0;   // the middle ask is pre-selected for a donor with personal asks; nobody else starts with an amount chosen
   $gm('gm-amts').innerHTML = list.map(a => `<button type="button" class="gm-amt${a === gm.amount ? ' on' : ''}" data-amt="${a}">${fmt$(a)}</button>`).join('') +
     '<button type="button" class="gm-amt" data-amt="other">Other</button>';
   $gm('gm-custom').hidden = true;
@@ -1744,7 +1769,7 @@ $gm('gm-amts').addEventListener('click', e => {
   $gm('gm-custom').hidden = !other;
   const bad = other && amountMsg($gm('gm-custom-amt'));
   fieldErr('gm-custom-amt', 'gm-amt-err', other ? bad : '');
-  gm.amount = other ? (bad ? 0 : Math.max(0, Math.round(parseFloat($gm('gm-custom-amt').value)) || 0)) : +b.dataset.amt;
+  gm.amount = other ? (bad ? 0 : Math.max(0, cents($gm('gm-custom-amt').value) || 0)) : +b.dataset.amt;
   if (other) $gm('gm-custom-amt').focus();
   gmUpdate();
 });
@@ -1755,9 +1780,10 @@ function amountMsg(inp) {
   if (!raw) return '';
   if (inp.validity.badInput || isNaN(parseFloat(raw))) return 'Please enter the amount as a number, like 250.';
   const n = parseFloat(raw);
+  if (/\.\d{3,}/.test(raw)) return 'Please enter dollars and cents, like 20.24.';
   if (n < 0) return 'The amount can’t be negative.';
   if (n < 1) return 'The minimum gift is $1.';
-  if (n > 1000000) return 'For a gift over $1,000,000, please contact the Advancement Office at (212) 873-1650.';
+  if (n > 1000000) return 'For a gift over $1,000,000, please contact the Advancement Office at (212) 932-6860.';
   return '';
 }
 function emailMsg(v) {
@@ -1768,7 +1794,7 @@ function emailMsg(v) {
 $gm('gm-custom-amt').addEventListener('input', e => {
   const msg = amountMsg(e.target);
   fieldErr('gm-custom-amt', 'gm-amt-err', msg);
-  gm.amount = msg ? 0 : Math.max(0, Math.round(parseFloat(e.target.value)) || 0);   // a bad value never counts as a gift
+  gm.amount = msg ? 0 : Math.max(0, cents(e.target.value) || 0);   // a bad value never counts as a gift
   gmUpdate();
 });
 let emailTouched = false;
@@ -1916,7 +1942,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$gm('gm-o
 $gm('gm-pay').addEventListener('click', () => {
   const first = $gm('gm-first').value.trim(), last = $gm('gm-last').value.trim(), email = $gm('gm-email').value.trim();
   if (!gm.amount || gm.amount < 1) return gmError('Please choose or enter a gift amount.');
-  if (gm.amount > 1000000) return gmError('For a gift over $1,000,000, please contact the Advancement Office at (212) 873-1650.');
+  if (gm.amount > 1000000) return gmError('For a gift over $1,000,000, please contact the Advancement Office at (212) 932-6860.');
   if (!first || !last) return gmError('Please enter your first and last name.');
   if (!email || emailMsg(email)) { fieldErr('gm-email', 'gm-email-err', email ? emailMsg(email) : 'Please enter your email address.'); $gm('gm-email').hidden = false; return gmError('Please enter a valid email address.'); }
   const alum = document.querySelector('#gm-affs [data-aff="alumni"].on');
@@ -1933,7 +1959,7 @@ function gmThanks(total) {
   $gm('gm-thanks-text').textContent = gm.mode === 'test'
     ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. Nothing is charged; it is saved as a test gift.`
     : `Your ${fmt$(total)} gift has been received. A receipt is on its way to your inbox.`;
-  $gm('gm-done-close').hidden = false;
+  $gm('gm-done-close').hidden = false; $gm('gm-spin').hidden = true;
   $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
   // Everything on the page refreshes once the gift is saved (see checkoutComplete).
 }
@@ -1973,13 +1999,14 @@ function gmInitCheckout(configId) {
     gm.finalizing = true; window.addEventListener('beforeunload', guard);
     $gm('gm-thanks-title').textContent = 'Finalizing your gift\u2026';
     $gm('gm-thanks-text').textContent = 'Please keep this window open for a moment while we confirm your gift. Do not close or refresh the page.';
-    $gm('gm-done-close').hidden = true;
+    $gm('gm-done-close').hidden = true; $gm('gm-spin').hidden = false; $gm('gm-close').style.visibility = 'hidden';   // spinner, and no close button while we confirm
     $gm('gm-body').hidden = true; $gm('gm-done').hidden = false;
-    const finish = () => { gm.finalizing = false; window.removeEventListener('beforeunload', guard); };
+    const finish = () => { gm.finalizing = false; window.removeEventListener('beforeunload', guard); $gm('gm-spin').hidden = true; $gm('gm-close').style.visibility = ''; };
     const unconfirmed = () => {
       finish();
       $gm('gm-thanks-title').textContent = 'We could not confirm your gift';
-      $gm('gm-thanks-text').textContent = 'Your gift may not have been recorded. If you do not receive a receipt by email shortly, please contact the Advancement Office at (212) 873-1650 and we will sort it out.';
+      const ref = String(body.transaction_id || '').slice(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      $gm('gm-thanks-text').innerHTML = 'We could not confirm that your gift was recorded, and your card may or may not have been charged, so please check with us before trying again. Call the Advancement Office at <a href="tel:+12129326860" style="white-space:nowrap">(212) 932-6860</a> or email <a href="mailto:trinityfund@trinityschoolnyc.org?subject=Giving%20Days%20gift%20' + ref + '">trinityfund@trinityschoolnyc.org</a>' + (ref ? ' and mention reference <b>' + ref + '</b>' : '') + '. We will sort it out.';
       $gm('gm-done-close').hidden = false;
     };
     gmPostGift(body).then(ok => {
@@ -2004,6 +2031,7 @@ window.addEventListener('load', () => {
 let liveSig = JSON.stringify([GD.campaign && GD.campaign.progress, GD.campaign && GD.campaign.wall, GD.campaign && GD.campaign.challenges]);
 function refreshLive(d) {
   if (!d || !d.progress) return;
+  if (d.settings) { GD.campaign = Object.assign(GD.campaign || {}, { settings: d.settings }); renderDay(); }
   const sig = JSON.stringify([d.progress, d.wall, d.challenges, d.settings && d.settings.goal_donors]);
   if (sig === liveSig) return;
   liveSig = sig;
@@ -2017,6 +2045,7 @@ function refreshLive(d) {
   if (!searching && (lbView !== 'pd' || !softUpdate(lb, LB[lbView]()))) renderLB();
   if (cmView !== 'nw' || !softUpdate(cm, CM[cmView]())) renderCM();
 }
+renderDay(); setInterval(renderDay, 60000);   // the hero's day label follows the real date
 // Pick up other people's gifts too: check every 30 seconds while the page is visible
 setInterval(() => {
   if (document.hidden || !GD.campaign) return;
