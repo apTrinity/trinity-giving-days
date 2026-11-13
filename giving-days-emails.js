@@ -45,7 +45,7 @@ function connections(g) {
 const fillText = (t, { first_name, class_year, ly }) => {
   const out = String(t || '').replace(/\{\{\s*(first_name|class_year|ly_gift)\s*\}\}/g, (m, k) =>
     k === 'first_name' ? first_name || '' : k === 'class_year' ? class_year || '' : ly ? '$' + Math.round(ly).toLocaleString('en-US') : '')
-    .replace(/^\s*[,;:]\s*/, '').replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+    .replace(/^\s*[,;:]\s*/, '').replace(/[ \t]+([,.;:])/g, '$1').replace(/[ \t]{2,}/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   return out.charAt(0).toUpperCase() + out.slice(1);
 };
 
@@ -92,7 +92,7 @@ function buildPersonalization(gift, profile, deps) {
 const audienceCard = a => !a || (!a.heading && !a.body) ? '' : `
     <div style="margin:4px 0 20px;background-color:#EEF1F6;border-top:4px solid #FCB104;padding:16px 22px 14px;">
       ${a.heading ? `<p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#02193B;">${esc(a.heading)}</p>` : ''}
-      ${a.body ? `<p style="margin:0;font-size:15px;line-height:1.65;color:#333;">${esc(a.body)}</p>` : ''}
+      ${a.body ? a.body.split(/\n{2,}/).map((para, i, all) => `<p style="margin:0 0 ${i === all.length - 1 ? 0 : 10}px;font-size:15px;line-height:1.65;color:#333;">${esc(para).replace(/\n/g, '<br>')}</p>`).join('') : ''}
     </div>`;
 
 const impactCard = p => {

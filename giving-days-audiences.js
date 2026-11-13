@@ -7,7 +7,7 @@ const { TAGS, GRADES } = require('./giving-days-admin');
 const { effectiveTags } = require('./giving-days-donors');
 
 const TAG_KEYS = TAGS.map(t => t.key);
-const HEADING_MAX = 80, BODY_MAX = 500, NAME_MAX = 60;
+const HEADING_MAX = 80, BODY_MAX = 900, NAME_MAX = 60;
 const isBlank = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 
 // The first audience, in order, whose rule the donor meets. `qualifies` is the shared who-counts rule.

@@ -871,7 +871,7 @@ main:focus, #gm-thanks-title:focus { outline: none; }
 /* Personalization */
 .gm-card[hidden] { display: none; }
 .gm-aud { border-left: 4px solid var(--trinity-yellow); }
-.gm-aud p { line-height: 1.6; }
+.gm-aud p { line-height: 1.6; white-space: pre-line; }
 .gm-lyhint { margin-top: 8px; font-size: 12.5px; color: var(--ink-muted); }
 .gm-known { font-size: 14px; line-height: 1.5; color: var(--ink-muted); }
 .gm-known b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
@@ -1716,7 +1716,7 @@ function gmLevels(amount) {
 function gmFill(t) {
   const out = String(t || '').replace(/\{\{\s*(first_name|class_year|ly_gift)\s*\}\}/g, (m, k) =>
     k === 'first_name' ? (ME && ME.first_name) || ($gm('gm-first') && $gm('gm-first').value.trim()) || '' : k === 'class_year' ? (ME && ME.class_year) || (gm.audWho && gm.audWho.class_year) || '' : ME && ME.ly ? fmt$(ME.ly) : '')
-    .replace(/^\s*[,;:]\s*/, '').replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+    .replace(/^\s*[,;:]\s*/, '').replace(/[ \t]+([,.;:])/g, '$1').replace(/[ \t]{2,}/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   return out.charAt(0).toUpperCase() + out.slice(1);
 }
 function gmAudience() {
