@@ -1763,7 +1763,7 @@ function gmUpdate() {
   // With a last-year gift, show only the levels near it (and the level this gift reaches)
   const near = (tiers, cur) => {
     const ly = ME && ME.ly;
-    if (!ASK.on || !ly) return [0, tiers.length - 1];
+    if (!ASK.on || !ly || gmLead()) return [0, tiers.length - 1];   // leadership (1A / 1B) donors always see the full 1709 Society list
     const i = tiers.findIndex(t => ly >= t[1]), k = i === -1 ? tiers.length : i;
     let lo = Math.max(0, k - ASK.steps), hi = Math.min(tiers.length - 1, k + ASK.steps);
     if (cur !== undefined) { lo = Math.min(lo, cur); hi = Math.max(hi, cur); }
