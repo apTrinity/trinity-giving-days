@@ -705,6 +705,7 @@ async function refreshAccessToken() {
       }), {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         auth: { username: process.env.SKY_CLIENT_ID, password: process.env.SKY_CLIENT_SECRET },
+        timeout: 45000, // never hang forever; a timeout after connecting is NOT retried (the token may have been spent)
       });
 
       tokens.access_token  = response.data.access_token;
@@ -1368,12 +1369,14 @@ loadTokensFromSupabase();
 // invalid_grant errors from concurrent refresh attempts.
 if (backgroundAllowed()) setInterval(async () => {
   try {
-    await refreshAccessToken();
+    // Retries (about a minute apart, 3 tries) only if Blackbaud could not be reached at all; the alert below
+    // goes out only when every try fails, or at once on invalid_grant (see sky-refresh-retry.js).
+    await require('./sky-refresh-retry').refreshWithRetry(refreshAccessToken);
     console.log('Proactive token refresh successful.');
   } catch (err) {
     console.error('Proactive token refresh failed:', err.message);
     // skyAuthValid is already set to false inside refreshAccessToken on invalid_grant
-    try { await require('./giving-days-emails').sendSystemAlert('Blackbaud login could not be renewed', `<p>The server could not renew its Blackbaud (SKY API) login: <code>${String(err.message).replace(/[<>&]/g, '')}</code></p><p>Gifts cannot be captured until this is fixed. Try restarting the service on Render; if that does not help, open <b>/auth/blackbaud?key=</b> followed by your SKY_REAUTH_SECRET (set on Render) on the live site to reconnect.</p>`, 'sky-token'); } catch (e) { /* alerting must never break the interval */ }
+    try { await require('./giving-days-emails').sendSystemAlert('Blackbaud login could not be renewed', `<p>The server could not renew its Blackbaud (SKY API) login: <code>${String(err.message).replace(/[<>&]/g, '')}</code></p><p>Gifts cannot be captured until this is fixed. Try restarting the service on Render; if that does not help, open <b>/auth/blackbaud?key=</b> followed by your SKY_REAUTH_SECRET (set on Render) on the live site to reconnect.</p>`, 'sky-token', 'dev'); } catch (e) { /* alerting must never break the interval */ }
   }
 }, 45 * 60 * 1000);
 else console.log('Local copy: Blackbaud login renewal and background syncs are off (set SKY_BACKGROUND=on to enable).');

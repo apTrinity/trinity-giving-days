@@ -1,6 +1,6 @@
 // Email staff when a nightly job needs a look (sync blocked or failed, Mailchimp blocked, stale tags removed).
 // Uses the same Resend account as the rest of the app. Never throws: an alert must not break the job it reports on.
-// Goes to GD_ALERT_EMAIL (comma separated), else GD_TEST_EMAIL, else the default below.
+// Goes only to the developer: GD_TEST_EMAIL, else the default below.
 
 const DEFAULT_TO = 'andrew.peterson@trinityschoolnyc.org';
 const esc = v => String(v).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
@@ -9,7 +9,8 @@ async function alertStaff(subject, lines) {
   try {
     if (!process.env.RESEND_API_KEY) { console.warn('[GD alert] not sent, RESEND_API_KEY missing:', subject); return false; }
     const { Resend } = require('resend');
-    const to = (process.env.GD_ALERT_EMAIL || process.env.GD_TEST_EMAIL || DEFAULT_TO).split(',').map(s => s.trim()).filter(Boolean);
+    // Developer only (never a staff list): GD_TEST_EMAIL, else the default. GD_ALERT_EMAIL is no longer read.
+    const to = [(process.env.GD_TEST_EMAIL || DEFAULT_TO).split(',')[0].trim()];
     const list = (lines || []).map(String);
     const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: 'Trinity Fund <trinityfund@trinityschoolnyc.org>', to, subject,

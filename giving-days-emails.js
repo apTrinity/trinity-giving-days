@@ -257,7 +257,7 @@ async function sendUnrecordedGiftAlert(gift) {
     }, 'confirmation (unrecorded gift)');
   }
   return send({
-    to: test ? testAddress() : staffList(),
+    to: testAddress(), // a system failure: developer only, never staff
     subject: `[Giving Days${test ? ' TEST' : ''}] ACTION NEEDED: gift captured but not saved — ${money(gift.amount)}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:14px;max-width:560px;"><p><strong>A payment was captured but could not be saved to the database.</strong> Please add it by hand (Giving Days admin, or the BBMS transaction below).</p>
       <pre style="background:#f6f6f6;padding:12px;white-space:pre-wrap;">${esc(JSON.stringify({ transaction_id: gift.transaction_id, amount: gift.amount, first_name: gift.first_name, last_name: gift.last_name, email: gift.email, anonymous: gift.anonymous, declared_tags: gift.declared_tags, grades: gift.grades, class_year: gift.class_year }, null, 2))}</pre></div>`,
@@ -276,13 +276,14 @@ async function sendOfflineUnmatchedAlert(list) {
 }
 
 // A problem staff or the developer must act on (the payment system is refusing, the Blackbaud login failed). At most one
-// email per kind per hour, so a failure that repeats on every gift does not flood anyone. `to`: 'staff' (default) or 'dev'.
+// email per kind per hour, so a failure that repeats on every gift does not flood anyone. System alerts go ONLY to the
+// developer (GD_TEST_EMAIL, default Andrew), never to staff. The `to` argument is kept for old callers and ignored.
 const lastAlert = {};
 async function sendSystemAlert(subject, html, kind, to) {
   if (Date.now() - (lastAlert[kind] || 0) < 60 * 60 * 1000) return false;
   lastAlert[kind] = Date.now();
   return send({
-    to: to === 'dev' ? testAddress() : [...new Set([testAddress(), ...staffList()])],
+    to: testAddress(),
     subject: `[Giving Days] ACTION NEEDED: ${subject}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:14px;max-width:560px;">${html}</div>`,
   }, 'system alert: ' + kind);
