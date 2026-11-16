@@ -5,6 +5,7 @@
 /* Footer stays at the bottom of the window on tall screens; the teaser centres in the space above it */
 body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .stage { flex: 1 0 auto; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+main { flex: 1 0 auto; display: flex; flex-direction: column; }   /* <main> sits between .stage and .sh, so it has to grow too */
 .sh { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .sh { background: #fff; color: var(--navy); text-align: center; padding: 30px 24px 44px; border-top: 5px solid var(--trinity-yellow); }
 /* The logo with a ring of 30 dots around its arch: one per day of the last 30 before launch; days already gone are yellow */
