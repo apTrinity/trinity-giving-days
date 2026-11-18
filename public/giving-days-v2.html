@@ -2091,7 +2091,7 @@ $gm('gm-pay').addEventListener('click', () => {
 
 function gmThanks(total) {
   const first = $gm('gm-first').value.trim();
-  $gm('gm-thanks-title').textContent = `Thank you, ${first}!`;
+  $gm('gm-thanks-title').textContent = `Thank you for being a part of Giving Days, ${first}!`;
   $gm('gm-thanks-text').textContent = gm.mode === 'test'
     ? `Your ${fmt$(total)} test gift went through Blackbaud's test system. Nothing is charged; it is saved as a test gift.`
     : `Your ${fmt$(total)} gift has been received. A receipt is on its way to your inbox.`;
