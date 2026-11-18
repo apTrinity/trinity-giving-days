@@ -1678,10 +1678,10 @@ const GM_BLUEGOLD = [
 ];
 const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
 const $gm = id => document.getElementById(id);
-// ?steps=1 turns the gift window into three steps: 1 name and email, (a quiet lookup), 2 the gift, 3 finalizing and thanks.
+// The gift window is three steps: 1 name and email, (a quiet lookup), 2 the gift, 3 finalizing and thanks.
 // Without it the window is the single form it always was. ME0 is the visitor as the page arrived (a personal link), kept as the fallback when the lookup finds nobody.
-const STEPS = new URLSearchParams(location.search).has('steps');
-const STEPS_NARROW = new URLSearchParams(location.search).get('steps') === 'narrow';
+const STEPS = true;   // the step flow is the gift form (the old single form is no longer offered)
+const STEPS_NARROW = false;
 const ME0 = ME;
 
 // Amount buttons. With an Ask A or Ask B they are last year's gift, Ask A and Ask B (as on the parents page).
