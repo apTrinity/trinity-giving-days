@@ -124,8 +124,9 @@ const STAFF_EMAILS = [
   'edward.griffin@trinityschoolnyc.org',
   'frances.shafer@trinityschoolnyc.org',
   'migdalia.villanueva@trinityschoolnyc.org',
-  'myles.amend@trinityschoolnyc.org',
+  'elizabeth.oswald@trinityschoolnyc.org',
   'philip.bien@trinityschoolnyc.org',
+  'isabel.wheeler@trinityschoolnyc.org',
 ];
 
 async function sendStaffNotification(gift, affiliations) {
@@ -326,8 +327,9 @@ const PARENTS_STAFF_EMAILS = [
   'edward.griffin@trinityschoolnyc.org',
   'frances.shafer@trinityschoolnyc.org',
   'migdalia.villanueva@trinityschoolnyc.org',
-  'myles.amend@trinityschoolnyc.org',
+  'elizabeth.oswald@trinityschoolnyc.org',
   'philip.bien@trinityschoolnyc.org',
+  'isabel.wheeler@trinityschoolnyc.org',
 ];
 
 async function sendParentsStaffNotification(gift, affiliations) {

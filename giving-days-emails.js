@@ -19,8 +19,9 @@ const DEFAULT_STAFF = [
   'edward.griffin@trinityschoolnyc.org',
   'frances.shafer@trinityschoolnyc.org',
   'migdalia.villanueva@trinityschoolnyc.org',
-  'myles.amend@trinityschoolnyc.org',
+  'elizabeth.oswald@trinityschoolnyc.org',
   'philip.bien@trinityschoolnyc.org',
+  'isabel.wheeler@trinityschoolnyc.org',
 ];
 const staffList = () => (process.env.GD_STAFF_EMAILS ? process.env.GD_STAFF_EMAILS.split(',').map(s => s.trim()).filter(Boolean) : DEFAULT_STAFF);
 const testAddress = () => process.env.GD_TEST_EMAIL || 'andrew.peterson@trinityschoolnyc.org';
