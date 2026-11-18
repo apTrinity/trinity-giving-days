@@ -173,7 +173,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     const first = typeof b.first_name === 'string' ? b.first_name.trim().toLowerCase().slice(0, 100) : '';
     if (!/^\S+@\S+\.\S+$/.test(email) || !lookupAllowed()) return none();
     try {
-      if (await shield.activeFor(req)) return none();   // before launch nothing personal is shown
+      // 2026-11-18: the lookup also works while the pre-launch teaser is up, so early givers get their own amounts and message.
       const { data: rows, error } = await supabase.from('gd_donors')
         .select('first_name, class_year, grades, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed')
         .ilike('email', email.replace(/[\\%_]/g, '\\$&')).limit(5);
