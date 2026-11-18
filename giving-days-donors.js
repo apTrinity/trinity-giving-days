@@ -228,7 +228,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   app.get('/', async (req, res) => {
     const shieldAt = await shield.activeFor(req, { untilLaunch: true });
     const html = (await renderPage(req, null, null, { untilLaunch: true })).html;
-    send(res, shieldAt ? cleanTeaser(html) : html);
+    send(res, shieldAt && req.query.clean === '1' ? cleanTeaser(html) : html);   // 2026-11-18: the teaser keeps its Give button (early gifts); ?clean=1 hides it
   });
 
   // Personal link: /<code>. Registered after every real page, so real pages win.
