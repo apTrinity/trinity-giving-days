@@ -2182,7 +2182,7 @@ function refreshLive(d) {
   if (!searching && (lbView !== 'pd' || !softUpdate(lb, LB[lbView]()))) renderLB();
   if (cmView !== 'nw' || !softUpdate(cm, CM[cmView]())) renderCM();
 }
-renderDay(); setInterval(renderDay, 60000);   // the hero's day label follows the real date
+if (typeof renderDay === 'function') { renderDay(); setInterval(renderDay, 60000); }   // (not on the pre-launch teaser, which has no hero) the hero's day label follows the real date
 // Pick up other people's gifts too: check every 30 seconds while the page is visible
 setInterval(() => {
   if (document.hidden || !GD.campaign) return;
