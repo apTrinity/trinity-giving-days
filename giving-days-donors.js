@@ -160,6 +160,38 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
 
   const send = (res, html) => { res.set('X-Robots-Tag', 'noindex, nofollow'); res.set('Cache-Control', 'no-store'); res.type('html').send(html); };
 
+  // Step-based gift form (?steps=1): after step 1 the page sends the email typed there and gets back who that is, so a visitor on the
+  // plain shared link is treated like one on a personal link. Deliberately returns less than a personal link does: no names, no
+  // last-year gift, no code. Only tags, grades, class year, personal asks and the audience text. A miss and a database problem
+  // both look like "not found" to the page, so the form never tells anyone whether an email is on file.
+  const lookupGate = require('./giving-days-ratelimit').limiter(30, 10 * 60 * 1000, 'Too many requests. Please wait a few minutes and try again.');
+  app.post('/api/gd/lookup', lookupGate, async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const none = () => res.json({ found: false });
+    const b = req.body || {};
+    const email = typeof b.email === 'string' ? b.email.trim().toLowerCase().slice(0, 200) : '';
+    const first = typeof b.first_name === 'string' ? b.first_name.trim().toLowerCase().slice(0, 100) : '';
+    if (!/^\S+@\S+\.\S+$/.test(email) || !lookupAllowed()) return none();
+    try {
+      if (await shield.activeFor(req)) return none();   // before launch nothing personal is shown
+      const { data: rows, error } = await supabase.from('gd_donors')
+        .select('first_name, class_year, grades, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed')
+        .ilike('email', email.replace(/[\\%_]/g, '\\$&')).limit(5);
+      if (error) throw error;
+      if (!rows || !rows.length) return none();
+      // Spouses can share one email: prefer the row whose first name was typed; with several rows and no name match, say nothing.
+      const d = rows.find(r => String(r.first_name || '').trim().toLowerCase() === first) || (rows.length === 1 ? rows[0] : null);
+      if (!d) return none();
+      let campaign = null, auds = [];
+      try { campaign = await loadCampaign(); } catch (e) { /* the page still works without it */ }
+      if (audiences) { try { auds = await audiences.loadPublished(); } catch (e) { /* same */ } }
+      const me = { tags: effectiveTags(d), grades: d.grades || [], class_year: d.class_year, ask_a: d.ask_a != null ? Number(d.ask_a) : null, ask_b: d.ask_b != null ? Number(d.ask_b) : null, leadership: isLeadership(d.appeal_code) };
+      me.audience = audiences ? audiences.audienceFor(auds, me, qualifies) : null;
+      me.qualifies = ((campaign && campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
+      res.json({ found: true, me });
+    } catch (err) { console.error('giving-days lookup:', err.message); none(); }
+  });
+
   // Old shared address: send it to /preview, keeping a personal-link code if there is one.
   app.get('/preview-v2', (req, res) => {
     const q = new URLSearchParams();

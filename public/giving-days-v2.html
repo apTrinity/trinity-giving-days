@@ -859,6 +859,33 @@ main:focus, #gm-thanks-title:focus { outline: none; }
     .gm-card { gap: 4px; }
 }
 
+/* Step-based gift form (?steps=1): three segments under the header, as on the parents page. Without ?steps=1 none of this applies. */
+.gm-steps { list-style: none; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0; padding: 14px 20px; background: var(--paper-2); border-bottom: 1px solid var(--border); }
+.gm-steps[hidden] { display: none; }
+.gm-steps li { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+.gm-steps li + li::before { content: ''; width: 36px; height: 2px; margin: 0 12px; background: var(--border); }
+.gm-steps li b { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: #fff; border: 2px solid var(--border); color: var(--ink-muted); flex: none; }
+.gm-steps li.done { color: var(--navy); }
+.gm-steps li.done b { background: var(--navy); border-color: var(--navy); color: var(--trinity-yellow); font-size: 0; }
+.gm-steps li.done b::before { content: '✓'; font-size: 13px; }
+.gm-steps li.done + li::before, .gm-steps li.cur::before { background: var(--navy); }
+.gm-steps li.cur { color: var(--navy); font-weight: 800; }
+.gm-steps li.cur b { background: var(--trinity-yellow); border-color: var(--navy); color: var(--navy); box-shadow: 0 0 0 3px color-mix(in srgb, var(--trinity-yellow) 35%, transparent); }
+@media (max-width: 760px) { .gm-steps { padding: 12px 10px; } .gm-steps li { font-size: 12px; gap: 6px; } .gm-steps li + li::before { width: 14px; margin: 0 6px; } }
+/* ?steps=narrow: step 1 is a small centred window with no side panel. Plain ?steps=1 keeps the side panel on every step. */
+.gm-modal.steps.narrow { transition: max-width .2s; }
+.gm-modal.steps.narrow[data-step="1"] { max-width: 520px; }
+.gm-modal.steps.narrow[data-step="1"] .gm-body { grid-template-columns: minmax(0, 1fr); }
+.gm-modal.steps.narrow[data-step="1"] .gm-side { display: none; }
+.gm-modal.steps[data-step="1"] [data-step="2"], .gm-modal.steps[data-step="2"] [data-step="1"] { display: none !important; }
+.gm-stephead h3 { font-family: 'Lora', serif; font-size: 21px; font-weight: 600; color: var(--navy); }
+.gm-stephead p { font-size: 13.5px; color: var(--ink-mid); line-height: 1.5; margin: 4px 0 16px; }
+.gm-modal.steps #gm-info-label { display: none; }
+.gm-who { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--paper-2); border-left: 3px solid var(--trinity-yellow); font-size: 13.5px; color: var(--ink-muted); line-height: 1.5; }
+.gm-who b { display: block; color: var(--ink); font-size: 16px; }
+.gm-who-edit { background: none; border: none; cursor: pointer; text-decoration: underline; padding: 2px 0; font-family: inherit; flex: none; }
+.gm-who[hidden] { display: none; }
+
 /* Fold guide for the phone view (iPhone ~650px of visible page) */
 .fold { display: none; }
 .stage.phone .fold { display: block; position: absolute; left: 0; right: 0; top: 650px; height: 0; z-index: 5; pointer-events: none; }
@@ -871,6 +898,7 @@ main:focus, #gm-thanks-title:focus { outline: none; }
 /* Personalization */
 .gm-card[hidden] { display: none; }
 .gm-aud { border-left: 4px solid var(--trinity-yellow); }
+.gm-aud h3 { margin-bottom: 1.6em; }   /* one blank line between the heading and the message */
 .gm-aud p { line-height: 1.6; white-space: pre-line; }
 .gm-lyhint { margin-top: 8px; font-size: 12.5px; color: var(--ink-muted); }
 .gm-known { font-size: 14px; line-height: 1.5; color: var(--ink-muted); }
@@ -947,9 +975,14 @@ main:focus, #gm-thanks-title:focus { outline: none; }
       <div class="gm-title" id="gm-title">Make your <em>Giving Days</em> gift</div>
       <button type="button" class="gm-close" id="gm-close" aria-label="Close">✕</button>
     </div>
+    <ol class="gm-steps" id="gm-steps" hidden aria-label="Progress"><li><b>1</b><span>Your info</span></li><li><b>2</b><span>Your gift</span></li><li><b>3</b><span>Confirmation</span></li></ol>
     <div class="gm-body" id="gm-body">
       <div class="gm-form">
-        <div>
+        <div class="gm-who" id="gm-who" data-step="2" hidden>
+          <div><b id="gm-who-hi"></b><span id="gm-who-line"></span></div>
+          <button type="button" class="gm-link gm-who-edit" id="gm-who-edit">Edit</button>
+        </div>
+        <div data-step="2">
           <span class="gm-label">Gift amount</span>
           <div class="gm-amts" id="gm-amts"></div>
           <div class="gm-lyhint" id="gm-lyhint" hidden></div>
@@ -957,8 +990,9 @@ main:focus, #gm-thanks-title:focus { outline: none; }
           <div class="gm-custom" id="gm-custom" hidden><input class="gm-input" id="gm-custom-amt" type="number" min="1" step="0.01" inputmode="decimal" placeholder="Enter amount" aria-label="Other amount"></div>
           <div class="gm-fielderr" id="gm-amt-err" hidden></div>
         </div>
-        <div>
-          <span class="gm-label">Your information</span>
+        <div data-step="1">
+          <div class="gm-stephead" id="gm-stephead" hidden><h3>First, who is giving?</h3><p>We use your email to personalize your gift. It only takes a moment.</p></div>
+          <span class="gm-label" id="gm-info-label">Your information</span>
           <div class="gm-stack">
             <div class="gm-known" id="gm-known" hidden>
               <b id="gm-known-hi"></b>
@@ -971,8 +1005,11 @@ main:focus, #gm-thanks-title:focus { outline: none; }
             <input class="gm-input" id="gm-email" type="email" placeholder="Email address" autocomplete="email" aria-label="Email address">
             <div class="gm-fielderr" id="gm-email-err" hidden></div>
           </div>
+          <div class="gm-error" id="gm-step1-error" hidden role="alert" style="margin-top:10px"></div>
+          <button type="button" class="gm-pay gm-next" id="gm-next" hidden style="margin-top:14px">Continue</button>
+          <div class="gm-secure gm-step1-note" id="gm-step1-note" hidden style="margin-top:12px">We use your information to process your gift and send a receipt. <a href="https://www.trinityschoolnyc.org/terms-of-use" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms of Use &amp; Privacy Policy</a></div>
         </div>
-        <div>
+        <div data-step="2">
           <span class="gm-label">How are you connected to Trinity?</span>
           <div class="gm-chips" id="gm-affs">
             <button type="button" class="gm-chip" data-aff="alumni">Alumni</button>
@@ -986,7 +1023,7 @@ main:focus, #gm-thanks-title:focus { outline: none; }
           <div class="gm-subfield" data-sub="current_parent" hidden><span class="gm-sublabel">Child's grade (select all that apply)</span><div class="gm-grades" id="gm-grades"></div></div>
           <div class="gm-counts" id="gm-counts" hidden></div>
         </div>
-        <div class="gm-matchbox">
+        <div class="gm-matchbox" data-step="2">
           <div class="gm-matchhead"><b>Does your employer match gifts?</b><small>A match can double your gift.</small></div>
           <a class="gm-lookup" id="gm-match-open" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener" aria-expanded="false" aria-controls="gm-match-panel">Search for your employer →</a>
           <div class="gm-matchpanel" id="gm-match-panel" hidden><button type="button" class="gm-matchuse gm-matchuse-top" hidden></button><div id="dd-container"></div><button type="button" class="gm-matchuse gm-matchuse-bottom" hidden></button><p class="gm-matchnote" id="gm-match-note" hidden>The lookup didn’t load. <a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/matching-gifts" target="_blank" rel="noopener">Open it in a new tab →</a></p></div>
@@ -994,10 +1031,10 @@ main:focus, #gm-thanks-title:focus { outline: none; }
           <input class="gm-input" id="gm-employer" placeholder="Type your employer’s name" aria-label="Employer name" hidden>
           <small class="gm-empnote" id="gm-employer-note" hidden>This is just for our records. To check a company, use the lookup above.</small>
         </div>
-        <label class="gm-check"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
-        <div class="gm-error" id="gm-error" hidden role="alert"></div>
-        <button type="button" class="gm-pay" id="gm-pay">Complete <span id="gm-pay-amt">$2,500</span> gift</button>
-        <div class="gm-secure">Secure payment processed by Blackbaud Merchant Services<br>We use your information to process your gift and send a receipt. <a href="https://www.trinityschoolnyc.org/terms-of-use" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms of Use &amp; Privacy Policy</a></div>
+        <label class="gm-check" data-step="2"><input type="checkbox" id="gm-anon"> Please list my gift as anonymous</label>
+        <div class="gm-error" id="gm-error" hidden role="alert" data-step="2"></div>
+        <button type="button" class="gm-pay" id="gm-pay" data-step="2">Complete <span id="gm-pay-amt">$2,500</span> gift</button>
+        <div class="gm-secure" data-step="2">Secure payment processed by Blackbaud Merchant Services<br>We use your information to process your gift and send a receipt. <a href="https://www.trinityschoolnyc.org/terms-of-use" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Terms of Use &amp; Privacy Policy</a></div>
       </div>
       <div class="gm-side">
         <div class="gm-card gm-aud" id="gm-aud" hidden>
@@ -1641,6 +1678,11 @@ const GM_BLUEGOLD = [
 ];
 const gm = { amount: 2500, mode: 'test', checkout: null, ready: false, lastFocus: null };
 const $gm = id => document.getElementById(id);
+// ?steps=1 turns the gift window into three steps: 1 name and email, (a quiet lookup), 2 the gift, 3 finalizing and thanks.
+// Without it the window is the single form it always was. ME0 is the visitor as the page arrived (a personal link), kept as the fallback when the lookup finds nobody.
+const STEPS = new URLSearchParams(location.search).has('steps');
+const STEPS_NARROW = new URLSearchParams(location.search).get('steps') === 'narrow';
+const ME0 = ME;
 
 // Amount buttons. With an Ask A or Ask B they are last year's gift, Ask A and Ask B (as on the parents page).
 // With only a last-year gift they are that gift plus the nearest levels above and below it.
@@ -1928,8 +1970,64 @@ function maskEmail(email) {
   const [local, host] = email.split('@'), parts = host.split('.'), name = parts.shift(), tld = parts.join('.');
   return local.slice(0, 2) + '*'.repeat(Math.max(3, local.length - 2)) + '@' + name.slice(0, 2) + '*'.repeat(Math.max(3, name.length - 3)) + name.slice(-1) + '.' + tld;
 }
+// ── Step-based form helpers (only used with ?steps=1) ──
+function gmSetStep(n) {
+  gm.step = n;
+  const m = document.querySelector('.gm-modal');
+  m.classList.add('steps'); m.classList.toggle('narrow', STEPS_NARROW); m.dataset.step = n < 3 ? n : 2;
+  const bar = $gm('gm-steps'); bar.hidden = false;
+  bar.querySelectorAll('li').forEach((s, i) => { s.classList.toggle('done', i + 1 < n); s.classList.toggle('cur', i + 1 === n); if (i + 1 === n) s.setAttribute('aria-current', 'step'); else s.removeAttribute('aria-current'); });
+  ['gm-stephead', 'gm-next', 'gm-step1-note'].forEach(id => { $gm(id).hidden = n !== 1; });
+  $gm('gm-who').hidden = n !== 2;
+}
+function gmWhoFill() {
+  const first = $gm('gm-first').value.trim(), email = $gm('gm-email').value.trim();
+  const fromLink = ME0 && ME0.email && ME0.email.toLowerCase() === email.toLowerCase();   // an email that came with their link stays masked; one they typed is shown as typed
+  $gm('gm-who-hi').textContent = ME ? `Hi, ${first}. Thank you for your support.` : `Hi, ${first}.`;
+  $gm('gm-who-line').textContent = `We'll send your receipt to ${fromLink ? maskEmail(email) : email}.`;
+}
+function gmStepIdentity() {
+  if (ME && ME.first_name && !$gm('gm-first').value) $gm('gm-first').value = ME.first_name;
+  if (ME && ME.last_name && !$gm('gm-last').value) $gm('gm-last').value = ME.last_name;
+  if (ME && ME.email && !$gm('gm-email').value) $gm('gm-email').value = ME.email;
+  $gm('gm-known').hidden = true; $gm('gm-names').hidden = false; $gm('gm-email').hidden = false;   // step 1 always shows the fields
+}
+async function gmNext() {
+  const first = $gm('gm-first').value.trim(), last = $gm('gm-last').value.trim(), email = $gm('gm-email').value.trim();
+  const err = m => { const e = $gm('gm-step1-error'); e.textContent = m; e.hidden = !m; return false; };
+  err('');
+  if (!first || !last) { (!first ? $gm('gm-first') : $gm('gm-last')).focus(); return err('Please enter your first and last name.'); }
+  if (!email || emailMsg(email)) { fieldErr('gm-email', 'gm-email-err', email ? emailMsg(email) : 'Please enter your email address.'); $gm('gm-email').focus(); return err('Please enter a valid email address.'); }
+  fieldErr('gm-email', 'gm-email-err', '');
+  const btn = $gm('gm-next'), key = email.toLowerCase();
+  if (gm.lookedEmail !== key) {   // same email as the last lookup (they went back and forth): keep what they have already chosen
+    btn.disabled = true; btn.textContent = 'One moment…';
+    let found = null, answered = false;
+    try {
+      const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = ctl ? setTimeout(() => ctl.abort(), 6000) : null;   // a slow lookup never holds up a gift
+      const r = await fetch('/api/gd/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, first_name: first }), signal: ctl ? ctl.signal : undefined });
+      if (timer) clearTimeout(timer);
+      if (r.ok) { answered = true; const j = await r.json(); if (j && j.found && j.me) found = j.me; }
+    } catch (e) { /* no answer: carry on as a visitor we know nothing about */ }
+    if (answered) gm.lookedEmail = key;
+    ME = found ? Object.assign({}, found, { first_name: first, last_name: last, email })
+      : (ME0 && ME0.email && ME0.email.toLowerCase() === key ? ME0 : null);
+    gmBuildAmounts(); gmPreselect();
+    btn.disabled = false; btn.textContent = 'Continue';
+  }
+  gmWhoFill(); gmSetStep(2); gmAudience(); gmUpdate();
+  const f = document.querySelector('.gm-amt.on') || document.querySelector('.gm-amt'); if (f) f.focus();
+}
+if (STEPS) {
+  $gm('gm-next').addEventListener('click', gmNext);
+  $gm('gm-who-edit').addEventListener('click', () => { gmSetStep(1); $gm('gm-first').focus(); });
+  $gm('gm-body').addEventListener('keydown', e => { if (e.key === 'Enter' && gm.step === 1 && e.target.matches('input')) { e.preventDefault(); gmNext(); } });
+  $gm('gm-body').addEventListener('input', () => { $gm('gm-step1-error').hidden = true; });
+}
 function gmIdentity() {
-  const known = !!(ME && ME.email && ME.first_name);
+  if (STEPS) return gmStepIdentity();
+  const known =!!(ME && ME.email && ME.first_name);
   if (ME && ME.first_name && !$gm('gm-first').value) $gm('gm-first').value = ME.first_name;
   if (ME && ME.last_name && !$gm('gm-last').value) $gm('gm-last').value = ME.last_name;
   if (known && !$gm('gm-email').value) $gm('gm-email').value = ME.email;
@@ -1948,6 +2046,8 @@ function openGift() {
   document.body.style.overflow = 'hidden';
   gmIdentity();
   if (gm.preFor !== ME) gmPreselect();
+  if (STEPS) gmSetStep(((ME && ME.email && ME.first_name) || gm.lookedEmail) ? 2 : 1);   // a personal-link visitor (or someone reopening after a lookup) goes straight to the gift
+  if (STEPS && gm.step === 2) gmWhoFill();
   gmAudience(); gmUpdate();
   setTimeout(() => { const f = [$gm('gm-first'), $gm('gm-email')].find(x => x.offsetParent); if (f) f.focus(); }, 30);
 }
@@ -1976,6 +2076,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$gm('gm-o
 
 $gm('gm-pay').addEventListener('click', () => {
   const first = $gm('gm-first').value.trim(), last = $gm('gm-last').value.trim(), email = $gm('gm-email').value.trim();
+  if (STEPS && (!first || !last || !email || emailMsg(email))) { gmSetStep(1); return gmNext(); }   // backstop: step 2 should never be reached without a name and email
   if (!gm.amount || gm.amount < 1) { (document.querySelector('.gm-amt.on') || document.querySelector('.gm-amt') || {focus() {}}).focus(); return gmError('Please choose or enter a gift amount.'); }
   if (gm.amount > 1000000) return gmError('For a gift over $1,000,000, please contact the Advancement Office at (212) 932-6860.');
   if (!first || !last) { (!first ? $gm('gm-first') : $gm('gm-last')).focus(); return gmError('Please enter your first and last name.'); }
@@ -2032,6 +2133,7 @@ function gmInitCheckout(configId) {
     // "finalizing" (not "thank you"), keep the window open, and ask the browser to warn before the tab is closed.
     const guard = ev => { ev.preventDefault(); ev.returnValue = ''; };
     gm.finalizing = true; window.addEventListener('beforeunload', guard);
+    if (STEPS) gmSetStep(3);
     $gm('gm-thanks-title').textContent = 'Finalizing your gift\u2026';
     $gm('gm-thanks-text').textContent = 'Please keep this window open for a moment while we confirm your gift. Do not close or refresh the page.';
     $gm('gm-done-close').hidden = true; $gm('gm-spin').hidden = false; $gm('gm-close').style.visibility = 'hidden';   // spinner, and no close button while we confirm
