@@ -2526,7 +2526,7 @@ app.get(['/parents', '/parents.html'], (req, res) => {
 // live BBMS configuration — but only once GD_LIVE_ALLOWED is true. Gift saving is built now
 // (giving-days-gifts.js), but live stays locked until the go-live review (CSC/AVS settings,
 // a full test-mode run). Anything else means test mode, and gifts are saved as test gifts.
-const GD_LIVE_ALLOWED = false;
+const GD_LIVE_ALLOWED = true;   // 2026-11-17: live payments allowed; still needs GIVING_MODE=live and PAYMENT_CONFIG_ID_LIVE on Render
 const GD_TEST_CONFIG_ID = process.env.PAYMENT_CONFIG_ID_TEST || 'e9126f05-0cc7-4a36-ba68-ac6bffd9f969';
 const gdIsLive = () => GD_LIVE_ALLOWED && process.env.GIVING_MODE === 'live' && !!process.env.PAYMENT_CONFIG_ID_LIVE;
 app.get('/api/gd/config', (req, res) => {
