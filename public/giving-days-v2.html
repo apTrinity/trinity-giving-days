@@ -1054,7 +1054,7 @@ main:focus, #gm-thanks-title:focus { outline: none; }
             <button type="button" class="gm-waytab" data-way="check" aria-expanded="false" aria-controls="gm-way-check"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="1"/><path d="M3 6l9 7 9-7"/></svg>Mail a check</button>
             <button type="button" class="gm-waytab" data-way="stock" aria-expanded="false" aria-controls="gm-way-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>Give stock</button>
           </div>
-          <div class="gm-waydetail" id="gm-way-pledge" hidden><p>Commit now and pay by June 30, 2027. Pledges count toward every challenge.</p><p>Email <a class="gm-sel gm-mail" id="gm-pledge-mail" href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> or call <span class="gm-sel">(212) 932-6860</span>.</p></div>
+          <div class="gm-waydetail" id="gm-way-pledge" hidden><p>Pledges count toward Giving Days challenges! To make a Trinity Fund pledge, please contact the Advancement Office directly before December 4.</p><p>Email <a class="gm-sel gm-mail" id="gm-pledge-mail" href="mailto:trinityfund@trinityschoolnyc.org">trinityfund@trinityschoolnyc.org</a> or call <span class="gm-sel">(212) 932-6860</span>. Pledges are payable by June 30, 2027.</p></div>
           <div class="gm-waydetail" id="gm-way-check" hidden><p><b>Please make checks payable to Trinity School.</b></p><p>Mail to the Trinity School Advancement Office, 139 West 91st Street, New York, NY 10024.</p></div>
           <div class="gm-waydetail" id="gm-way-stock" hidden><p>Transfer securities using our stock gift form.</p><a class="gm-link" href="https://www.trinityschoolnyc.org/support-trinity/making-a-stock-gift" target="_blank" rel="noopener">Stock gift instructions →</a></div>
         </div>
@@ -1518,7 +1518,7 @@ const FAQ = [
 // Numbered layout's bottom tiles: the page itself covers giving online, so lead with pledges
 const PLEDGE_MAIL = 'mailto:trinityfund@trinityschoolnyc.org?subject=' + encodeURIComponent('My Trinity Giving Days Pledge') + '&body=' + encodeURIComponent('I would like to pledge $___ to Trinity Giving Days.');
 const TILES = [
-  ['Make a pledge', 'Commit now and pay by June 30, 2027. Pledges count toward every challenge. Email <a href="' + PLEDGE_MAIL + '">trinityfund@trinityschoolnyc.org</a> or call (212) 932-6860.'],
+  ['Make a pledge', 'Pledges count toward Giving Days challenges! To make a Trinity Fund pledge, please contact the Advancement Office directly before December 4. Email <a href="' + PLEDGE_MAIL + '">trinityfund@trinityschoolnyc.org</a> or call (212) 932-6860. Pledges are payable by June 30, 2027.'],
   ['Mail a check', WAYS[1][1]],
   ['Give stock', WAYS[2][1]],
 ];

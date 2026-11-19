@@ -80,7 +80,7 @@ module.exports = function getShield(supabase) {
     return html
       .replace(/<!--SHIELD:BODY-->[\s\S]*?<!--\/SHIELD:BODY-->/, () => teaser(startsAt))
       .replace(/\/\*SHIELD:CUT\*\/[\s\S]*?\/\*\/SHIELD:CUT\*\//, 'const C = [];')
-      .replace('Pledges count toward every challenge.', 'Pledges are welcome and count as gifts.');
+      .replace('Pledges count toward Giving Days challenges!', 'Pledges are welcome and count as gifts.');
   }
 
   instance = { activeFor, apply, givePass, hasPass };
