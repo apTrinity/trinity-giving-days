@@ -1249,7 +1249,7 @@ async function startOff(apply) {
 $('off-preview').addEventListener('click', () => startOff(false));
 $('off-apply').addEventListener('click', () => startOff(true));
 // Red banner on every tab while any offline gift could not be matched to a donor on the list.
-async function checkOffAlert() { try { showOffAlert(await api('GET', '/api/admin/gd/offline/status')); } catch {} }
+async function checkOffAlert() { try { const r = await api('GET', '/api/admin/gd/offline/status'); showOffAlert(r); renderOff(r); } catch {} }   // renderOff also fills the query ID box and the status light
 function showOffAlert(r) {
   try {
     const a = r.alert || { count: 0 }, el = $('off-alert');
@@ -1345,8 +1345,8 @@ function renderGifts() {
     const extra = [g.class_year ? 'Class of ' + g.class_year : '', g.grades.length ? 'Grades ' + g.grades.join(', ') : ''].filter(Boolean).join(' · ');
     const exportable = !g.is_test && !g.from_re;
     const reTag = g.from_re ? '<span class="pill ok">From RE</span>' : g.is_test ? '' : g.re_synced_at ? '<span class="pill ok">In RE</span>' : '<span class="pill off">Not in RE yet</span>';
-    return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}" style="${exportable ? 'grid-template-columns:auto 1fr auto' : ''}">
-      ${exportable ? `<input type="checkbox" class="g-pick" aria-label="Select this gift" ${gPicked.has(g.id) ? 'checked' : ''}>` : ''}
+    return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}" style="grid-template-columns:auto 1fr auto">
+      ${exportable ? `<input type="checkbox" class="g-pick" aria-label="Select this gift" ${gPicked.has(g.id) ? 'checked' : ''}>` : '<span style="width:13px"></span>'}
       <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
         <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${reTag}${g.is_test && g.status !== 'test' ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
         <div>${tags}</div></div>
