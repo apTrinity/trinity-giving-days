@@ -141,6 +141,7 @@
     .gt .amt { font-weight: 700; font-size: 14px; white-space: nowrap; } .gt .dt { font-size: 12px; color: #aaa; white-space: nowrap; }
     .gt .bdg { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; margin: 1px 2px 1px 0; }
     .gt .on { background: #EFF6FF; color: #2563EB; } .gt .offl { background: #F3F4F6; color: #6B7280; } .gt .gr { background: #F0FDF4; color: #166534; }
+    .gt .tg { white-space: nowrap; display: inline-block; margin: 1px 4px 1px 0; }
     .gt .imp { color: #16a34a; font-size: 11px; font-weight: 600; }
     .gt input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: #3730a3; }
     .gf .who { font-weight: 700; color: var(--navy); } .gf .amt { font-weight: 700; margin-left: 8px; }
@@ -1379,15 +1380,16 @@ function renderGifts() {
     const [cls, txt] = STATUS[g.status] || ['off', g.status];
     const name = g.anonymous ? '<span class="nm anon">Anonymous</span>' : `<span class="nm">${esc([g.first_name, g.last_name].filter(Boolean).join(' ') || '(no name)')}</span>`;
     const tags = g.tags.map(t => `<span class="tg ${g.tag_sources[t] === 'declared' ? '' : g.tag_sources[t]}">${esc(label(t))}</span>`).join('');
-    const detail = [g.class_year ? 'Class of ' + g.class_year : '', g.has_donor ? 'matched to donor record' : 'not linked to a donor'].filter(Boolean).join(' · ');
+    const detail = [g.class_year ? 'Class of ' + g.class_year : '', g.has_donor ? '' : 'not linked to a donor'].filter(Boolean).join(' · ');
     const grades = g.grades.length ? g.grades.map(x => `<span class="bdg gr">${esc(x)}</span>`).join('') : '<span style="color:#ddd">—</span>';
     const src = (g.from_re ? '<span class="bdg offl">Offline</span>' : '<span class="bdg on">Online</span>') + (g.source && !g.from_re ? ` <span class="sub">${esc(g.source)}</span>` : '');
     const first = g.re_synced_at ? '<span class="imp">✓ Imported</span>'
       : exportableGift(g) ? `<input type="checkbox" class="g-pick" aria-label="Select this gift" ${gPicked.has(g.id) ? 'checked' : ''}>` : '';
     return `<tr data-id="${g.id}" class="${g.re_synced_at ? 'gt-dim' : ''}">
       <td data-stop="1">${first}</td>
-      <td>${name}<div class="sub">${esc(detail)}</div>${tags ? `<div style="margin-top:3px">${tags}</div>` : ''}</td>
-      <td style="color:#666;font-size:12px">${esc(g.email || '—')}</td>
+      <td style="white-space:nowrap">${name}${detail ? `<div class="sub">${esc(detail)}</div>` : ''}</td>
+      <td style="color:#666;font-size:12px;white-space:nowrap">${esc(g.email || '—')}</td>
+      <td>${tags || '<span style="color:#ddd">—</span>'}</td>
       <td class="amt">${money(g.amount)}</td>
       <td>${grades}</td>
       <td>${src}</td>
@@ -1399,7 +1401,7 @@ function renderGifts() {
   el.innerHTML = `<div class="gt-wrap"><div class="gt-count">${count}</div>
     <table class="gt"><thead><tr>
       <th style="width:36px"><input type="checkbox" id="g-pick-all" title="Check every gift in this list that is not in RE yet" ${allOn ? 'checked' : ''}></th>
-      <th>Name</th><th>Email</th><th>Amount</th><th>Grade(s)</th><th>Source</th><th>Status</th><th>Date</th><th></th>
+      <th>Name</th><th>Email</th><th>Affiliations</th><th>Amount</th><th>Grade(s)</th><th>Source</th><th>Status</th><th>Date</th><th></th>
     </tr></thead><tbody>${rows}</tbody></table></div>`
     + (list.length > gShown ? `<div style="text-align:center;margin:12px"><button class="btn small ghost" id="g-more">Show 100 more (${list.length - gShown} not shown)</button></div>` : '');
   el._pickable = pickable;
