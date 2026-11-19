@@ -2000,7 +2000,9 @@ async function gmNext() {
   if (!email || emailMsg(email)) { fieldErr('gm-email', 'gm-email-err', email ? emailMsg(email) : 'Please enter your email address.'); $gm('gm-email').focus(); return err('Please enter a valid email address.'); }
   fieldErr('gm-email', 'gm-email-err', '');
   const btn = $gm('gm-next'), key = email.toLowerCase();
-  if (gm.lookedEmail !== key) {   // same email as the last lookup (they went back and forth): keep what they have already chosen
+  if (ME0 && ME0.demo) {   // a made-up demo visitor (/preview?p=...): keep them as they are, with whatever name and email were typed
+    if (gm.lookedEmail !== key) { gm.lookedEmail = key; ME = Object.assign({}, ME0, { first_name: first, last_name: last, email }); gmBuildAmounts(); gmPreselect(); }
+  } else if (gm.lookedEmail !== key) {   // same email as the last lookup (they went back and forth): keep what they have already chosen
     btn.disabled = true; btn.textContent = 'One moment…';
     let found = null, answered = false;
     try {
