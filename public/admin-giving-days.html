@@ -319,9 +319,7 @@
 
       <div class="rc" id="off-card">
         <div class="rc-head"><h3>Offline gifts from Raiser's Edge</h3><span class="pill idle" data-st="off">Checking…</span></div>
-        <p class="hint">Checks, cash and stock gifts entered in RE. Runs by itself every 30 minutes once a query ID is set on the server. Gifts from donors on the list count like online gifts. A gift from someone who is not on the list is not recorded: it shows in red at the top of this page and is emailed to staff.</p>
-        <div class="rc-bar"><input type="text" id="off-id" placeholder="RE query ID" style="width:140px" aria-label="Offline gifts query ID"><button class="btn small" id="off-apply">Record gifts now</button><button class="btn small ghost" id="off-preview">Check only</button></div>
-        <div id="off-out"></div>
+        <p class="hint">Checks, cash and stock gifts entered in RE are pulled in every 30 minutes once <code>GD_OFFLINE_QUERY_ID</code> is set on the server. Gifts from donors on the list count like online gifts. A gift from someone who is not on the list is not recorded: it shows in red at the top of this page and is emailed to staff. To run it by hand or try a query, use the Raiser's Edge box on the <b>Gifts</b> tab.</p>
       </div>
 
       <div class="rc" id="pay-card">
@@ -345,6 +343,33 @@
       </div>
       <div id="g-unlinked" style="margin-bottom:18px"></div>
       <div id="g-sources" style="margin-bottom:18px"></div>
+      <div class="card" id="g-re" style="max-width:none;margin-bottom:18px">
+        <h3 style="margin:0 0 4px">Raiser's Edge</h3>
+        <p class="hint" id="g-re-status" style="margin:0 0 10px">Checking…</p>
+        <div class="rc-bar" style="flex-wrap:wrap">
+          <button class="btn small" id="g-re-export">⬇ Export RE CSV</button>
+          <button class="btn small ghost" id="g-re-mark">✓ Mark Imported</button>
+          <button class="btn small ghost" id="g-re-all" title="Check every gift that is not in RE yet">Check all not in RE</button>
+          <span style="flex:1"></span>
+          <input type="text" id="off-id" placeholder="RE query ID" style="width:120px" aria-label="Offline gifts query ID">
+          <button class="btn small" id="off-apply">Record gifts from RE</button>
+          <button class="btn small ghost" id="off-preview">Check only</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0"><b>Export RE CSV</b> builds the import file for online gifts not yet in RE (or just the gifts you check below). After importing it in RE, check those gifts and click <b>Mark Imported</b>. <b>Record gifts from RE</b> goes the other way: it pulls checks, cash and stock gifts from the RE query into this list. Gifts from RE are never exported.</p>
+        <div id="off-out"></div>
+        <details style="margin-top:10px"><summary><b>Import file settings</b></summary>
+          <div class="grid2" style="margin-top:8px">
+            <div class="field"><label for="re-campaign">Campaign (CampID)</label><input type="text" id="re-campaign"></div>
+            <div class="field"><label for="re-fund">Fund (FundID)</label><input type="text" id="re-fund"></div>
+            <div class="field"><label for="re-appeal">Appeal (GFAppeal, may be blank)</label><input type="text" id="re-appeal"></div>
+            <div class="field"><label for="re-ack">Acknowledgement status (GFAck)</label><input type="text" id="re-ack"></div>
+            <div class="field"><label for="re-letter">Acknowledgement letter (GFLtrCode)</label><input type="text" id="re-letter"></div>
+            <div class="field"><label for="re-bigmin">Gifts of at least $ (optional)</label><input type="number" id="re-bigmin" min="1" step="1"></div>
+            <div class="field"><label for="re-bigletter">…use this letter instead</label><input type="text" id="re-bigletter"></div>
+          </div>
+          <button class="btn small" id="re-save">Save import settings</button>
+        </details>
+      </div>
       <div id="g-tools"><input type="search" id="g-search" placeholder="Search gifts by name, email or amount" aria-label="Search gifts"></div>
       <div id="g-list"></div>
     </section>
@@ -1237,7 +1262,7 @@ function showOffAlert(r) {
 }
 let offAlertTimer = null;   // started in enter(), after sign-in (before that, the call would reload the login page)
 // ── Gifts ──
-let gifts = [], editingGift = null;
+let gifts = [], editingGift = null, reSettingsLoaded = false;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
 const when = iso => new Date(iso).toLocaleString('en-US', { timeZone: ET, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 async function loadGifts() {
@@ -1246,7 +1271,7 @@ async function loadGifts() {
     const s = j.summary;
     $('g-summary').textContent = `${s.counted} of ${s.total} gifts counted · ${s.donors} donors · ${money(s.raised)} · ${s.test} test gifts`;
     $('g-del-test').style.display = s.test ? '' : 'none';
-    renderGifts(); loadSources(); loadUnlinked();
+    renderGifts(); loadSources(); loadUnlinked(); loadReStatus(); if (!reSettingsLoaded) { reSettingsLoaded = true; loadReSettings(); }
   } catch (e) { $('g-list').innerHTML = `<div class="empty">Could not load gifts: ${esc(e.message)}</div>`; }
 }
 // Gifts not tied to a donor record (the donor gave with an email we do not have): suggested matches by name, one click to link.
@@ -1318,9 +1343,12 @@ function renderGifts() {
     const name = [g.first_name, g.last_name].filter(Boolean).join(' ') || '(no name)';
     const tags = g.tags.map(t => `<span class="tg ${g.tag_sources[t] === 'declared' ? '' : g.tag_sources[t]}">${esc(label(t))}</span>`).join('') || '<span class="hint">No affiliations</span>';
     const extra = [g.class_year ? 'Class of ' + g.class_year : '', g.grades.length ? 'Grades ' + g.grades.join(', ') : ''].filter(Boolean).join(' · ');
-    return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}">
+    const exportable = !g.is_test && !g.from_re;
+    const reTag = g.from_re ? '<span class="pill ok">From RE</span>' : g.is_test ? '' : g.re_synced_at ? '<span class="pill ok">In RE</span>' : '<span class="pill off">Not in RE yet</span>';
+    return `<div class="gf ${g.status === 'counts' ? '' : 'off'}" data-id="${g.id}" style="${exportable ? 'grid-template-columns:auto 1fr auto' : ''}">
+      ${exportable ? `<input type="checkbox" class="g-pick" aria-label="Select this gift" ${gPicked.has(g.id) ? 'checked' : ''}>` : ''}
       <div><span class="who">${esc(name)}${g.anonymous ? ' (anonymous)' : ''}</span><span class="amt">${money(g.amount)}</span>
-        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${g.is_test && g.status !== 'test' ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        <div class="meta"><span class="pill ${cls}">${esc(txt)}</span>${reTag}${g.is_test && g.status !== 'test' ? '<span class="pill test">Test gift</span>' : ''}${esc(when(g.created_at))} · ${esc(g.email || 'no email')}${g.has_donor ? ' · matched to donor record' : ''}${g.source ? ' · via ' + esc(g.source) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
         <div>${tags}</div></div>
       <div class="actions" style="display:flex;gap:6px"><button class="btn small" data-act="edit">Edit</button>${g.is_test ? '<button class="btn small danger" data-act="del">Delete</button>' : ''}</div>
     </div>`;
@@ -1337,6 +1365,60 @@ $('g-list').addEventListener('click', async e => {
 $('g-del-test').onclick = async () => {
   if (!confirm('Delete every test gift? Real gifts are not touched. This can\'t be undone.')) return;
   try { const j = await api('DELETE', '/api/admin/gd/test-gifts'); toast(`Deleted ${j.deleted} test gifts`); loadGifts(); loadChallenges(); } catch (err) { toast(err.message, true); }
+};
+// ── RE import file (online gifts -> Raiser's Edge) ──
+const gPicked = new Set();
+function updateReBtns() {
+  $('g-re-export').textContent = gPicked.size ? `⬇ Export RE CSV (${gPicked.size} checked)` : '⬇ Export RE CSV';
+  $('g-re-mark').textContent = gPicked.size ? `✓ Mark Imported (${gPicked.size})` : '✓ Mark Imported';
+}
+$('g-list').addEventListener('change', e => {
+  const cb = e.target.closest('.g-pick'); if (!cb) return;
+  const id = cb.closest('.gf').dataset.id;
+  if (cb.checked) gPicked.add(id); else gPicked.delete(id);
+  updateReBtns();
+});
+$('g-re-all').onclick = () => { gifts.filter(g => !g.is_test && !g.from_re && !g.re_synced_at).forEach(g => gPicked.add(g.id)); updateReBtns(); renderGifts(); };
+async function loadReStatus() {
+  try {
+    const s = await api('GET', '/api/admin/gd/re-export/status');
+    $('g-re-status').innerHTML = s.waiting
+      ? `<b>${s.waiting} online gift${s.waiting === 1 ? '' : 's'} (${usd(s.waiting_total)}) not in Raiser's Edge yet.</b>${s.no_re_id ? ` <span style="color:#8a5a00">${s.no_re_id} of them ${s.no_re_id === 1 ? 'has' : 'have'} no RE ID (the donor is not on the list), so ${s.no_re_id === 1 ? 'its' : 'their'} ImportID will be blank and RE will need a manual match.</span>` : ''} ${s.imported} already marked imported.`
+      : `No online gifts waiting for RE. ${s.imported} marked imported.`;
+  } catch (e) { $('g-re-status').textContent = e.message; }
+}
+$('g-re-export').onclick = async () => {
+  const btn = $('g-re-export'), old = btn.textContent; btn.disabled = true; btn.textContent = '⬇ Building…';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.reload(); return; }
+    const q = gPicked.size ? '?ids=' + [...gPicked].map(encodeURIComponent).join(',') : '';
+    const r = await fetch('/api/admin/gd/re-export' + q, { headers: { Authorization: 'Bearer ' + session.access_token } });
+    if ((r.headers.get('Content-Type') || '').includes('application/json')) {
+      const j = await r.json();
+      if (j.empty) { toast(j.message); return; }
+      throw new Error(j.error || 'Export failed');
+    }
+    if (!r.ok) throw new Error('Export failed (' + r.status + ')');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob());
+    a.download = `gd-re-gift-import-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+    toast('Downloaded. Import it in RE, then check those gifts and click Mark Imported.');
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = old; }
+};
+$('g-re-mark').onclick = async () => {
+  if (!gPicked.size) { toast('Check the gifts you imported into RE first.', true); return; }
+  if (!confirm(`Mark ${gPicked.size} checked gift(s) as imported into Raiser's Edge? Only do this after the import succeeded in RE.`)) return;
+  try { const j = await api('POST', '/api/admin/gd/re-export/mark', { ids: [...gPicked] }); gPicked.clear(); updateReBtns(); toast(`${j.count} gift(s) marked as imported`); loadGifts(); }
+  catch (e) { toast(e.message, true); }
+};
+const RE_FIELDS = { campaign: 're-campaign', fund: 're-fund', appeal: 're-appeal', ack_status: 're-ack', letter: 're-letter', big_min: 're-bigmin', big_letter: 're-bigletter' };
+async function loadReSettings() {
+  try { const j = await api('GET', '/api/admin/gd/re-export/settings'); for (const [k, id] of Object.entries(RE_FIELDS)) $(id).value = j.settings[k] ?? ''; } catch (e) { /* shown when saving */ }
+}
+$('re-save').onclick = async () => {
+  const body = {}; for (const [k, id] of Object.entries(RE_FIELDS)) body[k] = $(id).value;
+  try { await api('PUT', '/api/admin/gd/re-export/settings', body); toast('Import settings saved'); } catch (e) { toast(e.message, true); }
 };
 function openGift(g) {
   editingGift = g; $('gf-error').style.display = 'none';

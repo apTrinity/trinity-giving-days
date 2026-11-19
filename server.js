@@ -2607,6 +2607,7 @@ try {
   require('./giving-days-mailchimp')(app, { supabase, requireAdmin });
   require('./giving-days-offline')(app, { supabase, requireAdmin, skyRequest });
   require('./giving-days-querytest')(app, { requireAdmin, skyRequest });
+  require('./giving-days-reexport')(app, { supabase, requireAdmin, skyRequest });
   require('./giving-days-gifts')(app, {
     supabase, requireAdmin, skyRequest, isLive: gdIsLive, loadCampaign: gdAdmin.loadCampaign,
     audiences: { loadPublished: gdAudiences.loadPublished, audienceFor: require('./giving-days-audiences').audienceFor },

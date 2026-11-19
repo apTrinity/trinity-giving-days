@@ -188,6 +188,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
           id: g.id, created_at: g.created_at, amount: Number(g.amount),
           first_name: g.first_name, last_name: g.last_name, email: g.email, anonymous: g.anonymous,
           is_test: g.is_test, excluded: g.excluded, has_donor: !!g.donor_id, source: g.source || null,
+          from_re: String(g.transaction_id || '').startsWith('re-'), re_synced_at: g.re_synced_at || null,
           class_year: g.class_year != null ? g.class_year : g._donor ? g._donor.class_year : null,
           grades: g.grades, tags: t.tags, tag_sources: t.sources,
           status: countStatus(g, s.data),
