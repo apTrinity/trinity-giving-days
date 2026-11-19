@@ -27,7 +27,7 @@ async function loadGifts(supabase) {
   const donors = {};
   for (let i = 0; i < ids.length; i += 200) {
     const { data, error } = await supabase.from('gd_donors')
-      .select('id, import_tags, tags_added, tags_removed, grades, class_year').in('id', ids.slice(i, i + 200));
+      .select('id, re_id, import_tags, tags_added, tags_removed, grades, class_year').in('id', ids.slice(i, i + 200));
     if (error) throw error;
     (data || []).forEach(d => { donors[d.id] = d; });
   }

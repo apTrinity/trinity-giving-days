@@ -141,6 +141,9 @@
     .gt .amt { font-weight: 700; font-size: 14px; white-space: nowrap; } .gt .dt { font-size: 12px; color: #aaa; }
     .gt .bdg { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; margin: 1px 2px 1px 0; }
     .gt .on { background: #EFF6FF; color: #2563EB; } .gt .offl { background: #F3F4F6; color: #6B7280; } .gt .gr { background: #F0FDF4; color: #166534; }
+    .gf-sec { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #aaa; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 6px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .rec { background: #faf9f7; border-radius: 8px; padding: 8px 12px; } .rec b { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #aaa; } .rec span { font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
     .gt .tg { white-space: nowrap; display: inline-block; margin: 1px 4px 1px 0; }
     .gt .imp { color: #16a34a; font-size: 11px; font-weight: 600; }
     .gt input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: #3730a3; }
@@ -428,20 +431,33 @@
     </section>
   </main>
 
-  <dialog id="gdlg" style="width:min(520px, calc(100vw - 24px))">
+  <dialog id="gdlg" style="width:min(640px, calc(100vw - 24px))">
     <div class="dlg-head"><h2>Edit gift</h2><button id="gdlg-x" aria-label="Close">×</button></div>
     <div class="gf-edit">
       <div class="hint" id="gf-info"></div>
+      <div class="gf-sec">Donor info</div>
+      <div class="grid2">
+        <div class="field" style="margin:0"><label for="gf-first">First name</label><input type="text" id="gf-first" maxlength="100"></div>
+        <div class="field" style="margin:0"><label for="gf-last">Last name</label><input type="text" id="gf-last" maxlength="100"></div>
+      </div>
+      <div class="field" style="margin:0"><label for="gf-email">Email</label><input type="email" id="gf-email" maxlength="200"></div>
+      <label class="check"><input type="checkbox" id="gf-anon"> Anonymous: hide the name on the donor wall</label>
+      <div class="gf-sec">Gift amount</div>
+      <div class="field" style="max-width:200px;margin:0"><label for="gf-amount">Amount ($)</label><input type="number" id="gf-amount" min="0.01" step="0.01"></div>
+      <p class="hint" id="gf-amount-hint" style="margin:0">Changes this record and the totals only. A payment already taken in Blackbaud is not changed.</p>
+      <div class="gf-sec">Affiliations</div>
       <div>
-        <label>Affiliations</label>
+        <label class="sr-only">Affiliations</label>
         <div class="chips" id="gf-tags"></div>
         <p class="hint" style="margin-top:6px">Blue: ticked on the form. Green: from the constituent's record (RE import). Yellow: set by hand. Changes here apply to this gift only.</p>
       </div>
       <div class="field" style="max-width:200px;margin:0"><label for="gf-year">Class year</label><input type="number" id="gf-year" min="1900" max="2100" step="1"></div>
       <label class="check"><input type="checkbox" id="gf-excl"> Don't count this gift (it stays recorded)</label>
+      <div class="gf-sec">Record info (read-only)</div>
+      <div class="grid2" id="gf-record"></div>
       <div class="err" id="gf-error"></div>
     </div>
-    <div class="dlg-foot"><span class="spacer"></span><button class="btn ghost" id="gf-cancel">Cancel</button><button class="btn" id="gf-save">Save</button></div>
+    <div class="dlg-foot"><button class="btn danger" id="gf-delete" style="display:none">Delete gift</button><span class="spacer"></span><button class="btn ghost" id="gf-cancel">Cancel</button><button class="btn" id="gf-save">Save</button></div>
   </dialog>
 </div>
 
@@ -1480,8 +1496,22 @@ function openGift(g) {
   $('gf-info').textContent = `${[g.first_name, g.last_name].filter(Boolean).join(' ')} · ${money(g.amount)} · ${when(g.created_at)}`;
   $('gf-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}"><input type="checkbox" value="${t.key}" ${g.tags.includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('');
   $('gf-year').value = g.class_year ?? ''; $('gf-excl').checked = g.excluded;
+  $('gf-first').value = g.first_name || ''; $('gf-last').value = g.last_name || ''; $('gf-email').value = g.email || '';
+  $('gf-anon').checked = !!g.anonymous; $('gf-amount').value = g.amount;
+  $('gf-amount').disabled = g.from_re;
+  $('gf-amount-hint').textContent = g.from_re ? "This gift came from Raiser's Edge, so its amount is set there. Change it in RE and the next import follows." : "Changes this record and the totals only. A payment already taken in Blackbaud is not changed.";
+  const rec = (k, v) => `<div class="rec"><b>${esc(k)}</b><span>${esc(v || '—')}</span></div>`;
+  $('gf-record').innerHTML = rec('Source', g.from_re ? 'offline (from RE)' : 'online' + (g.source ? ' · link tag ' + g.source : ''))
+    + rec('Donor record', g.has_donor ? (g.re_id ? 'RE ' + g.re_id : 'linked') : 'not linked')
+    + rec('Date', when(g.created_at)) + rec('In RE', g.from_re ? 'came from RE' : g.is_test ? 'test gift' : g.re_synced_at ? 'imported ' + when(g.re_synced_at) : 'not yet')
+    + `<div style="grid-column:1/-1">${rec('Transaction ID', g.transaction_id)}</div>`;
+  $('gf-delete').style.display = g.is_test ? '' : 'none';
   $('gdlg').showModal();
 }
+$('gf-delete').onclick = async () => {
+  if (!confirm(`Delete this test gift from ${editingGift.first_name || 'this donor'}? This can't be undone.`)) return;
+  try { await api('DELETE', '/api/admin/gd/gifts/' + editingGift.id); $('gdlg').close(); toast('Deleted'); loadGifts(); loadChallenges(); } catch (e) { const el = $('gf-error'); el.textContent = e.message; el.style.display = 'block'; }
+};
 $('gdlg-x').onclick = $('gf-cancel').onclick = () => $('gdlg').close();
 $('gf-save').onclick = async () => {
   const btn = $('gf-save'); btn.disabled = true; $('gf-error').style.display = 'none';
@@ -1489,6 +1519,8 @@ $('gf-save').onclick = async () => {
     await api('PUT', '/api/admin/gd/gifts/' + editingGift.id, {
       tags: [...document.querySelectorAll('#gf-tags input:checked')].map(i => i.value),
       class_year: $('gf-year').value === '' ? null : $('gf-year').value, excluded: $('gf-excl').checked,
+      first_name: $('gf-first').value, last_name: $('gf-last').value, email: $('gf-email').value, anonymous: $('gf-anon').checked,
+      amount: $('gf-amount').value,
     });
     $('gdlg').close(); toast('Saved'); loadGifts(); loadChallenges();
   } catch (e) { const el = $('gf-error'); el.textContent = e.message; el.style.display = 'block'; }

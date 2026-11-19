@@ -189,6 +189,7 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
           first_name: g.first_name, last_name: g.last_name, email: g.email, anonymous: g.anonymous,
           is_test: g.is_test, excluded: g.excluded, has_donor: !!g.donor_id, source: g.source || null,
           from_re: String(g.transaction_id || '').startsWith('re-'), re_synced_at: g.re_synced_at || null,
+          transaction_id: g.transaction_id, re_id: g._donor ? g._donor.re_id || null : null,
           class_year: g.class_year != null ? g.class_year : g._donor ? g._donor.class_year : null,
           grades: g.grades, tags: t.tags, tag_sources: t.sources,
           status: countStatus(g, s.data),
@@ -299,6 +300,20 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
         patch.class_year = y;
       }
     }
+    const has = k => Object.prototype.hasOwnProperty.call(b, k);
+    if (has('first_name')) patch.first_name = name(b.first_name) || null;
+    if (has('last_name')) patch.last_name = name(b.last_name) || null;
+    if (has('anonymous')) patch.anonymous = b.anonymous === true;
+    if (has('email')) {
+      const em = str(b.email, 200).toLowerCase();
+      if (em && !/^\S+@\S+\.\S+$/.test(em)) return res.status(400).json({ error: 'That email address is not valid.' });
+      patch.email = em || null;
+    }
+    if (has('amount')) {
+      const a = Number(b.amount);
+      if (!isFinite(a) || a <= 0 || a > 1000000) return res.status(400).json({ error: 'The amount must be between 0 and 1,000,000.' });
+      patch.amount = Math.round(a * 100) / 100;
+    }
     if (Object.prototype.hasOwnProperty.call(b, 'tags')) {
       if (!Array.isArray(b.tags)) return res.status(400).json({ error: 'tags must be a list.' });
       const bad = b.tags.find(t => !TAG_KEYS.includes(t));
@@ -309,6 +324,8 @@ module.exports = function mountGivingDaysGifts(app, { supabase, requireAdmin, sk
       const { data: g, error: ge } = await supabase.from('gd_gifts').select('*').eq('id', req.params.id).maybeSingle();
       if (ge) throw ge;
       if (!g) return res.status(404).json({ error: 'Gift not found.' });
+      // A gift that came from RE gets its amount from RE (the 30-minute import would put it back), so change it there.
+      if (patch.amount != null && String(g.transaction_id || '').startsWith('re-') && Math.abs(patch.amount - Number(g.amount)) > 0.001) return res.status(400).json({ error: "This gift came from Raiser's Edge, so its amount is set there. Change it in RE and the next import follows." });
       if (Array.isArray(b.tags)) {
         let donor = null;
         if (g.donor_id) {
