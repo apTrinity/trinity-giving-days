@@ -36,7 +36,8 @@ function config() {
   const maxAdds = parseInt(process.env.MAILCHIMP_MAX_ADDS || '500', 10), maxArchives = parseInt(process.env.MAILCHIMP_MAX_ARCHIVES || '100', 10);
   const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10), maxUntag = parseInt(process.env.MAILCHIMP_MAX_UNTAG || '200', 10);
   const maxSyncAgeH = parseFloat(process.env.MAILCHIMP_MAX_SYNC_AGE_H || '6');
-  return { key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
+  const overwritePurl = lc(process.env.MAILCHIMP_OVERWRITE_PURL) === 'on';   // replace PURL values that are not our own links
+  return { overwritePurl, key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
 }
 
 const base = c => `https://${c.dc}.api.mailchimp.com/3.0/lists/${c.list}`;
@@ -104,9 +105,9 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, blocking: [],
-    examples: { would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
+    examples: { purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
   const push = (k, v) => { if (r.examples[k].length < 15) r.examples[k].push(v); };
   for (const m of members) r.status_counts[m.status] = (r.status_counts[m.status] || 0) + 1;
@@ -138,7 +139,11 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     r.would_untag_appeal += remove.filter(t => t.startsWith(APPEAL_PREFIX)).length;
     const setReid = String(mf.RE_ID || '') !== w.reid;
     if (setReid) r.would_set_reid++;
-    const setPurl = !!w.purl && String(mf.PURL || '') !== w.purl;
+    // An existing PURL that is not one of our links (older campaigns) is left alone unless MAILCHIMP_OVERWRITE_PURL=on.
+    const curPurl = String(mf.PURL || '').trim();
+    const foreignPurl = !!curPurl && !curPurl.startsWith(SITE + '/');
+    if (w.purl && foreignPurl && curPurl !== w.purl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
+    const setPurl = !!w.purl && curPurl !== w.purl && (!foreignPurl || !!limits.overwritePurl);
     if (setPurl) r.would_set_purl++;
     if (addTags.length || setReid || setPurl) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, tags: addTags });
     if (remove.length) actions.removals.push({ email: w.email, remove });
@@ -254,7 +259,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         }
       }
       const { members, donors, gave } = await load(cfg);
-      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag });
+      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl });
       lastBlocking = report.blocking;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
