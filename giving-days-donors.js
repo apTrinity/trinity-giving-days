@@ -122,8 +122,9 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (!shieldAt) { try { data.campaign = await loadCampaign(); } catch (err) { console.error('giving-days page campaign:', err.message); } }
     let known = null;   // null: nobody was looked up; false: a code was tried and is not a donor
     let auds = [];
-    if (audiences && !shieldAt) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
-    if (auds.length) data.audiences = auds;  // so a visitor without a personal link still sees the text for what they tick on the form
+    // While the teaser is up the audience texts are loaded only for a personal-link visitor (to work out their own message), never shipped to the page.
+    if (audiences && (!shieldAt || (token && !persona))) { try { auds = await audiences.loadPublished(); } catch (err) { console.error('giving-days page audiences:', err.message); } }
+    if (auds.length && !shieldAt) data.audiences = auds;  // so a visitor without a personal link still sees the text for what they tick on the form
     const finish = me => {
       me.qualifies = ((data.campaign && data.campaign.challenges) || []).filter(c => qualifies(c, me)).map(c => c.id);
       me.audience = audiences ? audiences.audienceFor(auds, me, qualifies) : null;
@@ -132,7 +133,7 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (persona) {
       finish({ ...persona, demo: true });
       data.demo = true;
-    } else if (token && !shieldAt && lookupAllowed()) {   // no lookup while the teaser is up (nothing personal is shown then)
+    } else if (token && lookupAllowed()) {   // 2026-11-21: also while the teaser is up, so a personal link from an early-giving email still shows the visitor's own asks
       try {
         const { data: d, error } = await supabase.from('gd_donors')
           .select('first_name, last_name, email, class_year, grades, ly_gift, ask_a, ask_b, appeal_code, import_tags, tags_added, tags_removed').eq('token', token.toLowerCase()).maybeSingle();
