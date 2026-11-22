@@ -6,7 +6,8 @@
 //   - adds the tags "Gave 26-27" (household has given this year) and "Appeal: <code>" (RE appeal code),
 //     and removes them again when they stop being true. No other tag on a contact is ever touched.
 //   - saves each person's RE ID in the RE_ID merge field, so a changed email can be recognised later
-//   - saves each person's personal link in the PURL merge field (use *|PURL|* in an email), the same person whose RE ID is saved
+//   - saves each person's personal-link CODE (6 characters, e.g. k7m2xp) in the PURL merge field; in an email the link is
+//     https://giving.trinityschoolnyc.org/*|PURL|* . It is the same person whose RE ID is saved
 //   - archives an old address only when the same RE ID now has a different email AND nobody else here uses the old one
 // It never re-subscribes anyone (unsubscribed, cleaned and other non-subscribed contacts are left alone),
 // never deletes anyone, and never overwrites the name of an existing contact.
@@ -25,8 +26,7 @@ const GAVE_TAG = 'Gave 26-27';
 const APPEAL_PREFIX = 'Appeal: ';
 const appealTag = code => APPEAL_PREFIX + code;
 const lc = v => String(v || '').trim().toLowerCase();
-const SITE = (process.env.GD_PUBLIC_URL || 'https://giving.trinityschoolnyc.org').replace(/\/+$/, '');
-const purlOf = d => (d && d.token ? `${SITE}/${d.token}` : '');
+const purlOf = d => (d && d.token ? String(d.token).toLowerCase() : '');   // just the 6-character code; the email builds the link: giving.trinityschoolnyc.org/*|PURL|*
 const hashOf = email => crypto.createHash('md5').update(lc(email)).digest('hex');
 
 function config() {
@@ -139,10 +139,10 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     r.would_untag_appeal += remove.filter(t => t.startsWith(APPEAL_PREFIX)).length;
     const setReid = String(mf.RE_ID || '') !== w.reid;
     if (setReid) r.would_set_reid++;
-    // An existing PURL that is not one of our links (older campaigns) is replaced, unless MAILCHIMP_OVERWRITE_PURL=off.
+    // PURL holds just the code. Anything else in it (older links) is replaced, unless MAILCHIMP_OVERWRITE_PURL=off.
     const curPurl = String(mf.PURL || '').trim();
-    const foreignPurl = !!curPurl && !curPurl.startsWith(SITE + '/');
-    if (w.purl && foreignPurl && curPurl !== w.purl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
+    const foreignPurl = !!curPurl && !/^[a-hj-km-np-z2-9]{6}$/i.test(curPurl);
+    if (w.purl && foreignPurl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
     const setPurl = !!w.purl && curPurl !== w.purl && (!foreignPurl || !!limits.overwritePurl);
     if (setPurl) r.would_set_purl++;
     if (addTags.length || setReid || setPurl) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, tags: addTags });
