@@ -1214,13 +1214,25 @@ function renderMc(r) {
     <details><summary><b>Old addresses that would be archived</b></summary><ul>${li(x.examples.would_archive)}</ul></details>
     <details><summary><b>Names that differ (informational): ${n(x.name_differs)}</b></summary>
       ${x.name_kinds ? Object.entries(x.name_kinds).sort((p, q) => q[1] - p[1]).map(([k, c]) => `<details style="margin-left:14px"><summary>${esc(NAME_KINDS[k] || k)}: <b>${n(c)}</b></summary><ul>${li((x.examples.name_by_kind || {})[k] || [])}</ul></details>`).join('') : `<ul>${li(x.examples.name_differs)}</ul>`}
-      <p class="hint" style="margin-left:14px"><a href="/api/admin/gd/mailchimp/names.csv">Download all names that differ (CSV)</a></p>
+      <p class="hint" style="margin-left:14px"><a href="#" id="mc-names-dl">Download all names that differ (CSV)</a></p>
     </details>
     <details><summary><b>In Mailchimp only</b></summary><ul>${li(x.examples.mailchimp_only)}</ul></details>
     <details><summary><b>Not subscribed (skipped)</b></summary><ul>${li(x.examples.skipped_not_subscribed)}</ul></details>
     <p class="hint">Examples show up to 15 each · ${r.seconds}s · ${esc(r.finished ? new Date(r.finished).toLocaleString() : '')}</p>`;
 }
-const NAME_KINDS = { case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)', last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
+document.addEventListener('click', async e => {
+  const a = e.target.closest('#mc-names-dl'); if (!a) return;
+  e.preventDefault();
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.reload(); return; }
+    const r = await fetch('/api/admin/gd/mailchimp/names.csv', { headers: { Authorization: 'Bearer ' + session.access_token } });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Request failed (' + r.status + ')');
+    const url = URL.createObjectURL(await r.blob()), l = document.createElement('a');
+    l.href = url; l.download = 'mailchimp-names-that-differ.csv'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (err) { toast(err.message, true); }
+});
+const NAME_KINDS = { middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)', last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
 let mcWatching = false;
 async function pollMc() {
   clearTimeout(mcTimer);

@@ -13,6 +13,7 @@
 
 const axios = require('axios');
 const { parse } = require('csv-parse/sync');
+const { decodeCsv } = require('./giving-days-text');
 const { TAGS } = require('./giving-days-admin');
 const { makeToken } = require('./giving-days-donors');
 const { fetchAll } = require('./giving-days-progress');
@@ -205,7 +206,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       const j = await skyRequest({ method: 'get', url: 'https://api.sky.blackbaud.com/query/jobs/' + jobId, params: { product: 'RE', module: 'None', include_read_url: 1 } });
       const st = j.data && j.data.status;
       if (st === 'Completed') {
-        const csv = (await axios.get(j.data.sas_uri, { responseType: 'text', timeout: 120000 })).data;
+        const csv = decodeCsv((await axios.get(j.data.sas_uri, { responseType: 'arraybuffer', timeout: 120000 })).data);
         return parse(csv, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
       }
       if (['Failed', 'Cancelled'].includes(st)) throw new Error('The RE query job ' + st.toLowerCase() + '.');
@@ -256,7 +257,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
         missing_roles: Object.keys(ALIASES).filter(r => !roles[r]).map(r => ROLE_LABEL[r]), unmatched_columns: unmatched,
         issues, examples, primary_codes: codes, unknown_tags: unknownTags, asks_frozen: !!frozen,
         skipped_fields: stillBlank, newly_inactive: newlyGone.length, inactive_limit: maxNewlyInactive(activeNow.length),
-        would: { add: adds.length, update: changes.length, unchanged: people.length - adds.length - changes.length, missing_from_query: missing.length, changed_fields: changedBy, blank_email_kept: blankKept.email },
+        would: { add: adds.length, update: changes.length, unchanged: people.length - adds.length - changes.length, missing_from_query: missing.length, missing_demo: missing.filter(d => !/^\d+$/.test(String(d.re_id))).length, changed_fields: changedBy, blank_email_kept: blankKept.email },
         sample: people.slice(0, 5),
         blocking: [!roles.re_id && 'The query has no RE ID column.', !(roles.first || roles.nick) && !roles.last && 'The query has no name columns.', !roles.email && 'The query has no email column.',
           !people.length && 'The query returned no people.',

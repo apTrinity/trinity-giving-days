@@ -76,7 +76,7 @@ async function fetchMembers(c) {
 }
 
 // ---- Why does a Mailchimp name differ from the donor table? (informational only: names are never overwritten) ----
-const NICK = [['william','bill','billy','will','willy','liam'],['robert','bob','bobby','rob','robbie','bert'],['richard','rick','ricky','rich','dick'],['james','jim','jimmy','jamie'],
+const NICK = [['laurence','lawrence','larry','laurie'],['leopold','leo'],['alexander','alec','alex','xander'],['harold','harry','hal'],['frederick','rick','ricky','fred'],['stephenson','steve','tony'],['morton','mort','buddy'],['diana','diane','di','darcy'],['william','bill','billy','will','willy','liam'],['robert','bob','bobby','rob','robbie','bert'],['richard','rick','ricky','rich','dick'],['james','jim','jimmy','jamie'],
   ['john','jack','johnny','jon'],['michael','mike','mikey','mick'],['thomas','tom','tommy'],['charles','chuck','charlie','chaz'],['joseph','joe','joey'],['daniel','dan','danny'],
   ['matthew','matt'],['anthony','tony'],['christopher','chris','kit'],['nicholas','nick','nicky'],['edward','ed','eddie','ted','ned'],['benjamin','ben','benny'],['samuel','sam','sammy'],
   ['alexander','alex','sandy','xander'],['andrew','andy','drew'],['jonathan','jon','jonny'],['stephen','steven','steve'],['timothy','tim','timmy'],['patrick','pat','paddy'],['peter','pete'],
@@ -97,11 +97,15 @@ function nameKind(mf, w) {
   const sameLast = letters(a2) === letters(b2), sameFirst = letters(a1) === letters(b1);
   if (sameFirst) return 'last_name_differs';
   if (!sameLast) return 'both_differ';
+  const toks = v => lc(v).split(/[\s.]+/).map(t => t.replace(/[^a-z\u00c0-\u024f]/g, '')).filter(Boolean);
+  const ta = toks(a1), tb = toks(b1);
+  if ((tb.length && tb.every(t => ta.includes(t))) || (ta.length && ta.every(t => tb.includes(t)))) return 'middle_name_or_initial';   // "W. Nelson" vs "Nelson", "Mara Anne" vs "Mara"
   const x = letters(a1), y = letters(b1);
-  const near = (NICK_OF.get(x) && NICK_OF.get(x).has(y)) || (x.length >= 2 && y.length >= 2 && (x.startsWith(y) || y.startsWith(x))) || (x.length === 1 || y.length === 1) && x[0] === y[0];
+  if (x.length === 1 || y.length === 1) return 'middle_name_or_initial';
+  const near = (NICK_OF.get(x) && NICK_OF.get(x).has(y)) || (x.length >= 2 && y.length >= 2 && (x.startsWith(y) || y.startsWith(x)));
   return near ? 'nickname_or_short_form' : 'first_name_differs';
 }
-const NAME_KIND_LABEL = { case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)',
+const NAME_KIND_LABEL = { middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)',
   last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
 
 // Pure planning step (easy to test): donors + gift info + current Mailchimp members -> { report, actions }.
