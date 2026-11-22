@@ -9,8 +9,10 @@
 //   - saves each person's personal-link CODE (6 characters, e.g. k7m2xp) in the PURL merge field; in an email the link is
 //     https://giving.trinityschoolnyc.org/*|PURL|* . It is the same person whose RE ID is saved
 //   - archives an old address only when the same RE ID now has a different email AND nobody else here uses the old one
+//   - sets an existing contact's FIRST name to the RE preferred (nickname) name, else RE first name (never when it contains a broken
+//     accent, and not when the last names differ: that may be a different person on the address). Last names are only filled when blank.
 // It never re-subscribes anyone (unsubscribed, cleaned and other non-subscribed contacts are left alone),
-// never deletes anyone, and never overwrites the name of an existing contact.
+// never deletes anyone, and never changes an existing contact's LAST name (blank ones are filled).
 //
 // Needs on Render: MAILCHIMP_API_KEY, MAILCHIMP_SERVER_PREFIX (e.g. us12), MAILCHIMP_AUDIENCE_ID.
 // Optional: MAILCHIMP_NEW_STATUS (default "subscribed"), MAILCHIMP_MAX_ADDS (default 500), MAILCHIMP_MAX_ARCHIVES (default 100),
@@ -35,9 +37,10 @@ function config() {
   const newStatus = ['subscribed', 'pending'].includes(lc(process.env.MAILCHIMP_NEW_STATUS)) ? lc(process.env.MAILCHIMP_NEW_STATUS) : 'subscribed';
   const maxAdds = parseInt(process.env.MAILCHIMP_MAX_ADDS || '500', 10), maxArchives = parseInt(process.env.MAILCHIMP_MAX_ARCHIVES || '100', 10);
   const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10), maxUntag = parseInt(process.env.MAILCHIMP_MAX_UNTAG || '200', 10);
+  const maxNames = parseInt(process.env.MAILCHIMP_MAX_NAME_UPDATES || '600', 10);
   const maxSyncAgeH = parseFloat(process.env.MAILCHIMP_MAX_SYNC_AGE_H || '6');
   const overwritePurl = lc(process.env.MAILCHIMP_OVERWRITE_PURL) !== 'off';   // the PURL field belongs to this sync: older values are replaced (set to 'off' to leave them)
-  return { overwritePurl, key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
+  return { overwritePurl, maxNames, key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
 }
 
 const base = c => `https://${c.dc}.api.mailchimp.com/3.0/lists/${c.list}`;
@@ -138,7 +141,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, name_kinds: {}, blocking: [],
     examples: { name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
@@ -164,12 +167,19 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
       r.skipped_not_subscribed++; push('skipped_not_subscribed', `${w.email} (${m.status})`); continue;
     }
     const mf = m.merge_fields || {}, tags = (m.tags || []).map(t => t.name);
-    if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last)) {
+    let fixFirst = null, fixLast = null;   // Mailchimp's FIRST name follows RE: the preferred (nickname) name if there is one, else the first name
+    if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last) || String(mf.FNAME || '').trim() !== w.first) {
       const kind = nameKind(mf, w);
+      const clean = !!w.first && !/\ufffd/.test(w.first + w.last);   // never write a name with a broken accent into Mailchimp
+      const sameWho = !['last_name_differs', 'both_differ'].includes(kind);   // a different last name may be a different person on that address: leave those
+      const caseOnlyJunk = lc(mf.FNAME) === lc(w.first) && (w.first === w.first.toLowerCase() || w.first === w.first.toUpperCase());   // RE has "bill" or "BILL": keep Mailchimp's capitalization
+      if (clean && sameWho && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) { fixFirst = w.first; r.would_set_fname++; }
+      else if (!caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) r.fname_left++;
+      if (clean && kind === 'blank_in_mailchimp' && !String(mf.LNAME || '').trim() && w.last) fixLast = w.last;
       r.name_kinds[kind] = (r.name_kinds[kind] || 0) + 1;
       const ex = r.examples.name_by_kind[kind] || (r.examples.name_by_kind[kind] = []);
       if (ex.length < 15) ex.push(`${mf.FNAME || ''} ${mf.LNAME || ''} -> ${w.first} ${w.last}`.replace(/\s+/g, ' ').trim());
-      names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
+      names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], fix: fixFirst ? 'yes' : 'no', mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
       r.name_differs++; push('name_differs', `${w.email}: Mailchimp "${(mf.FNAME || '') + ' ' + (mf.LNAME || '')}" -> "${w.first} ${w.last}"`); }
     const addTags = tagsWanted.filter(t => !tags.includes(t));
     const remove = tags.filter(t => (t === GAVE_TAG && !w.gave) || (t.startsWith(APPEAL_PREFIX) && t !== (w.appeal ? appealTag(w.appeal) : null)));
@@ -185,7 +195,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     if (w.purl && foreignPurl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
     const setPurl = !!w.purl && curPurl !== w.purl && (!foreignPurl || !!limits.overwritePurl);
     if (setPurl) r.would_set_purl++;
-    if (addTags.length || setReid || setPurl) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, tags: addTags });
+    if (addTags.length || setReid || setPurl || fixFirst || fixLast) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, fname: fixFirst, lname: fixLast, tags: addTags });
     if (remove.length) actions.removals.push({ email: w.email, remove });
   }
 
@@ -214,6 +224,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   if (limits.maxUntag != null && r.would_untag_gave > limits.maxUntag) r.blocking.push(`${r.would_untag_gave} people would lose the Gave 26-27 tag, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). A drop like that usually means the giving column went missing from the RE query: check the sync first.`);
   if (limits.maxUntag != null && r.would_untag_appeal > limits.maxUntag) r.blocking.push(`${r.would_untag_appeal} Appeal tags would be removed from people still on the list, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). Check that the Appeal Code column is still in the RE query.`);
   if (limits.maxStale != null && r.would_untag_stale > limits.maxStale) r.blocking.push(`${r.would_untag_stale} people who left the list would lose their Appeal tag, more than the safety limit of ${limits.maxStale} (MAILCHIMP_MAX_STALE). That many at once usually means the RE query came back short: check the sync first.`);
+  if (limits.maxNames != null && r.would_set_fname > limits.maxNames) r.blocking.push(`${r.would_set_fname} first names would change in Mailchimp, more than the safety limit of ${limits.maxNames} (MAILCHIMP_MAX_NAME_UPDATES). Check the "Names that differ" list, then raise the limit on Render.`);
   if (limits.maxArchives != null && actions.archives.length > limits.maxArchives) r.blocking.push(`${actions.archives.length} archives is more than the safety limit of ${limits.maxArchives} (MAILCHIMP_MAX_ARCHIVES).`);
   return { report: r, actions, names };
 }
@@ -300,7 +311,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         }
       }
       const { members, donors, gave } = await load(cfg);
-      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl });
+      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl, maxNames: cfg.maxNames });
       lastBlocking = report.blocking; lastNames = names;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
@@ -316,7 +327,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       summary.merge_fields_created = await ensureMergeFields(cfg);
       const upserts = [
         ...actions.adds.map(a => ({ email_address: a.email, status: cfg.newStatus, merge_fields: { FNAME: a.first, LNAME: a.last, RE_ID: a.reid, PURL: a.purl }, tags: a.tags })),
-        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; const mf = {}; if (u.reid) mf.RE_ID = u.reid; if (u.purl) mf.PURL = u.purl; if (Object.keys(mf).length) o.merge_fields = mf; if (u.tags.length) o.tags = u.tags; return o; }),
+        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; const mf = {}; if (u.reid) mf.RE_ID = u.reid; if (u.purl) mf.PURL = u.purl; if (u.fname) mf.FNAME = u.fname; if (u.lname) mf.LNAME = u.lname; if (Object.keys(mf).length) o.merge_fields = mf; if (u.tags.length) o.tags = u.tags; return o; }),
       ];
       await batchUpsert(cfg, upserts, summary);
       await pool(actions.removals, 8, async x => {
@@ -397,10 +408,10 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
 
   app.get('/api/admin/gd/mailchimp/names.csv', requireAdmin, (req, res) => {
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const head = ['Email', 'Why it differs', 'Mailchimp first', 'Mailchimp last', 'Donor table first', 'Donor table last'];
+    const head = ['Email', 'Why it differs', 'First name will change', 'Mailchimp first', 'Mailchimp last', 'Donor table first', 'Donor table last'];
     const rows = [...lastNames].sort((a, b) => a.kind.localeCompare(b.kind) || a.email.localeCompare(b.email));
     res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="mailchimp-names-that-differ.csv"', 'Cache-Control': 'no-store' });
-    res.send([head, ...rows.map(n => [n.email, n.kind, n.mc_first, n.mc_last, n.here_first, n.here_last])].map(r => r.map(q).join(',')).join('\n') + '\n');
+    res.send([head, ...rows.map(n => [n.email, n.kind, n.fix, n.mc_first, n.mc_last, n.here_first, n.here_last])].map(r => r.map(q).join(',')).join('\n') + '\n');
   });
 
   app.post('/api/admin/gd/mailchimp/preview', requireAdmin, (req, res) => {
