@@ -121,6 +121,7 @@
     .chips.gradechips label { padding: 5px 13px; font-size: 13px; color: #666; border: 2px solid #e5e4e1; transition: all .12s; }
     .chips.gradechips label:hover { border-color: var(--navy); color: var(--navy); }
     .chips.gradechips label:has(input:checked) { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .chips.gradechips label.hidden-tag { border-style: dashed; }   /* affiliations not on the gift form (marked *) */
     .chips.gradechips input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
     .chips.gradechips label:has(input:focus-visible) { outline: 2px solid var(--navy); outline-offset: 2px; }
     .chips.small label { padding: 3px 10px; font-size: 13px; }
@@ -276,7 +277,7 @@
             <div class="field"><label for="a-heading">Heading on the form</label><input type="text" id="a-heading" maxlength="80"><div class="count" id="a-hcount"></div></div>
             <div class="field"><label for="a-body">Text on the form</label><textarea id="a-body" maxlength="900"></textarea><div class="count" id="a-bcount"></div>
               <p class="hint" style="margin-top:4px">You can use <code>{{first_name}}</code>, <code>{{class_year}}</code> and <code>{{ly_gift}}</code> (last year's gift).</p></div>
-            <div class="field"><label>Who sees it: affiliations (any of)</label><div class="chips" id="a-tags"></div></div>
+            <div class="field"><label>Who sees it: affiliations (any of)</label><div class="chips gradechips" id="a-tags"></div></div>
             <div class="field"><label>Current parents of grade (any of)</label><div class="chips gradechips" id="a-grades"></div></div>
             <div class="field"><label for="a-years">Specific class years (optional)</label><input type="text" id="a-years" placeholder="2007, 2012, 2017, 2022"><p class="hint" style="margin-top:4px">For reunion classes. Leave blank for no limit.</p></div>
             <div class="grid2">
@@ -459,7 +460,7 @@
       <div class="gf-sec">Affiliations</div>
       <div>
         <label class="sr-only">Affiliations</label>
-        <div class="chips" id="gf-tags"></div>
+        <div class="chips gradechips" id="gf-tags"></div>
         <p class="hint" style="margin-top:6px">Blue: ticked on the form. Green: from the constituent's record (RE import). Yellow: set by hand. Changes here apply to this gift only.</p>
       </div>
       <div class="field" style="max-width:200px;margin:0"><label for="gf-year">Class year</label><input type="number" id="gf-year" min="1900" max="2100" step="1"></div>
@@ -485,7 +486,7 @@
       <div class="field" style="margin:0"><label for="dd-b">Ask B ($)</label><input type="number" id="dd-b" min="0" step="1"></div>
     </div>
     <div><label>Current parent of grade</label><div class="chips gradechips" id="dd-grades"></div></div>
-    <div><label>Affiliations</label><div class="chips" id="dd-tags"></div>
+    <div><label>Affiliations</label><div class="chips gradechips" id="dd-tags"></div>
       <p class="hint" style="margin-top:6px">Changes here are kept when the Raiser's Edge data is re-imported, except the class year, grades, last year's gift and asks, which a re-import resets.</p></div>
     <div><label>Personal link</label><a id="dd-link" target="_blank" rel="noopener" style="font-size:14px;word-break:break-all"></a></div>
     <div class="err" id="dd-error"></div>
@@ -512,7 +513,7 @@
       <div class="field"><label for="f-desc">Description</label><textarea id="f-desc" maxlength="400"></textarea><div class="count" id="desc-count"></div></div>
       <div class="field"><label>Who counts</label>
         <p class="hint" style="margin-bottom:8px">A gift counts if the donor has <b>any</b> of the checked affiliations. Check none to count everyone.</p>
-        <div class="chips" id="f-tags"></div>
+        <div class="chips gradechips" id="f-tags"></div>
         <p class="hint" style="margin:10px 0 6px">Optional: limit to current parents of certain grades.</p>
         <div class="chips gradechips" id="f-grades"></div>
         <p class="hint" style="margin:10px 0 6px">Optional: limit to alumni by class year (leave blank for any).</p>
