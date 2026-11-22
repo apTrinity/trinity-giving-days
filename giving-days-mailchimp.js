@@ -36,7 +36,7 @@ function config() {
   const maxAdds = parseInt(process.env.MAILCHIMP_MAX_ADDS || '500', 10), maxArchives = parseInt(process.env.MAILCHIMP_MAX_ARCHIVES || '100', 10);
   const maxStale = parseInt(process.env.MAILCHIMP_MAX_STALE || '200', 10), maxUntag = parseInt(process.env.MAILCHIMP_MAX_UNTAG || '200', 10);
   const maxSyncAgeH = parseFloat(process.env.MAILCHIMP_MAX_SYNC_AGE_H || '6');
-  const overwritePurl = lc(process.env.MAILCHIMP_OVERWRITE_PURL) === 'on';   // replace PURL values that are not our own links
+  const overwritePurl = lc(process.env.MAILCHIMP_OVERWRITE_PURL) !== 'off';   // the PURL field belongs to this sync: older values are replaced (set to 'off' to leave them)
   return { overwritePurl, key, dc, list, missing, newStatus, maxAdds, maxArchives, maxStale, maxUntag, maxSyncAgeH };
 }
 
@@ -139,7 +139,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     r.would_untag_appeal += remove.filter(t => t.startsWith(APPEAL_PREFIX)).length;
     const setReid = String(mf.RE_ID || '') !== w.reid;
     if (setReid) r.would_set_reid++;
-    // An existing PURL that is not one of our links (older campaigns) is left alone unless MAILCHIMP_OVERWRITE_PURL=on.
+    // An existing PURL that is not one of our links (older campaigns) is replaced, unless MAILCHIMP_OVERWRITE_PURL=off.
     const curPurl = String(mf.PURL || '').trim();
     const foreignPurl = !!curPurl && !curPurl.startsWith(SITE + '/');
     if (w.purl && foreignPurl && curPurl !== w.purl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
