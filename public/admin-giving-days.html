@@ -138,7 +138,10 @@
     table.gt tr.gt-dim td { opacity: .55; }
     .gt .nm { font-weight: 600; color: var(--navy); } .gt .anon { font-style: italic; color: #bbb; font-weight: 400; }
     .gt .sub { font-size: 11px; color: #aaa; margin-top: 2px; }
-    .gt .amt { font-weight: 700; font-size: 14px; white-space: nowrap; } .gt .dt { font-size: 12px; color: #aaa; }
+    .gt .amt { font-weight: 700; font-size: 14px; white-space: nowrap; } .gt .dt { font-size: 12px; color: #666; white-space: nowrap; } .gt .dt .sub { color: #aaa; }
+    .gt td.act { white-space: nowrap; text-align: right; }
+    .gt td.amt, .gt td:nth-child(6) { white-space: nowrap; }
+    .gt .pill { display: inline-block; margin: 1px 0; }
     .gt .bdg { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; margin: 1px 2px 1px 0; }
     .gt .on { background: #EFF6FF; color: #2563EB; } .gt .offl { background: #F3F4F6; color: #6B7280; } .gt .gr { background: #F0FDF4; color: #166534; }
     .gf-sec { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #aaa; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 6px; }
@@ -1105,7 +1108,7 @@ function renderSync(r) {
   const ch = Object.entries(w.changed_fields).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') || 'none';
   out.innerHTML = `
     <p><b>${applied ? 'Applied.' : 'Preview.'}</b> ${x.rows} household rows from the query became <b>${x.people}</b> people (couples split into two).
-      ${applied ? 'Added' : 'Would add'} <b>${w.add}</b>, ${applied ? 'updated' : 'would update'} <b>${w.update}</b> (changed fields — ${ch}), ${w.unchanged} unchanged, ${w.missing_from_query} on the list but not in the query (${applied ? 'marked inactive' : 'would be marked inactive'}).</p>
+      ${applied ? 'Added' : 'Would add'} <b>${w.add}</b>, ${applied ? 'updated' : 'would update'} <b>${w.update}</b> (changed fields — ${ch}), ${w.unchanged} unchanged, ${(() => { const demo = w.missing_demo || 0, real = w.missing_from_query - demo; return `${real} left out by the query (usually do not solicit or another RE filter; ${applied ? 'kept on the list as inactive' : 'would be kept as inactive'})${demo ? `, plus ${demo} demo record${demo === 1 ? '' : 's'}` : ''}`; })()}.</p>
     ${x.blocking.length ? `<p style="color:#b91c1c"><b>Cannot apply:</b> ${esc(x.blocking.join(' '))}</p>` : ''}
     ${x.asks_frozen ? '<p class="hint">Giving Days have started, so Ask A/B are frozen for existing donors.</p>' : ''}
     ${(x.skipped_fields || []).length ? `<p class="hint" style="color:#8a5a00">Left alone because the query no longer returns their columns: ${esc(x.skipped_fields.join(', '))}. Stored values are not changed.</p>` : ''}
@@ -1303,6 +1306,8 @@ let offAlertTimer = null;   // started in enter(), after sign-in (before that, t
 // ── Gifts ──
 let gifts = [], editingGift = null, reSettingsLoaded = false;
 const STATUS = { counts: ['ok', 'Counts'], test: ['test', 'Test · not counted'], early: ['off', 'Before counting starts'], late: ['off', 'After the campaign'], excluded: ['off', 'Excluded'] };
+const whenDay = iso => new Date(iso).toLocaleDateString('en-US', { timeZone: ET, month: 'short', day: 'numeric' });
+const whenTime = iso => new Date(iso).toLocaleTimeString('en-US', { timeZone: ET, hour: 'numeric', minute: '2-digit' });
 const when = iso => new Date(iso).toLocaleString('en-US', { timeZone: ET, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 async function loadGifts() {
   try {
@@ -1403,15 +1408,15 @@ function renderGifts() {
       : exportableGift(g) ? `<input type="checkbox" class="g-pick" aria-label="Select this gift" ${gPicked.has(g.id) ? 'checked' : ''}>` : '';
     return `<tr data-id="${g.id}" class="${g.re_synced_at ? 'gt-dim' : ''}">
       <td data-stop="1">${first}</td>
-      <td style="white-space:nowrap">${name}${detail ? `<div class="sub">${esc(detail)}</div>` : ''}</td>
+      <td style="min-width:120px">${name}${detail ? `<div class="sub">${esc(detail)}</div>` : ''}</td>
       <td style="color:#666;font-size:12px;word-break:break-word;min-width:140px">${esc(g.email || '—')}</td>
       <td>${tags || '<span style="color:#ddd">—</span>'}</td>
       <td class="amt">${money(g.amount)}</td>
       <td>${grades}</td>
       <td>${src}</td>
       <td><span class="pill ${cls}">${esc(txt)}</span>${g.is_test && g.status !== 'test' ? '<span class="pill test">Test gift</span>' : ''}</td>
-      <td class="dt">${esc(when(g.created_at))}</td>
-      <td data-stop="1" style="white-space:nowrap"><button class="btn small" data-act="edit">Edit</button>${g.is_test ? ' <button class="btn small danger" data-act="del">Delete</button>' : ''}</td>
+      <td class="dt">${esc(whenDay(g.created_at))}<div class="sub">${esc(whenTime(g.created_at))}</div></td>
+      <td data-stop="1" class="act"><button class="btn small" data-act="edit">Edit</button>${g.is_test ? ' <button class="btn small danger" data-act="del">Delete</button>' : ''}</td>
     </tr>`;
   }).join('');
   el.innerHTML = `<div class="gt-wrap"><div class="gt-count">${count}</div>
