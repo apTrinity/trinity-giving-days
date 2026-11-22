@@ -11,6 +11,7 @@
 //   - archives an old address only when the same RE ID now has a different email AND nobody else here uses the old one
 //   - sets an existing contact's FIRST name to the RE preferred (nickname) name, else RE first name (never when it contains a broken
 //     accent, and not when the last names differ: that may be a different person on the address). Last names are only filled when blank.
+//     A name with broken accents from an old import ("Pi\ufffdero") is repaired from RE when everything else about it matches.
 // It never re-subscribes anyone (unsubscribed, cleaned and other non-subscribed contacts are left alone),
 // never deletes anyone, and never changes an existing contact's LAST name (blank ones are filled).
 //
@@ -92,9 +93,16 @@ const NICK = [['laurence','lawrence','larry','laurie'],['leopold','leo'],['alexa
 const NICK_OF = new Map();
 for (const g of NICK) for (const a of g) { if (!NICK_OF.has(a)) NICK_OF.set(a, new Set()); g.forEach(b => b !== a && NICK_OF.get(a).add(b)); }
 const letters = v => lc(v).replace(/[^a-z\u00c0-\u024f]/g, '');
+// A Mailchimp name with broken accents ("Pi\ufffdero") that matches the clean RE name ("Pi\u00f1ero") everywhere else is the same name, damaged by an old import.
+const brokenMatch = (mc, ours) => {
+  const a = String(mc || '').trim(), b = String(ours || '').trim();
+  return a.includes('\ufffd') && !!b && !b.includes('\ufffd') && new RegExp('^' + a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\ufffd/g, '.') + '$', 'i').test(b);
+};
 function nameKind(mf, w) {
   const a1 = String(mf.FNAME || '').trim(), a2 = String(mf.LNAME || '').trim(), b1 = w.first, b2 = w.last;
   if (!a1 || !a2) return 'blank_in_mailchimp';
+  const okF = letters(a1) === letters(b1) || brokenMatch(a1, b1), okL = letters(a2) === letters(b2) || brokenMatch(a2, b2);
+  if (okF && okL && (brokenMatch(a1, b1) || brokenMatch(a2, b2))) return 'broken_accent_in_mailchimp';
   if (letters(a1) === letters(b1) && letters(a2) === letters(b2)) return 'case_or_punctuation';
   if (/\s(&|and)\s/i.test(a1 + ' ' + b1) || (a1.includes('&') !== b1.includes('&'))) return 'couple_or_combined';
   const sameLast = letters(a2) === letters(b2), sameFirst = letters(a1) === letters(b1);
@@ -108,7 +116,7 @@ function nameKind(mf, w) {
   const near = (NICK_OF.get(x) && NICK_OF.get(x).has(y)) || (x.length >= 2 && y.length >= 2 && (x.startsWith(y) || y.startsWith(x)));
   return near ? 'nickname_or_short_form' : 'first_name_differs';
 }
-const NAME_KIND_LABEL = { middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)',
+const NAME_KIND_LABEL = { broken_accent_in_mailchimp: 'Broken accent in Mailchimp (repaired from RE)', middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)',
   last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
 
 // Pure planning step (easy to test): donors + gift info + current Mailchimp members -> { report, actions }.
@@ -141,7 +149,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, would_repair_lname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, name_kinds: {}, blocking: [],
     examples: { name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
@@ -171,15 +179,19 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last) || String(mf.FNAME || '').trim() !== w.first) {
       const kind = nameKind(mf, w);
       const clean = !!w.first && !/\ufffd/.test(w.first + w.last);   // never write a name with a broken accent into Mailchimp
-      const sameWho = !['last_name_differs', 'both_differ'].includes(kind);   // a different last name may be a different person on that address: leave those
+      const sameWho = !['last_name_differs', 'both_differ'].includes(kind) || kind === 'broken_accent_in_mailchimp';   // a different last name may be a different person on that address: leave those
       const caseOnlyJunk = lc(mf.FNAME) === lc(w.first) && (w.first === w.first.toLowerCase() || w.first === w.first.toUpperCase());   // RE has "bill" or "BILL": keep Mailchimp's capitalization
-      if (clean && sameWho && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) { fixFirst = w.first; r.would_set_fname++; }
-      else if (!caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) r.fname_left++;
+      if (kind === 'broken_accent_in_mailchimp') {   // repair only the broken field(s); the other side already matches
+        if (clean && brokenMatch(mf.FNAME, w.first)) { fixFirst = w.first; r.would_set_fname++; }
+        if (clean && brokenMatch(mf.LNAME, w.last)) { fixLast = w.last; r.would_repair_lname++; }
+      }
+      else if (clean && sameWho && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) { fixFirst = w.first; r.would_set_fname++; }
+      else if (kind !== 'broken_accent_in_mailchimp' && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) r.fname_left++;
       if (clean && kind === 'blank_in_mailchimp' && !String(mf.LNAME || '').trim() && w.last) fixLast = w.last;
       r.name_kinds[kind] = (r.name_kinds[kind] || 0) + 1;
       const ex = r.examples.name_by_kind[kind] || (r.examples.name_by_kind[kind] = []);
       if (ex.length < 15) ex.push(`${mf.FNAME || ''} ${mf.LNAME || ''} -> ${w.first} ${w.last}`.replace(/\s+/g, ' ').trim());
-      names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], fix: fixFirst ? 'yes' : 'no', mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
+      names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], fix: fixFirst || fixLast ? 'yes' : 'no', mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
       r.name_differs++; push('name_differs', `${w.email}: Mailchimp "${(mf.FNAME || '') + ' ' + (mf.LNAME || '')}" -> "${w.first} ${w.last}"`); }
     const addTags = tagsWanted.filter(t => !tags.includes(t));
     const remove = tags.filter(t => (t === GAVE_TAG && !w.gave) || (t.startsWith(APPEAL_PREFIX) && t !== (w.appeal ? appealTag(w.appeal) : null)));

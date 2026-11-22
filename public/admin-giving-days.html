@@ -1212,7 +1212,7 @@ function renderMc(r) {
     ${x.would_untag_stale ? `<details open><summary><b style="color:#b91c1c">Stale appeal tags (left the list)</b></summary><ul>${li(x.examples.stale_tags)}</ul></details>` : ''}
     <details><summary><b>Would be added</b></summary><ul>${li(x.examples.would_add)}</ul></details>
     <details><summary><b>Old addresses that would be archived</b></summary><ul>${li(x.examples.would_archive)}</ul></details>
-    <details><summary><b>Names that differ: ${n(x.name_differs)} (${n(x.would_set_fname)} first names would be updated, ${n(x.fname_left)} left)</b></summary>
+    <details><summary><b>Names that differ: ${n(x.name_differs)} (${n(x.would_set_fname)} first names would be updated${x.would_repair_lname ? ', ' + n(x.would_repair_lname) + ' last names repaired' : ''}, ${n(x.fname_left)} left)</b></summary>
       ${x.name_kinds ? Object.entries(x.name_kinds).sort((p, q) => q[1] - p[1]).map(([k, c]) => `<details style="margin-left:14px"><summary>${esc(NAME_KINDS[k] || k)}: <b>${n(c)}</b></summary><ul>${li((x.examples.name_by_kind || {})[k] || [])}</ul></details>`).join('') : `<ul>${li(x.examples.name_differs)}</ul>`}
       <p class="hint" style="margin-left:14px"><a href="#" id="mc-names-dl">Download all names that differ (CSV)</a></p>
     </details>
@@ -1232,7 +1232,7 @@ document.addEventListener('click', async e => {
     l.href = url; l.download = 'mailchimp-names-that-differ.csv'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
   } catch (err) { toast(err.message, true); }
 });
-const NAME_KINDS = { middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)', last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
+const NAME_KINDS = { broken_accent_in_mailchimp: 'Broken accent in Mailchimp (repaired from RE)', middle_name_or_initial: 'Extra middle name or initial in one of them (same name otherwise)', case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)', last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
 let mcWatching = false;
 async function pollMc() {
   clearTimeout(mcTimer);
