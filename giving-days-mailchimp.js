@@ -75,6 +75,35 @@ async function fetchMembers(c) {
   return out;
 }
 
+// ---- Why does a Mailchimp name differ from the donor table? (informational only: names are never overwritten) ----
+const NICK = [['william','bill','billy','will','willy','liam'],['robert','bob','bobby','rob','robbie','bert'],['richard','rick','ricky','rich','dick'],['james','jim','jimmy','jamie'],
+  ['john','jack','johnny','jon'],['michael','mike','mikey','mick'],['thomas','tom','tommy'],['charles','chuck','charlie','chaz'],['joseph','joe','joey'],['daniel','dan','danny'],
+  ['matthew','matt'],['anthony','tony'],['christopher','chris','kit'],['nicholas','nick','nicky'],['edward','ed','eddie','ted','ned'],['benjamin','ben','benny'],['samuel','sam','sammy'],
+  ['alexander','alex','sandy','xander'],['andrew','andy','drew'],['jonathan','jon','jonny'],['stephen','steven','steve'],['timothy','tim','timmy'],['patrick','pat','paddy'],['peter','pete'],
+  ['gregory','greg'],['kenneth','ken','kenny'],['lawrence','larry'],['theodore','ted','theo'],['frederick','fred','freddie'],['david','dave','davey'],['douglas','doug'],['donald','don'],
+  ['elizabeth','liz','lizzie','beth','betsy','eliza','betty','libby'],['katherine','catherine','kathryn','kate','katie','kathy','cathy','kitty','cat'],['margaret','meg','maggie','peggy','marge','greta'],
+  ['jennifer','jen','jenny'],['jessica','jess','jessie'],['susan','sue','susie'],['deborah','debbie','deb'],['patricia','pat','patty','trish'],['barbara','barb','barbie'],['rebecca','becky','becca'],
+  ['victoria','vicky','vicki','tori'],['christine','christina','chris','chrissy','tina'],['stephanie','steph'],['alexandra','alex','sandra','sasha','lexi'],['samantha','sam','sammy'],['abigail','abby'],
+  ['amanda','mandy'],['kimberly','kim'],['pamela','pam'],['cynthia','cindy'],['judith','judy'],['carolyn','carol','carrie'],['suzanne','susan','suzy','sue'],['joanne','joan','jo'],['nancy','nan'],
+  ['gabrielle','gaby','gabby'],['caroline','carrie','caro'],['eleanor','ellie','nell','nora'],['rachel','rach'],['lauren','laurie'],['jacqueline','jackie','jacqui'],['alexis','lexi','alex'],['isabel','isabella','izzy','bella']];
+const NICK_OF = new Map();
+for (const g of NICK) for (const a of g) { if (!NICK_OF.has(a)) NICK_OF.set(a, new Set()); g.forEach(b => b !== a && NICK_OF.get(a).add(b)); }
+const letters = v => lc(v).replace(/[^a-z\u00c0-\u024f]/g, '');
+function nameKind(mf, w) {
+  const a1 = String(mf.FNAME || '').trim(), a2 = String(mf.LNAME || '').trim(), b1 = w.first, b2 = w.last;
+  if (!a1 || !a2) return 'blank_in_mailchimp';
+  if (letters(a1) === letters(b1) && letters(a2) === letters(b2)) return 'case_or_punctuation';
+  if (/\s(&|and)\s/i.test(a1 + ' ' + b1) || (a1.includes('&') !== b1.includes('&'))) return 'couple_or_combined';
+  const sameLast = letters(a2) === letters(b2), sameFirst = letters(a1) === letters(b1);
+  if (sameFirst) return 'last_name_differs';
+  if (!sameLast) return 'both_differ';
+  const x = letters(a1), y = letters(b1);
+  const near = (NICK_OF.get(x) && NICK_OF.get(x).has(y)) || (x.length >= 2 && y.length >= 2 && (x.startsWith(y) || y.startsWith(x))) || (x.length === 1 || y.length === 1) && x[0] === y[0];
+  return near ? 'nickname_or_short_form' : 'first_name_differs';
+}
+const NAME_KIND_LABEL = { case_or_punctuation: 'Capitalization or punctuation only', nickname_or_short_form: 'Nickname or short form of the first name', first_name_differs: 'Different first name (not an obvious nickname)',
+  last_name_differs: 'Last name differs (same first name)', both_differ: 'First and last name both differ', couple_or_combined: 'Couple or combined names ("A & B")', blank_in_mailchimp: 'First or last name blank in Mailchimp' };
+
 // Pure planning step (easy to test): donors + gift info + current Mailchimp members -> { report, actions }.
 // donors: active gd_donors rows. gaveHouseholds: Set of household ids who have given this year.
 function plan(donors, gaveHouseholds, members, limits = {}) {
@@ -106,9 +135,10 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
     gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
-    status_counts: {}, blocking: [],
-    examples: { purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
+    status_counts: {}, name_kinds: {}, blocking: [],
+    examples: { name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
+  const names = [];   // every name that differs, for the download
   const push = (k, v) => { if (r.examples[k].length < 15) r.examples[k].push(v); };
   for (const m of members) r.status_counts[m.status] = (r.status_counts[m.status] || 0) + 1;
 
@@ -130,7 +160,13 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
       r.skipped_not_subscribed++; push('skipped_not_subscribed', `${w.email} (${m.status})`); continue;
     }
     const mf = m.merge_fields || {}, tags = (m.tags || []).map(t => t.name);
-    if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last)) { r.name_differs++; push('name_differs', `${w.email}: Mailchimp "${(mf.FNAME || '') + ' ' + (mf.LNAME || '')}" -> "${w.first} ${w.last}"`); }
+    if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last)) {
+      const kind = nameKind(mf, w);
+      r.name_kinds[kind] = (r.name_kinds[kind] || 0) + 1;
+      const ex = r.examples.name_by_kind[kind] || (r.examples.name_by_kind[kind] = []);
+      if (ex.length < 15) ex.push(`${mf.FNAME || ''} ${mf.LNAME || ''} -> ${w.first} ${w.last}`.replace(/\s+/g, ' ').trim());
+      names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
+      r.name_differs++; push('name_differs', `${w.email}: Mailchimp "${(mf.FNAME || '') + ' ' + (mf.LNAME || '')}" -> "${w.first} ${w.last}"`); }
     const addTags = tagsWanted.filter(t => !tags.includes(t));
     const remove = tags.filter(t => (t === GAVE_TAG && !w.gave) || (t.startsWith(APPEAL_PREFIX) && t !== (w.appeal ? appealTag(w.appeal) : null)));
     if (w.gave && !tags.includes(GAVE_TAG)) r.would_tag_gave++;
@@ -175,7 +211,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   if (limits.maxUntag != null && r.would_untag_appeal > limits.maxUntag) r.blocking.push(`${r.would_untag_appeal} Appeal tags would be removed from people still on the list, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). Check that the Appeal Code column is still in the RE query.`);
   if (limits.maxStale != null && r.would_untag_stale > limits.maxStale) r.blocking.push(`${r.would_untag_stale} people who left the list would lose their Appeal tag, more than the safety limit of ${limits.maxStale} (MAILCHIMP_MAX_STALE). That many at once usually means the RE query came back short: check the sync first.`);
   if (limits.maxArchives != null && actions.archives.length > limits.maxArchives) r.blocking.push(`${actions.archives.length} archives is more than the safety limit of ${limits.maxArchives} (MAILCHIMP_MAX_ARCHIVES).`);
-  return { report: r, actions };
+  return { report: r, actions, names };
 }
 
 // ---- Apply helpers (talk to Mailchimp) ----
@@ -215,6 +251,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   let run = { state: 'idle' };
   let previewed = false, appliedOnce = false;
   let lastBlocking = [];
+  let lastNames = [];   // every name that differs in the latest preview/apply (for the CSV download)
   let lastNightly = null;   // { at, outcome: 'applied' | 'blocked' | 'error', note }
   const scheduleOn = () => String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on';
 
@@ -259,8 +296,8 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         }
       }
       const { members, donors, gave } = await load(cfg);
-      const { report, actions } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl });
-      lastBlocking = report.blocking;
+      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl });
+      lastBlocking = report.blocking; lastNames = names;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
         previewed = true;
@@ -354,6 +391,14 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
     res.status(202).json({ started: true });
   });
 
+  app.get('/api/admin/gd/mailchimp/names.csv', requireAdmin, (req, res) => {
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const head = ['Email', 'Why it differs', 'Mailchimp first', 'Mailchimp last', 'Donor table first', 'Donor table last'];
+    const rows = [...lastNames].sort((a, b) => a.kind.localeCompare(b.kind) || a.email.localeCompare(b.email));
+    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="mailchimp-names-that-differ.csv"', 'Cache-Control': 'no-store' });
+    res.send([head, ...rows.map(n => [n.email, n.kind, n.mc_first, n.mc_last, n.here_first, n.here_last])].map(r => r.map(q).join(',')).join('\n') + '\n');
+  });
+
   app.post('/api/admin/gd/mailchimp/preview', requireAdmin, (req, res) => {
     if (run.state === 'running') return res.status(409).json({ error: 'A Mailchimp run is already in progress.' });
     execute(false, 'admin');
@@ -383,4 +428,4 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   }
 };
 
-module.exports._test = { plan };
+module.exports._test = { plan, nameKind };
