@@ -6,6 +6,7 @@
 //   - adds the tags "Gave 26-27" (household has given this year) and "Appeal: <code>" (RE appeal code),
 //     and removes them again when they stop being true. No other tag on a contact is ever touched.
 //   - saves each person's RE ID in the RE_ID merge field, so a changed email can be recognised later
+//   - saves each person's personal link in the PURL merge field (use *|PURL|* in an email), the same person whose RE ID is saved
 //   - archives an old address only when the same RE ID now has a different email AND nobody else here uses the old one
 // It never re-subscribes anyone (unsubscribed, cleaned and other non-subscribed contacts are left alone),
 // never deletes anyone, and never overwrites the name of an existing contact.
@@ -24,6 +25,8 @@ const GAVE_TAG = 'Gave 26-27';
 const APPEAL_PREFIX = 'Appeal: ';
 const appealTag = code => APPEAL_PREFIX + code;
 const lc = v => String(v || '').trim().toLowerCase();
+const SITE = (process.env.GD_PUBLIC_URL || 'https://giving.trinityschoolnyc.org').replace(/\/+$/, '');
+const purlOf = d => (d && d.token ? `${SITE}/${d.token}` : '');
 const hashOf = email => crypto.createHash('md5').update(lc(email)).digest('hex');
 
 function config() {
@@ -94,13 +97,14 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
       appeal: (a.find(x => x.appeal_code) || {}).appeal_code || null,
       gave: a.some(x => gaveHouseholds.has(hh(x))),
       reid: String(a[0].re_id),
+      purl: purlOf(a[0]),   // a couple sharing one email shares one link: the first person's, the same one whose RE ID is saved
     });
   }
   const have = new Map(members.map(m => [lc(m.email_address), m]));
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, blocking: [],
     examples: { would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
@@ -115,7 +119,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     const m = have.get(w.email);
     if (!m) {
       r.would_add++; push('would_add', `${w.first} ${w.last} <${w.email}>`.trim());
-      actions.adds.push({ email: w.email, first: w.first, last: w.last, reid: w.reid, tags: tagsWanted });
+      actions.adds.push({ email: w.email, first: w.first, last: w.last, reid: w.reid, purl: w.purl, tags: tagsWanted });
       if (w.gave) r.would_tag_gave++;
       if (w.appeal) r.would_tag_appeal++;
       continue;
@@ -134,7 +138,9 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     r.would_untag_appeal += remove.filter(t => t.startsWith(APPEAL_PREFIX)).length;
     const setReid = String(mf.RE_ID || '') !== w.reid;
     if (setReid) r.would_set_reid++;
-    if (addTags.length || setReid) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, tags: addTags });
+    const setPurl = !!w.purl && String(mf.PURL || '') !== w.purl;
+    if (setPurl) r.would_set_purl++;
+    if (addTags.length || setReid || setPurl) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, tags: addTags });
     if (remove.length) actions.removals.push({ email: w.email, remove });
   }
 
@@ -168,11 +174,17 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
 }
 
 // ---- Apply helpers (talk to Mailchimp) ----
-async function ensureReIdField(c) {
+// Creates the RE_ID and PURL merge fields if they are not there yet. Returns the tags it created.
+async function ensureMergeFields(c) {
   const r = await withRetry(() => axios.get(`${base(c)}/merge-fields`, { auth: authOf(c), params: { count: 100, fields: 'merge_fields.tag' }, timeout: 60000 }), 'read merge fields');
-  if ((r.data.merge_fields || []).some(f => f.tag === 'RE_ID')) return false;
-  await withRetry(() => axios.post(`${base(c)}/merge-fields`, { tag: 'RE_ID', name: 'RE ID', type: 'text', required: false, public: false }, { auth: authOf(c), timeout: 60000 }), 'create RE_ID field');
-  return true;
+  const have = new Set((r.data.merge_fields || []).map(f => f.tag));
+  const made = [];
+  for (const f of [{ tag: 'RE_ID', name: 'RE ID' }, { tag: 'PURL', name: 'Personal link' }]) {
+    if (have.has(f.tag)) continue;
+    await withRetry(() => axios.post(`${base(c)}/merge-fields`, { tag: f.tag, name: f.name, type: 'text', required: false, public: false }, { auth: authOf(c), timeout: 60000 }), `create ${f.tag} field`);
+    made.push(f.tag);
+  }
+  return made;
 }
 
 async function batchUpsert(c, items, summary) {
@@ -203,7 +215,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
 
   async function loadLocal() {
     const [donors, gifts] = await Promise.all([
-      fetchAll(() => supabase.from('gd_donors').select('id, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true).order('id')),
+      fetchAll(() => supabase.from('gd_donors').select('id, token, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true).order('id')),
       fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded').order('id')),
     ]);
     const byId = new Map(donors.map(d => [d.id, d]));
@@ -254,11 +266,11 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         if (by === 'nightly') { run = { state: 'error', mode: 'apply', started: run.started, finished: new Date().toISOString(), error: 'Not applied: ' + report.blocking.join(' ') }; return; }   // already recorded and emailed above
         throw new Error('Not applied: ' + report.blocking.join(' '));
       }
-      const summary = { created: 0, updated: 0, errors: 0, error_examples: [], tags_removed: 0, archived: 0, merge_field_created: false };
-      summary.merge_field_created = await ensureReIdField(cfg);
+      const summary = { created: 0, updated: 0, errors: 0, error_examples: [], tags_removed: 0, archived: 0, merge_fields_created: [] };
+      summary.merge_fields_created = await ensureMergeFields(cfg);
       const upserts = [
-        ...actions.adds.map(a => ({ email_address: a.email, status: cfg.newStatus, merge_fields: { FNAME: a.first, LNAME: a.last, RE_ID: a.reid }, tags: a.tags })),
-        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; if (u.reid) o.merge_fields = { RE_ID: u.reid }; if (u.tags.length) o.tags = u.tags; return o; }),
+        ...actions.adds.map(a => ({ email_address: a.email, status: cfg.newStatus, merge_fields: { FNAME: a.first, LNAME: a.last, RE_ID: a.reid, PURL: a.purl }, tags: a.tags })),
+        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; const mf = {}; if (u.reid) mf.RE_ID = u.reid; if (u.purl) mf.PURL = u.purl; if (Object.keys(mf).length) o.merge_fields = mf; if (u.tags.length) o.tags = u.tags; return o; }),
       ];
       await batchUpsert(cfg, upserts, summary);
       await pool(actions.removals, 8, async x => {
