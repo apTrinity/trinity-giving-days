@@ -179,13 +179,16 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     if (lc(mf.FNAME) !== lc(w.first) || lc(mf.LNAME) !== lc(w.last) || String(mf.FNAME || '').trim() !== w.first) {
       const kind = nameKind(mf, w);
       const clean = !!w.first && !/\ufffd/.test(w.first + w.last);   // never write a name with a broken accent into Mailchimp
-      const sameWho = !['last_name_differs', 'both_differ'].includes(kind) || kind === 'broken_accent_in_mailchimp';   // a different last name may be a different person on that address: leave those
+      const sameWho = kind !== 'last_name_differs';   // same first name, different last name: left alone. First AND last differing is a spouse with their own surname: RE's person on the address wins   // a different last name may be a different person on that address: leave those
       const caseOnlyJunk = lc(mf.FNAME) === lc(w.first) && (w.first === w.first.toLowerCase() || w.first === w.first.toUpperCase());   // RE has "bill" or "BILL": keep Mailchimp's capitalization
       if (kind === 'broken_accent_in_mailchimp') {   // repair only the broken field(s); the other side already matches
         if (clean && brokenMatch(mf.FNAME, w.first)) { fixFirst = w.first; r.would_set_fname++; }
         if (clean && brokenMatch(mf.LNAME, w.last)) { fixLast = w.last; r.would_repair_lname++; }
       }
-      else if (clean && sameWho && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) { fixFirst = w.first; r.would_set_fname++; }
+      else if (clean && sameWho && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) {
+        fixFirst = w.first; r.would_set_fname++;
+        if (kind === 'both_differ' && w.last) fixLast = w.last;   // the whole name changes to the spouse RE lists on this address, so no "Fiona Guan"
+      }
       else if (kind !== 'broken_accent_in_mailchimp' && !caseOnlyJunk && String(mf.FNAME || '').trim() !== w.first) r.fname_left++;
       if (clean && kind === 'blank_in_mailchimp' && !String(mf.LNAME || '').trim() && w.last) fixLast = w.last;
       r.name_kinds[kind] = (r.name_kinds[kind] || 0) + 1;
