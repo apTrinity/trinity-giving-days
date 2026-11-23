@@ -38,6 +38,10 @@
     .panel { display: none; } .panel.active { display: block; }
     h2 { font-size: 18px; color: var(--navy); }
     .head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .gx { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-top: 18px; }
+    .gx > summary { cursor: pointer; padding: 12px 16px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; color: var(--navy); }
+    .gx[open] > summary { border-bottom: 1px solid var(--line); }
+    .gx > div { padding: 14px 16px; }
     .hint { color: var(--mute); font-size: 13px; line-height: 1.45; }
 
     /* Controls */
@@ -373,13 +377,29 @@
 
     <section class="panel" id="panel-gifts">
       <div class="head-row">
-        <div><h2>Gifts</h2><p class="hint" id="g-summary">Loading…</p></div>
-        <button class="btn small danger" id="g-del-test">Delete all test gifts</button>
+        <div><h2>Gifts</h2><p class="hint"><span id="g-summary">Loading…</span> <span id="g-updated"></span></p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn small ghost" id="g-refresh">↻ Refresh</button>
+          <button class="btn small danger" id="g-del-test">Delete all test gifts</button>
+        </div>
       </div>
       <div id="g-unlinked" style="margin-bottom:18px"></div>
-      <div id="g-sources" style="margin-bottom:18px"></div>
-      <div class="card" id="g-re" style="max-width:none;margin-bottom:18px">
-        <h3 style="margin:0 0 4px">Raiser's Edge</h3>
+      <div id="g-tools" class="gt-tools">
+        <input type="search" id="g-search" placeholder="Search name, email or amount…" aria-label="Search gifts">
+        <select id="g-f-status" aria-label="Status"><option value="">All statuses</option><option value="counts">Counts</option><option value="notcounted">Not counted</option><option value="test">Test gifts</option></select>
+        <select id="g-f-source" aria-label="Source"><option value="">All sources</option><option value="online">Online</option><option value="offline">Offline (from RE)</option></select>
+        <select id="g-f-re" aria-label="In RE"><option value="">In RE: all</option><option value="not">Not in RE yet</option><option value="in">Imported</option></select>
+        <button class="btn small" id="g-re-export">⬇ Export RE CSV</button>
+        <button class="btn small ghost gt-green" id="g-re-mark">✓ Mark Imported</button>
+      </div>
+      <div id="g-list"></div>
+      <details class="gx" id="g-sources-box">
+        <summary><b>Where gifts come from</b> <span class="hint" id="g-sources-sum"></span></summary>
+        <div id="g-sources"></div>
+      </details>
+      <details class="gx" id="g-re-box">
+        <summary><b>Raiser's Edge</b> <span class="hint" id="g-re-sum"></span></summary>
+        <div id="g-re">
         <p class="hint" id="g-re-status" style="margin:0 0 10px">Checking…</p>
         <div class="rc-bar" style="flex-wrap:wrap">
           <input type="text" id="off-id" placeholder="RE query ID" style="width:120px" aria-label="Offline gifts query ID">
@@ -400,16 +420,8 @@
           </div>
           <button class="btn small" id="re-save">Save import settings</button>
         </details>
-      </div>
-      <div id="g-tools" class="gt-tools">
-        <input type="search" id="g-search" placeholder="Search name, email or amount…" aria-label="Search gifts">
-        <select id="g-f-status" aria-label="Status"><option value="">All statuses</option><option value="counts">Counts</option><option value="notcounted">Not counted</option><option value="test">Test gifts</option></select>
-        <select id="g-f-source" aria-label="Source"><option value="">All sources</option><option value="online">Online</option><option value="offline">Offline (from RE)</option></select>
-        <select id="g-f-re" aria-label="In RE"><option value="">In RE: all</option><option value="not">Not in RE yet</option><option value="in">Imported</option></select>
-        <button class="btn small" id="g-re-export">⬇ Export RE CSV</button>
-        <button class="btn small ghost gt-green" id="g-re-mark">✓ Mark Imported</button>
-      </div>
-      <div id="g-list"></div>
+        </div>
+      </details>
     </section>
 
     <section class="panel" id="panel-settings">
@@ -653,6 +665,7 @@ function enter(email) {
   $('login-screen').style.display = 'none'; $('app').style.display = 'block'; $('nav-email').textContent = email;
   showMode(); loadChallenges(); loadSettings(); loadGifts(); loadAudiences(); restoreDonor(); checkOffAlert();
   if (!offAlertTimer) offAlertTimer = setInterval(checkOffAlert, 5 * 60 * 1000);
+  setTimeout(() => { const t = document.querySelector('.tab[data-tab="' + location.hash.replace(/[^a-z]/g, '') + '"]'); if (t && !t.classList.contains('active')) t.click(); }, 0);   // reopen the tab named in the address (set when a tab is clicked)
   // Before launch the public page is a teaser; this pass lets the preview below (and /preview) show the real page.
   api('POST', '/api/admin/gd/preview-pass').then(() => { frameReady = false; $('aud-frame').src = '/preview?demo=1'; }).catch(() => {});
 }
@@ -666,7 +679,13 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   if (b.dataset.tab === 're') { pollQt(); pollSync(); pollMc(); pollOff(); }
   if (b.dataset.tab === 'challenges') loadChallenges();
   if (b.dataset.tab === 'audiences') queuePreview();
+  try { history.replaceState(null, '', '#' + b.dataset.tab); } catch {}   // a browser refresh then stays on this tab
 });
+// Gifts tab: reload just the gifts (and the link-tag and Raiser's Edge summaries) without leaving the page.
+$('g-refresh').onclick = async () => {
+  const b = $('g-refresh'); b.disabled = true; b.textContent = '↻ Refreshing…';
+  try { await loadGifts(); } finally { b.disabled = false; b.textContent = '↻ Refresh'; }
+};
 
 // ── Challenges list ──
 async function loadChallenges() {
@@ -1341,6 +1360,7 @@ async function loadGifts() {
     $('g-summary').textContent = `${s.counted} of ${s.total} gifts counted · ${s.donors} donors · ${money(s.raised)} · ${s.test} test gifts`;
     $('g-del-test').style.display = s.test ? '' : 'none';
     renderGifts(); loadSources(); loadUnlinked(); loadReStatus(); if (!reSettingsLoaded) { reSettingsLoaded = true; loadReSettings(); }
+    $('g-updated').textContent = '· updated ' + whenTime(new Date().toISOString());
   } catch (e) { $('g-list').innerHTML = `<div class="empty">Could not load gifts: ${esc(e.message)}</div>`; }
 }
 // Gifts not tied to a donor record (the donor gave with an email we do not have): suggested matches by name, one click to link.
@@ -1391,9 +1411,11 @@ async function loadSources() {
   try {
     const j = await api('GET', '/api/admin/gd/sources');
     const base = location.origin + '/preview?src=';
-    const head = `<h3 style="margin:0 0 4px">Where gifts come from</h3><p class="hint" style="margin:0 0 8px">Add <code>?src=a-name</code> to any link (for example <code>${esc(base)}qr-flyer</code>) and it shows up here. Use letters, numbers and dashes. Counts only gifts that count toward progress.</p>`;
+    const head = `<p class="hint" style="margin:0 0 8px">Add <code>?src=a-name</code> to any link (for example <code>${esc(base)}qr-flyer</code>) and it shows up here. Use letters, numbers and dashes. Counts only gifts that count toward progress.</p>`;
     if (!j.ready) { el.innerHTML = head + '<div class="empty">Tracking is not set up yet. Run sql/gd-12-sources.sql in Supabase.</div>'; return; }
-    if (!j.sources.length) { el.innerHTML = head + '<div class="empty">No tagged links used yet.</div>'; return; }
+    if (!j.sources.length) { el.innerHTML = head + '<div class="empty">No tagged links used yet.</div>'; $('g-sources-sum').textContent = '· none used yet'; return; }
+    const opens = j.sources.reduce((n, r) => n + (r.visits || 0), 0);
+    $('g-sources-sum').textContent = `· ${j.sources.length} link tag${j.sources.length === 1 ? '' : 's'}, ${opens.toLocaleString()} page opens`;
     const pct = c => c == null ? '–' : (c * 100).toFixed(c < 0.1 ? 1 : 0) + '%';
     el.innerHTML = head + '<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="text-align:left;color:#666"><th style="padding:4px 8px">Link tag</th><th>Page opens</th><th>Gifts</th><th>Raised</th><th>Gifts per open</th><th>Test gifts</th></tr>' +
       j.sources.map(r => `<tr style="border-top:1px solid var(--line)"><td style="padding:6px 8px"><b>${esc(r.source)}</b></td><td>${r.visits}</td><td>${r.gifts}</td><td>${money(r.raised)}</td><td>${pct(r.conversion)}</td><td>${r.test_gifts || ''}</td></tr>`).join('') + '</table>';
@@ -1486,6 +1508,7 @@ async function loadReStatus() {
     $('g-re-status').innerHTML = s.waiting
       ? `<b>${s.waiting} online gift${s.waiting === 1 ? '' : 's'} (${usd(s.waiting_total)}) not in Raiser's Edge yet.</b>${s.no_re_id ? ` <span style="color:#8a5a00">${s.no_re_id} of them ${s.no_re_id === 1 ? 'has' : 'have'} no RE ID (the donor is not on the list), so ${s.no_re_id === 1 ? 'its' : 'their'} ImportID will be blank and RE will need a manual match.</span>` : ''} ${s.imported} already marked imported.`
       : `No online gifts waiting for RE. ${s.imported} marked imported.`;
+    $('g-re-sum').textContent = s.waiting ? `· ${s.waiting} online gift${s.waiting === 1 ? '' : 's'} not in RE yet` : '· nothing waiting';
   } catch (e) { $('g-re-status').textContent = e.message; }
 }
 $('g-re-export').onclick = async () => {
