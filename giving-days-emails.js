@@ -16,7 +16,6 @@ const RE_RECORD_URL = id => `https://app.blackbaud.com/constituent/records/${enc
 const DEFAULT_STAFF = [
   'abigail.bedrick@trinityschoolnyc.org',
   'andrew.peterson@trinityschoolnyc.org',
-  'edward.griffin@trinityschoolnyc.org',
   'frances.shafer@trinityschoolnyc.org',
   'migdalia.villanueva@trinityschoolnyc.org',
   'elizabeth.oswald@trinityschoolnyc.org',
