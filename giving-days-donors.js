@@ -80,7 +80,8 @@ const safeJson = o => JSON.stringify(o).replace(/</g, '\\u003c');
 
 // A link tag from ?src=, for telling QR codes, emails and posts apart. Letters, digits, dash and underscore only.
 const SRC_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const cleanSource = v => { const s = typeof v === 'string' ? v.trim().toLowerCase() : ''; return SRC_RE.test(s) ? s : null; };
+// Email security gateways rewrite links and tack "__;!!<code>$" onto the end (ET_HI becomes ET_HI__;!!abc$): keep only what comes before "__;".
+const cleanSource = v => { let s = typeof v === 'string' ? v.trim().toLowerCase() : ''; const cut = s.indexOf('__;'); if (cut > 0) s = s.slice(0, cut); return SRC_RE.test(s) ? s : null; };
 const BOT_RE = /bot|crawl|spider|slurp|preview|scan|monitor|facebookexternalhit|curl|wget|python|headless/i;
 
 const TAG_KEYS = ['alumni', 'current_parent', 'parent_of_alumni', 'faculty', 'grandparent', 'friend', 'new_family', 'alumna'];
