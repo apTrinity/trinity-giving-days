@@ -3019,8 +3019,20 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: status === 500 ? 'Something went wrong. Please try again.' : 'That request could not be read.' });
 });
 
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.log(`\nTrinity Giving Days server running at http://localhost:${PORT}`);
   console.log(`\nIf SKY API tokens are not yet in .env, authorize here:`);
   console.log(`  http://localhost:${PORT}/auth/blackbaud\n`);
+});
+
+// A deploy (or restart) sends SIGTERM to the running copy. Without this, Node quits at once and a gift that is being captured at that
+// moment is cut off. Instead: stop taking new connections, let requests already in progress finish (up to 25 s; Render allows 30), then exit.
+let shuttingDown = false;
+process.on('SIGTERM', () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('[shutdown] SIGTERM received: finishing requests in progress');
+  httpServer.close(() => { console.log('[shutdown] all requests finished'); process.exit(0); });
+  if (typeof httpServer.closeIdleConnections === 'function') httpServer.closeIdleConnections();
+  setTimeout(() => { console.log('[shutdown] still busy after 25 s, exiting'); process.exit(0); }, 25000).unref();
 });
