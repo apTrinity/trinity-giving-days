@@ -241,6 +241,16 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
     if (known === false) recordMiss(id);
     send(res, html);
   });
+
+  // 2026-11-23: a link that is not a real page or a valid personal code (for example a Mailchimp test send, where the merge tag
+  // shows as "<< Test pURL >>") goes to the front page instead of "Cannot GET". The ?src= tag is kept so the visit still counts.
+  // Only page-looking GET requests: /api, /admin, /auth, /fonts and anything with a file extension still get the normal 404.
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (/^\/(api|admin|auth|fonts)(\/|$)/i.test(req.path) || /\.[a-z0-9]{1,6}$/i.test(req.path)) return next();
+    const src = cleanSource(req.query && req.query.src);
+    res.redirect(302, '/' + (src ? '?src=' + encodeURIComponent(src) : ''));
+  });
 };
 
 module.exports.makeToken = makeToken;
