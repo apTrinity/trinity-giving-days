@@ -629,6 +629,7 @@ html, body { font-family: 'Open Sans', sans-serif; color: var(--ink); background
 .ub-prize small { font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-left: 4px; }
 .ub-rule { font-size: 13px; color: rgba(255,255,255,.85); line-height: 1.4; margin-top: -4px; }
 .ub-rule b { color: #fff; }
+.ub-for { display: block; color: #F5B63A; font-weight: 700; font-size: .85em; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; }
 .ub-bar { height: 7px; background: rgba(255,255,255,.14); }
 .ub-bar i { display: block; height: 100%; background: #fff; }
 .ub-card.lead .ub-bar i { background: var(--trinity-yellow); }
@@ -1137,7 +1138,7 @@ function applyChallenges(camp) {
     const soon = !!x.starts_at && new Date(x.starts_at).getTime() > now;
     C.push({
       id: x.id, name: x.name, unit: x.unit || 'donors', target: Number(x.target), cur: Number(x.current_value), prize: Number(x.prize || 0),
-      match: x.kind === 'match', gifts: !!x.counts_gifts, mystery: !!x.mystery, teaser: x.teaser || {}, who: x.who_counts, soon, days: soon ? [4, 4] : [0, 4],
+      match: x.kind === 'match', gifts: !!x.counts_gifts, mystery: !!x.mystery, teaser: x.teaser || {}, who: x.who_counts, label: x.front_label, soon, days: soon ? [4, 4] : [0, 4],
       ...startWords(x.starts_at),
       desc: paras(x.description, x.name),
       counts: x.who_counts, when: x.when_text || 'All week', from: x.sponsor || 'Trinity supporters',
@@ -1210,9 +1211,11 @@ const CHAL = {
     const card = c => {
       const d = isDone(c), lead = c === C[0], w = Math.min(c.cur / c.target, 1) * 100;
       const pill = d ? '✓ Goal met' : c.mystery ? escT(c.teaser.pill || 'Revealed ' + c.startDayShort + ' ' + c.startMD) : c.soon ? `Starts ${c.startDayShort} ${c.startMD}` : c.match ? 'Matching' : 'In progress';
-      const rule = c.mystery ? (c.teaser.front ? escT(c.teaser.front) : `A <b>secret challenge</b> is waiting. Come back ${c.startDay} to see what it unlocks.`) : c.match ? `Gifts <b>matched</b> dollar for dollar`
+      const forTxt = c.label || (c.who && !/^every donor/i.test(c.who) ? c.who : '');
+      const forLine = forTxt ? `<span class="ub-for">For ${escT(forTxt)}</span>` : '';
+      const rule = c.mystery ? (c.teaser.front ? escT(c.teaser.front) : `A <b>secret challenge</b> is waiting. Come back ${c.startDay} to see what it unlocks.`) : `${forLine}${c.match ? 'Gifts <b>matched</b> dollar for dollar'
         : c.gifts ? `When we receive <b>${c.target} new gifts</b>${c.soon ? ' on ' + c.startDay : ''}`
-        : c.soon ? `When <b>${c.target} ${c.unit}</b> give on ${c.startDay}` : `When <b>${c.target} ${c.unit}</b> give`;
+        : c.soon ? `When <b>${c.target} ${c.unit}</b> give on ${c.startDay}` : `When <b>${c.target} ${c.unit}</b> give`}`;
       const cap = c.soon ? '' : d ? `${c.target} of ${c.target}` : c.match ? `<b>${$(c.cur)}</b> so far`
         : `<b>${c.cur} of ${c.target}</b>${lead ? ` · ${c.target - c.cur} to go` : ''}`;
       return `<div class="ub-card${lead ? ' lead' : ''}${d ? ' done' : ''}${c.soon ? ' soon' : ''}${c.mystery ? ' mystery' : ''}${c.you ? ' you' : ''}${c.mystery && c.teaser.flip === false ? ' noflip' : ''}"${c.mystery && c.teaser.flip === false ? '' : ` role="button" tabindex="0" aria-pressed="false" aria-label="${c.mystery ? 'Mystery challenge' : c.name}: show more" aria-describedby="ubd-${c.id || ''}"`}>

@@ -6,7 +6,7 @@ const path = require('path');
 const { computeProgress } = require('./giving-days-progress');
 
 const DESC_MAX = 220;
-const TEXT_MAX = { name: 60, unit: 40, who_counts: 120, when_text: 120, sponsor: 120, teaser_lock: 40, teaser_front: 140, teaser_pill: 40, teaser_title: 60, teaser_back: DESC_MAX };
+const TEXT_MAX = { name: 60, unit: 40, who_counts: 120, front_label: 40, when_text: 120, sponsor: 120, teaser_lock: 40, teaser_front: 140, teaser_pill: 40, teaser_title: 60, teaser_back: DESC_MAX };
 const KINDS = ['challenge', 'match'];
 
 // Tags a gift can carry. `hidden` ones are never ticked on the form: they come from the RE import
@@ -57,7 +57,7 @@ function cleanChallenge(body, { partial = false } = {}) {
   const b = body || {};
   const has = k => Object.prototype.hasOwnProperty.call(b, k);
 
-  for (const k of ['name', 'unit', 'who_counts', 'when_text', 'sponsor', 'teaser_lock', 'teaser_front', 'teaser_pill', 'teaser_title', 'teaser_back']) {
+  for (const k of ['name', 'unit', 'who_counts', 'front_label', 'when_text', 'sponsor', 'teaser_lock', 'teaser_front', 'teaser_pill', 'teaser_title', 'teaser_back']) {
     if (!has(k)) continue;
     const v = isBlank(b[k]) ? null : String(b[k]).trim();
     if (v && v.length > TEXT_MAX[k]) return { error: `${k} must be ${TEXT_MAX[k]} characters or fewer.` };
@@ -200,7 +200,9 @@ module.exports = function mountGivingDaysAdmin(app, { supabase, requireAdmin }) 
     const settingsQ = supabase.from('gd_settings').select('goal_donors, starts_at, ends_at, timezone, video_url, ask_personalize, ask_steps, test_gifts_count, gifts_count_from').eq('id', 1).single();
     const BASE = 'id, name, kind, unit, who_counts, tags, grades, class_year_min, class_year_max, target, prize, starts_at, ends_at, when_text, sponsor, description, current_value, sort_order';
     const chal = cols => supabase.from('gd_challenges').select(cols).eq('published', true).order('sort_order').order('created_at');
-    let [s, c] = await Promise.all([settingsQ, chal(BASE + ', counts_gifts, secret, teaser_lock, teaser_front, teaser_pill, teaser_title, teaser_back')]);
+    const T = ', counts_gifts, secret, teaser_lock, teaser_front, teaser_pill, teaser_title, teaser_back';
+    let [s, c] = await Promise.all([settingsQ, chal(BASE + T + ', front_label')]);
+    if (c.error && c.error.code === '42703') c = await chal(BASE + T);   // sql/gd-21 not run yet
     if (c.error && c.error.code === '42703') c = await chal(BASE + ', counts_gifts, secret');   // sql/gd-17 not run yet
     if (c.error && c.error.code === '42703') c = await chal(BASE);   // sql/gd-16 not run yet: behave as before
     if (s.error) throw s.error;

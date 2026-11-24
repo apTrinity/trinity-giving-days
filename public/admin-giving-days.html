@@ -535,6 +535,7 @@
         </div>
       </div>
       <div class="field"><label for="f-who">Card text for "Who counts" (optional)</label><input type="text" id="f-who" maxlength="120"><p class="hint" style="margin-top:4px">Leave blank to write it from the choices above.</p></div>
+      <div class="field"><label for="f-label">Short label for the front of the card (optional)</label><input type="text" id="f-label" maxlength="40" placeholder="young alumni"><p class="hint" style="margin-top:4px">Shows in yellow as "FOR YOUNG ALUMNI". Leave blank to use the "Who counts" text above.</p></div>
       <div class="field"><label for="f-when">When (text on the card)</label><input type="text" id="f-when" maxlength="120" placeholder="All week · Mon 11/30 – Fri 12/4"></div>
       <div class="grid2">
         <div class="field"><label for="f-start">Window starts (ET, optional)</label><input type="datetime-local" id="f-start"></div>
@@ -730,7 +731,7 @@ function openEditor(c) {
   editingId = c ? c.id : null; $('dlg-title').textContent = c ? 'Edit challenge' : 'New challenge'; $('f-error').style.display = 'none';
   $('f-name').value = c?.name || ''; document.querySelector(`input[name=f-kind][value=${c?.kind || 'challenge'}]`).checked = true;
   $('f-target').value = c?.target ?? ''; $('f-prize').value = c?.prize ?? ''; $('f-unit').value = c?.unit || '';
-  $('f-desc').value = c?.description || ''; $('f-who').value = c?.who_counts || ''; $('f-when').value = c?.when_text || '';
+  $('f-desc').value = c?.description || ''; $('f-who').value = c?.who_counts || ''; $('f-when').value = c?.when_text || ''; $('f-label').value = c?.front_label || '';
   $('f-start').value = isoToET(c?.starts_at); $('f-end').value = isoToET(c?.ends_at); $('f-sponsor').value = c?.sponsor || '';
   $('f-cur').value = c?.current_value ?? 0; $('f-pub').checked = !!c?.published; $('f-gifts').checked = !!c?.counts_gifts; $('f-secret').checked = !!c?.secret; $('f-t-front').value = c?.teaser_front || ''; $('f-t-lock').value = c?.teaser_lock || ''; $('f-t-pill').value = c?.teaser_pill || ''; $('f-t-title').value = c?.teaser_title || ''; $('f-t-back').value = c?.teaser_back || ''; $('max-label').textContent = descMax;
   $('f-tags').innerHTML = TAGS.map(t => `<label class="${t.hidden ? 'hidden-tag' : ''}" title="${t.hidden ? 'Not on the gift form: set from the RE import or by an admin' : 'Ticked on the gift form'}"><input type="checkbox" value="${t.key}" ${(c?.tags || []).includes(t.key) ? 'checked' : ''}> ${esc(t.label)}${t.hidden ? ' *' : ''}</label>`).join('')
@@ -757,7 +758,7 @@ $('dlg-x').onclick = $('f-cancel').onclick = () => dlg.close();
 $('f-save').onclick = async () => {
   const body = {
     name: $('f-name').value, kind: kindVal(), target: $('f-target').value, prize: kindVal() === 'match' ? null : $('f-prize').value,
-    unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, when_text: $('f-when').value,
+    unit: $('f-unit').value, description: $('f-desc').value, who_counts: $('f-who').value, front_label: $('f-label').value, when_text: $('f-when').value,
     starts_at: etToISO($('f-start').value), ends_at: etToISO($('f-end').value), sponsor: $('f-sponsor').value,
     current_value: $('f-cur').value, published: $('f-pub').checked, counts_gifts: $('f-gifts').checked, secret: $('f-secret').checked,
     teaser_front: $('f-t-front').value, teaser_lock: $('f-t-lock').value, teaser_pill: $('f-t-pill').value, teaser_title: $('f-t-title').value, teaser_back: $('f-t-back').value,
@@ -1226,6 +1227,7 @@ function renderMc(r) {
       <li><b>${n(x.already_in_mailchimp)}</b> already in Mailchimp · <b>${n(x.would_add)}</b> would be added</li>
       <li><b>${n(x.skipped_not_subscribed)}</b> in Mailchimp but not subscribed: never touched</li>
       <li><b>${n(x.gave_total)}</b> households have given this year: <b>${n(x.would_tag_gave)}</b> would get the "Gave 26-27" tag, ${n(x.would_untag_gave)} would lose it</li>
+      ${x.seg_counts ? `<li>Not given this year yet: <b>${n(x.seg_counts.ly_first)}</b> July-Dec LYBUNT · <b>${n(x.seg_counts.ly_second)}</b> Jan-Jun LYBUNT · <b>${n(x.seg_counts.sybunt)}</b> SYBUNT (contacts, not households) · <b>${n(x.would_tag_seg)}</b> would get a tag, ${n(x.would_untag_seg_gave)} would lose one because they gave${x.would_untag_seg_other ? `, <b style="color:#b91c1c">${n(x.would_untag_seg_other)}</b> would lose one for another reason` : ''}${x.seg_counts.ly_no_date ? ` · <b style="color:#b45309">${n(x.seg_counts.ly_no_date)}</b> gave last year but have no usable last-gift date, so they get no LYBUNT tag` : ''}</li>` : ''}
       <li><b>${n(x.would_tag_appeal)}</b> would get an appeal-code tag (${n(x.would_untag_appeal)} old appeal tags removed) · <b>${n(x.would_set_reid)}</b> would get their RE ID saved · <b>${n(x.would_set_purl)}</b> would get their personal-link code saved ${x.purl_other_left ? ` (<b>${n(x.purl_other_left)}</b> have a different link in PURL: left alone)` : ''} · <b>${n(x.would_archive)}</b> old addresses would be archived · <b>${n(x.name_differs)}</b> names differ (<b>${n(x.would_set_fname)}</b> first names would be updated to the RE preferred name)</li>
       <li><b>${n(x.mailchimp_only)}</b> in Mailchimp but not in this list: left alone${x.would_untag_stale ? `, except <b style="color:#b91c1c">${n(x.would_untag_stale)}</b> who would lose an old Appeal tag` : ''}</li></ul>
     ${x.would_untag_stale ? `<details open><summary><b style="color:#b91c1c">Stale appeal tags (left the list)</b></summary><ul>${li(x.examples.stale_tags)}</ul></details>` : ''}
