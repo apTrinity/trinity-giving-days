@@ -203,15 +203,21 @@ module.exports = function mountGivingDaysDonors(app, { supabase, loadCampaign, a
   });
 
   // The public page; /preview?t=<code> previews a personalized visit.
+  // PREVIEW_OPEN (2026-11-24): while true, /preview shows the full page to anyone with the link, before launch, and gives that
+  // browser the 12-hour pass so the page can load its campaign data. Only /preview is open: /, /<code> and the API stay shielded.
+  // To close it again, set this to false (or delete it) and redeploy.
+  const PREVIEW_OPEN = true;
   app.get('/preview', async (req, res) => {
+    const po = PREVIEW_OPEN ? { bypass: true } : undefined;
+    if (po) shield.givePass(res);
     const t = typeof req.query.t === 'string' && TOKEN_RE.test(req.query.t) ? req.query.t : null;
     if (t) {   // /preview?t=<code> shows a real personal page, so it gets the same wrong-code limit as /<code>
       const id = visitorId(req);
-      const { html, known } = await renderPage(req, blocked(id) ? null : t, demoPersona(req.query.p));
+      const { html, known } = await renderPage(req, blocked(id) ? null : t, demoPersona(req.query.p), po);
       if (known === false) recordMiss(id);
       return send(res, html);
     }
-    send(res, (await renderPage(req, t, demoPersona(req.query.p))).html);
+    send(res, (await renderPage(req, t, demoPersona(req.query.p), po)).html);
   });
 
   // The pre-launch teaser with no Give buttons and no test-mode banner (for screenshots, designers and the public front door).

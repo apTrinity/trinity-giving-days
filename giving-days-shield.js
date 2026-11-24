@@ -51,7 +51,8 @@ module.exports = function getShield(supabase) {
 
   // The launch time if this visitor should see the teaser, else null. A failure to read settings
   // falls on the safe side: keep the shield up rather than show the campaign early.
-  async function activeFor(req, { force = false, untilLaunch = false } = {}) {
+  async function activeFor(req, { force = false, untilLaunch = false, bypass = false } = {}) {
+    if (bypass) return null;   // /preview is open for staff review (see PREVIEW_OPEN in giving-days-donors.js)
     // untilLaunch: the public front door, always a teaser before the launch time (does not need GD_SHIELD=on).
     if (!force) {
       if (!untilLaunch && String(process.env.GD_SHIELD || '').toLowerCase() !== 'on') return null;
