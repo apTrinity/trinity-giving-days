@@ -937,9 +937,9 @@ main:focus, #gm-thanks-title:focus { outline: none; }
 <!--SHIELD:BODY-->
   <section class="hero" aria-label="Giving Days progress">
     <div class="frame">
-      <div class="video-frame" id="video-frame" data-vimeo="816728351" role="button" tabindex="0" aria-label="Play video: Why I Give">
+      <div class="video-frame" id="video-frame" data-vimeo="1249860259" role="button" tabindex="0" aria-label="Play video: Trinity Giving Days Have Begun!">
         <div class="video-play"></div>
-        <div class="video-cap"><b>Why I Give</b>Trinity Giving Days · 2 min</div>
+        <div class="video-cap"><b>Trinity Giving Days Have Begun!</b>Trinity Giving Days · 1:22</div>
       </div>
       <div class="prog">
         <div class="prog-day"><span id="prog-day-label">Giving Days</span><span class="pips" id="prog-pips"></span></div>
@@ -1559,7 +1559,7 @@ const vf = document.getElementById('video-frame');
 function playVideo() {
   if (vf.classList.contains('playing')) return;
   vf.classList.add('playing');
-  vf.insertAdjacentHTML('beforeend', `<iframe src="https://player.vimeo.com/video/${vf.dataset.vimeo}?autoplay=1&dnt=1&title=0&byline=0&portrait=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Trinity Giving Days video"></iframe>`);
+  vf.insertAdjacentHTML('beforeend', `<iframe src="https://player.vimeo.com/video/${vf.dataset.vimeo}?autoplay=1&dnt=1&title=0&byline=0&portrait=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Trinity Giving Days Have Begun!"></iframe>`);
 }
 vf.addEventListener('click', playVideo);
 vf.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playVideo(); } });
