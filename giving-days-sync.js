@@ -21,6 +21,11 @@ const { alertStaff } = require('./giving-days-alert');
 
 const QUERY_ID = () => parseInt(process.env.GD_SYNC_QUERY_ID || '-648898', 10);
 const norm = h => String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+// The fiscal year being fundraised (July-June), named by the calendar year it STARTS in: 2026 = 26-27. Each July set GD_FY_START_YEAR=2027
+// on Render and the giving columns roll forward by name ("26-27 Giving" -> "27-28 Giving", "25-26 TF Cash Total" -> "26-27 TF Cash Total").
+const FY_START = () => parseInt(process.env.GD_FY_START_YEAR || '2026', 10);
+const fyKey = y => String(y % 100).padStart(2, '0') + String((y + 1) % 100).padStart(2, '0');   // 2025 -> '2526'
+const tfCash = back => [fyKey(FY_START() - back) + 'tfcashtotal'];                              // back=1: last year, 2..4: the three years before that
 
 // What each role is called in the query output (compared after lower-casing and dropping punctuation).
 // Built for single-row query -648898 (see the column list in the admin's "Test an RE query" card).
@@ -51,7 +56,12 @@ const ALIASES = {
   alumni_addressee:  ['alumniaddressee'],
   alumni_salutation: ['alumnisalutation'],
   primary_code:  ['primaryconstituencycode', 'primaryconstituentcode', 'primarycode', 'constituentcode'],
-  giving_ytd:    ['2627giving', 'giving2627', 'currentyeargiving'],
+  giving_ytd:    [fyKey(FY_START()) + 'giving', 'giving' + fyKey(FY_START()), 'currentyeargiving'],
+  giving_ly:     tfCash(1),   // Trinity Fund cash, last fiscal year: decides LYBUNT
+  giving_p1:     tfCash(2),   // the three years before that: with last year, decide SYBUNT
+  giving_p2:     tfCash(3),
+  giving_p3:     tfCash(4),
+  last_gift_date: ['lastgiftdate'],   // which half of last year a LYBUNT gave in (July-Dec or Jan-Jun)
   deceased:      ['deceased', 'isdeceased'],
   no_solicit:    ['donotsolicit', 'nosolicit'],
 };
@@ -59,7 +69,7 @@ const ROLE_LABEL = {
   re_id: 'RE ID (person)', first: 'First name', nick: 'Preferred name', last: 'Last name', gender: 'Gender', email: 'Email', email2: 'Email 2 (spouse, parents only)',
   class_year: 'Class year (alumni)', spouse_re_id: 'Spouse RE ID', spouse_first: 'Spouse first name', spouse_nick: 'Spouse preferred name', spouse_last: 'Spouse last name',
   ly_gift: 'Last year\'s gift', ask_a: 'Ask A', ask_b: 'Ask B', current_parent: 'Current Parent flag', alumni_flag: 'Alumni flag', faculty: 'Faculty/Staff flag',
-  grandparent: 'Grandparent flag', parent_of_alumni: 'Parent of Alumni / Withdrawn Parent code', appeal_code: 'Appeal Code (NEW FAMILY = new family)', addressee: 'Addressee (household)', salutation: 'Salutation (household)', alumni_addressee: 'Alumni addressee', alumni_salutation: 'Alumni salutation', primary_code: 'Primary Constituent Code', giving_ytd: 'This year\'s giving (26-27)', deceased: 'Deceased', no_solicit: 'Do not solicit', student_classes: 'Student class years (for grades)',
+  grandparent: 'Grandparent flag', parent_of_alumni: 'Parent of Alumni / Withdrawn Parent code', appeal_code: 'Appeal Code (NEW FAMILY = new family)', addressee: 'Addressee (household)', salutation: 'Salutation (household)', alumni_addressee: 'Alumni addressee', alumni_salutation: 'Alumni salutation', primary_code: 'Primary Constituent Code', giving_ytd: 'This year\'s giving (26-27)', giving_ly: 'Last year\'s Trinity Fund cash total (25-26)', giving_p1: 'Trinity Fund cash total, 2 years back (24-25)', giving_p2: 'Trinity Fund cash total, 3 years back (23-24)', giving_p3: 'Trinity Fund cash total, 4 years back (22-23)', last_gift_date: 'Last gift date', deceased: 'Deceased', no_solicit: 'Do not solicit', student_classes: 'Student class years (for grades)',
 };
 
 function mapHeaders(headers) {
@@ -76,6 +86,16 @@ function mapHeaders(headers) {
 const money = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[$,\s]/g, '')); return isFinite(n) && n >= 0 ? n : null; };
 const text = v => { const s = String(v == null ? '' : v).trim(); return s || null; };
 const yes = v => /^(y|yes|true|1|x)/i.test(String(v == null ? '' : v).trim());
+// RE dates arrive as 2026-03-14, 3/14/2026 or "Mar 14, 2026": return 'YYYY-MM-DD', or null when blank or unreadable.
+function dateOnly(v) {
+  const s = String(v == null ? '' : v).trim(); if (!s) return null;
+  let y, m, d, x;
+  if ((x = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) { y = +x[1]; m = +x[2]; d = +x[3]; }
+  else if ((x = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/))) { m = +x[1]; d = +x[2]; y = +x[3]; if (y < 100) y += 2000; }
+  else { const t = new Date(s); if (isNaN(t)) return null; y = t.getFullYear(); m = t.getMonth() + 1; d = t.getDate(); }
+  if (!(y >= 1990 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
 // RE writes classes as '78 or 1978. Alumni: 27 to 99 are 1927-1999, 00 to 26 are 2000-2026. Students: always 20YY.
 function classYear(v, student) {
   const s = String(v == null ? '' : v).trim(); if (!s) return null;
@@ -139,6 +159,11 @@ function toPeople(rows, roles) {
     const first = text(g(r, 'nick')) || text(g(r, 'first')), last = text(g(r, 'last'));
     const pos = v => (v != null && v > 0 ? v : null);   // RE writes $0 when there is no ask or no gift last year: treat that as none, so the form shows no $0 button
     const hh = { ly_gift: pos(money(g(r, 'ly_gift'))), ask_a: pos(money(g(r, 'ask_a'))), ask_b: pos(money(g(r, 'ask_b'))), giving_ytd: money(g(r, 'giving_ytd')) };
+    // Giving history for LYBUNT / SYBUNT (the same on both spouses). Left undefined when the query lacks the column(s), so a missing column never
+    // overwrites what is stored. The earlier years are summed only when all three columns are there, so a deleted column can't shrink the total.
+    if (roles.giving_ly) hh.giving_fy_last = money(g(r, 'giving_ly')) || 0;
+    if (roles.giving_p1 && roles.giving_p2 && roles.giving_p3) hh.giving_fy_prior = ['giving_p1', 'giving_p2', 'giving_p3'].reduce((t, k) => t + (money(g(r, k)) || 0), 0);
+    if (roles.last_gift_date) hh.last_gift_date = dateOnly(g(r, 'last_gift_date'));
     const email = (text(g(r, 'email')) || '').toLowerCase() || null;
     const names = { addressee: text(g(r, 'addressee')), salutation: text(g(r, 'salutation')), household_re_id: id, appeal_code: text(g(r, 'appeal_code')) };
     const person = { re_id: id, first_name: first, last_name: last, email, class_year: cy, grades, import_tags: [...own].sort(), ...hh, ...names,
@@ -177,19 +202,21 @@ function toPeople(rows, roles) {
   return { people: [...people.values()], issues, examples, unknownTags: [], codes: [...codes.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 20).map(([code, c]) => ({ code: code || '(blank)', ...c })) };
 }
 
-const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code'];
+const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code', 'giving_fy_last', 'giving_fy_prior', 'last_gift_date'];
 // A field is only touched when the query still has the column(s) it comes from. Without this, deleting a column from the RE query
 // would blank that field for everyone on the next sync.
 const FIELD_ROLES = {
   first_name: ['first', 'nick'], last_name: ['last'], email: ['email'], class_year: ['class_year'], ly_gift: ['ly_gift'], ask_a: ['ask_a'], ask_b: ['ask_b'],
   giving_ytd: ['giving_ytd'], grades: ['student_classes'], import_tags: ['current_parent', 'alumni_flag'], addressee: ['addressee'], salutation: ['salutation'],
   alumni_addressee: ['alumni_addressee'], alumni_salutation: ['alumni_salutation'], appeal_code: ['appeal_code'],
+  giving_fy_last: ['giving_ly'], giving_fy_prior: ['giving_p1', 'giving_p2', 'giving_p3'], last_gift_date: ['last_gift_date'],
 };
 const fieldInQuery = (f, roles) => !FIELD_ROLES[f] || FIELD_ROLES[f].some(r => roles[r] && (!Array.isArray(roles[r]) || roles[r].length));
 // Safety: a sync that would hide more than this share of the active list (min 25 people) stops and asks a person to look.
 const maxNewlyInactive = activeCount => Math.max(25, Math.ceil(activeCount * (parseFloat(process.env.GD_SYNC_MAX_INACTIVE_PCT || '5') / 100)));
 const BASE_COLS = 'id, re_id, first_name, last_name, email, class_year, ly_gift, ask_a, ask_b, grades, import_tags';
 const NEW_COLS = ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id, appeal_code';
+const GIVING_COLS = ', giving_fy_last, giving_fy_prior, last_gift_date';   // sql/gd-20-giving-history.sql
 const same = (a, b) => (Array.isArray(a) || Array.isArray(b)) ? JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort())
   : (a == null && b == null) || (a != null && b != null && String(a) === String(b)) || (typeof a === 'number' && Number(b) === a);
 
@@ -223,9 +250,15 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       const { roles, unmatched } = mapHeaders(headers);
       const { people, issues, examples, unknownTags, codes } = toPeople(rows, roles);
       // Columns added by sql/gd-13-sync.sql may not exist yet (a preview works either way): fall back to the older set.
-      let have;
-      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS).order('id')); }
-      catch (e) { if (e && e.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS).order('id')); else throw e; }
+      // The giving-history columns (sql/gd-20) may not exist yet either: then the sync carries on exactly as before, without them.
+      let have, givingTable = true;
+      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS + GIVING_COLS).order('id')); }
+      catch (e) {
+        if (!(e && e.code === '42703')) throw e;
+        givingTable = false;
+        try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS).order('id')); }
+        catch (e2) { if (e2 && e2.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS).order('id')); else throw e2; }
+      }
       const byId = new Map(have.map(d => [String(d.re_id), d]));
       const seen = new Set(people.map(p => p.re_id));
       const { data: st } = await supabase.from('gd_settings').select('starts_at').eq('id', 1).single();
@@ -256,7 +289,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
         headers, matched: Object.fromEntries(Object.entries(roles).map(([r, h]) => [ROLE_LABEL[r], h])),
         missing_roles: Object.keys(ALIASES).filter(r => !roles[r]).map(r => ROLE_LABEL[r]), unmatched_columns: unmatched,
         issues, examples, primary_codes: codes, unknown_tags: unknownTags, asks_frozen: !!frozen,
-        skipped_fields: stillBlank, newly_inactive: newlyGone.length, inactive_limit: maxNewlyInactive(activeNow.length),
+        skipped_fields: stillBlank, giving_history_ready: givingTable, newly_inactive: newlyGone.length, inactive_limit: maxNewlyInactive(activeNow.length),
         would: { add: adds.length, update: changes.length, unchanged: people.length - adds.length - changes.length, missing_from_query: missing.length, missing_demo: missing.filter(d => !/^\d+$/.test(String(d.re_id))).length, changed_fields: changedBy, blank_email_kept: blankKept.email },
         sample: people.slice(0, 5),
         blocking: [!roles.re_id && 'The query has no RE ID column.', !(roles.first || roles.nick) && !roles.last && 'The query has no name columns.', !roles.email && 'The query has no email column.',
@@ -276,6 +309,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       for (let i = 0; i < adds.length; i += 200) {
         const chunk = adds.slice(i, i + 200).map(p => {
           const r = { token: fresh(), re_id: p.re_id, first_name: p.first_name, last_name: p.last_name, email: p.email, class_year: p.class_year, ly_gift: p.ly_gift, ask_a: p.ask_a, ask_b: p.ask_b, giving_ytd: p.giving_ytd, addressee: p.addressee, salutation: p.salutation, alumni_addressee: p.alumni_addressee, alumni_salutation: p.alumni_salutation, household_re_id: p.household_re_id, appeal_code: p.appeal_code, active: true, synced_at: now };
+          if (givingTable) for (const f of ['giving_fy_last', 'giving_fy_prior', 'last_gift_date']) if (p[f] !== undefined) r[f] = p[f];
           if (p.grades !== undefined) r.grades = p.grades;
           if (p.import_tags !== undefined) r.import_tags = p.import_tags;
           return r;
@@ -330,4 +364,4 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
   }
 };
 
-module.exports._test = { mapHeaders, toPeople, fieldInQuery, maxNewlyInactive };
+module.exports._test = { mapHeaders, toPeople, fieldInQuery, maxNewlyInactive, dateOnly };

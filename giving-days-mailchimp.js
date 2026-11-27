@@ -3,8 +3,9 @@
 // PREVIEW reads Mailchimp and the donor table and changes nothing in either.
 // APPLY (only after a preview has been run on this server, and only when the preview has no blocking problems):
 //   - adds people who are not in Mailchimp yet (first and last name are set ONLY for these new contacts)
-//   - adds the tags "Gave 26-27" (household has given this year) and "Appeal: <code>" (RE appeal code),
-//     and removes them again when they stop being true. No other tag on a contact is ever touched.
+//   - adds ONE "Nov 29: <segment>" tag per household that has not given (Senior, RGI, New Families, LYBUNT July-Dec / Jan-Jun, SYBUNT, Young Alumni: first match wins),
+//   - adds the tags "Gave 26-27" (household has given this year), "Appeal: <code>" (RE appeal code) and, for households that have not
+//     given this year, "26-27 July-Dec LYBUNT", "26-27 Jan-Jun LYBUNT" or "26-27 SYBUNT", and removes them again when they stop being true. No other tag on a contact is ever touched.
 //   - saves each person's RE ID in the RE_ID merge field, so a changed email can be recognised later
 //   - saves each person's personal-link CODE (6 characters, e.g. k7m2xp) in the PURL merge field; in an email the link is
 //     https://giving.trinityschoolnyc.org/*|PURL|* . It is the same person whose RE ID is saved
@@ -26,6 +27,39 @@ const { fetchAll } = require('./giving-days-progress');
 const { alertStaff } = require('./giving-days-alert');
 
 const GAVE_TAG = 'Gave 26-27';
+// LYBUNT / SYBUNT: for households that have NOT given this year (Trinity Fund cash, from the RE query). One tag at most per person.
+//   LYBUNT  gave last fiscal year; split by the half of last year the last gift fell in. SYBUNT  gave in the three years before last year, nothing last year.
+const TAG_LY_FIRST = '26-27 July-Dec LYBUNT', TAG_LY_SECOND = '26-27 Jan-Jun LYBUNT', TAG_SYBUNT = '26-27 SYBUNT';
+const SEG_TAGS = [TAG_LY_FIRST, TAG_LY_SECOND, TAG_SYBUNT];
+// The Sunday Nov 29 send: ONE tag per household that has not given, so nobody lands in two segments. In this order the first match wins:
+// Senior, RGI, New Families (appeal codes; exclusive), then LYBUNT (by half), SYBUNT, then Young Alumni (an alum of the classes 2012-2026 who is none of the above).
+const SEND_TAGS = { senior: 'Nov 29: Senior', rgi: 'Nov 29: RGI', newfam: 'Nov 29: New Families', ly_first: 'Nov 29: LYBUNT July-Dec', ly_second: 'Nov 29: LYBUNT Jan-Jun', sybunt: 'Nov 29: SYBUNT', young: 'Nov 29: Young Alumni' };
+const SEND_LIST = Object.values(SEND_TAGS);
+const ALL_SEG_TAGS = [...SEG_TAGS, ...SEND_LIST];
+const YOUNG_FROM = 2012, YOUNG_TO = 2026;
+// h = { appeal, young, ... } plus the giving fields segmentOf reads. Returns the Nov 29 tag name or null.
+function sendTagOf(h, fy = FY_START()) {
+  if (!h) return null;
+  const ap = String(h.appeal || '');
+  if (/senior class/i.test(ap)) return SEND_TAGS.senior;
+  if (/reunion giving/i.test(ap)) return SEND_TAGS.rgi;
+  if (/^new family/i.test(ap)) return SEND_TAGS.newfam;
+  const s = segmentOf(h, fy);
+  if (s && s.tag) return s.tag === TAG_LY_FIRST ? SEND_TAGS.ly_first : s.tag === TAG_LY_SECOND ? SEND_TAGS.ly_second : SEND_TAGS.sybunt;
+  return h.young ? SEND_TAGS.young : null;
+}
+const FY_START = () => parseInt(process.env.GD_FY_START_YEAR || '2026', 10);   // 2026 = fiscal year 26-27 (same setting the RE sync uses)
+// h = { ly, prior, last }: last year's total, the three earlier years' total, latest gift date 'YYYY-MM-DD'. Returns { tag } or { tag: null, noDate: true } or null.
+function segmentOf(h, fy = FY_START()) {
+  if (!h) return null;
+  if (h.ly > 0) {
+    const from = `${fy - 1}-07-01`, mid = `${fy - 1}-12-31`, to = `${fy}-06-30`;   // last fiscal year; its last gift decides the half
+    if (!h.last || h.last < from || h.last > to) return { tag: null, noDate: true };   // no usable date inside last year: reported, not guessed
+    return { tag: h.last <= mid ? TAG_LY_FIRST : TAG_LY_SECOND };
+  }
+  if (h.prior > 0) return { tag: TAG_SYBUNT };
+  return null;
+}
 const APPEAL_PREFIX = 'Appeal: ';
 const appealTag = code => APPEAL_PREFIX + code;
 const lc = v => String(v || '').trim().toLowerCase();
@@ -121,7 +155,8 @@ const NAME_KIND_LABEL = { broken_accent_in_mailchimp: 'Broken accent in Mailchim
 
 // Pure planning step (easy to test): donors + gift info + current Mailchimp members -> { report, actions }.
 // donors: active gd_donors rows. gaveHouseholds: Set of household ids who have given this year.
-function plan(donors, gaveHouseholds, members, limits = {}) {
+// segments: Map household id -> { tag } from segmentOf (only households that have not given this year).
+function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()) {
   const hh = d => d.household_re_id || d.re_id;
   donors = [...donors].sort((x, y) => String(x.re_id).localeCompare(String(y.re_id), 'en', { numeric: true }));   // fixed order: a couple sharing an email gets the same RE ID and code every night
   const byEmail = new Map();
@@ -141,6 +176,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
       last: a.length === 1 ? (a[0].last_name || '') : lasts.join(' / '),
       appeal: (a.find(x => x.appeal_code) || {}).appeal_code || null,
       gave: a.some(x => gaveHouseholds.has(hh(x))),
+      seg: a.some(x => gaveHouseholds.has(hh(x))) ? null : (a.map(x => segments.get(hh(x))).find(Boolean) || null),
       reid: String(a[0].re_id),
       purl: purlOf(a[0]),   // a couple sharing one email shares one link: the first person's, the same one whose RE ID is saved
     });
@@ -149,9 +185,9 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, would_repair_lname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, send_counts: {}, would_tag_send: 0, seg_counts: { ly_first: 0, ly_second: 0, sybunt: 0, ly_no_date: 0 }, would_tag_seg: 0, would_untag_seg_gave: 0, would_untag_seg_other: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, would_repair_lname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, name_kinds: {}, blocking: [],
-    examples: { name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
+    examples: { seg_no_date: [], name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
   const names = [];   // every name that differs, for the download
   const push = (k, v) => { if (r.examples[k].length < 15) r.examples[k].push(v); };
@@ -162,12 +198,21 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     const tagsWanted = [];
     if (w.gave) tagsWanted.push(GAVE_TAG);
     if (w.appeal) tagsWanted.push(appealTag(w.appeal));
+    const segTag = w.seg && w.seg.tag, sendTag = w.seg && w.seg.send;
+    if (segTag) tagsWanted.push(segTag);
+    if (sendTag) { tagsWanted.push(sendTag); r.send_counts[sendTag] = (r.send_counts[sendTag] || 0) + 1; }
+    if (w.seg && (segTag || w.seg.noDate)) {
+      if (segTag === TAG_LY_FIRST) r.seg_counts.ly_first++; else if (segTag === TAG_LY_SECOND) r.seg_counts.ly_second++; else if (segTag === TAG_SYBUNT) r.seg_counts.sybunt++;
+      else if (w.seg.noDate) { r.seg_counts.ly_no_date++; push('seg_no_date', `${w.first} ${w.last} <${w.email}>`.trim()); }
+    }
     const m = have.get(w.email);
     if (!m) {
       r.would_add++; push('would_add', `${w.first} ${w.last} <${w.email}>`.trim());
       actions.adds.push({ email: w.email, first: w.first, last: w.last, reid: w.reid, purl: w.purl, tags: tagsWanted });
       if (w.gave) r.would_tag_gave++;
       if (w.appeal) r.would_tag_appeal++;
+      if (segTag) r.would_tag_seg++;
+      if (sendTag) r.would_tag_send++;
       continue;
     }
     r.already_in_mailchimp++;
@@ -197,7 +242,11 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
       names.push({ email: w.email, kind: NAME_KIND_LABEL[kind], fix: fixFirst || fixLast ? 'yes' : 'no', mc_first: mf.FNAME || '', mc_last: mf.LNAME || '', here_first: w.first, here_last: w.last });
       r.name_differs++; push('name_differs', `${w.email}: Mailchimp "${(mf.FNAME || '') + ' ' + (mf.LNAME || '')}" -> "${w.first} ${w.last}"`); }
     const addTags = tagsWanted.filter(t => !tags.includes(t));
-    const remove = tags.filter(t => (t === GAVE_TAG && !w.gave) || (t.startsWith(APPEAL_PREFIX) && t !== (w.appeal ? appealTag(w.appeal) : null)));
+    const remove = tags.filter(t => (t === GAVE_TAG && !w.gave) || (t.startsWith(APPEAL_PREFIX) && t !== (w.appeal ? appealTag(w.appeal) : null)) || (SEG_TAGS.includes(t) && t !== (segTag || null)) || (SEND_LIST.includes(t) && t !== (sendTag || null)));
+    if (segTag && !tags.includes(segTag)) r.would_tag_seg++;
+    if (sendTag && !tags.includes(sendTag)) r.would_tag_send++;
+    // Losing a segment tag because the household just GAVE is the whole point; losing it for any other reason (the giving columns vanished, say) is what the safety limit watches.
+    for (const t of remove) if (ALL_SEG_TAGS.includes(t)) { if (w.gave) r.would_untag_seg_gave++; else r.would_untag_seg_other++; }
     if (w.gave && !tags.includes(GAVE_TAG)) r.would_tag_gave++;
     if (!w.gave && tags.includes(GAVE_TAG)) r.would_untag_gave++;
     if (w.appeal && !tags.includes(appealTag(w.appeal))) r.would_tag_appeal++;
@@ -229,7 +278,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
     }
     // Left the list (no appeal code / filtered out in RE): drop their old Appeal tags. Gave 26-27 is never removed here,
     // because someone who gave and then left the query still gave.
-    const stale = (m.tags || []).map(t => t.name).filter(t => t.startsWith(APPEAL_PREFIX));
+    const stale = (m.tags || []).map(t => t.name).filter(t => t.startsWith(APPEAL_PREFIX) || ALL_SEG_TAGS.includes(t));
     if (stale.length) {
       r.would_untag_stale++; push('stale_tags', `${m.email_address}: ${stale.join(', ')}`);
       actions.removals.push({ email: m.email_address, remove: stale, stale: true });
@@ -237,6 +286,7 @@ function plan(donors, gaveHouseholds, members, limits = {}) {
   }
   if (limits.maxAdds != null && actions.adds.length > limits.maxAdds) r.blocking.push(`${actions.adds.length} new contacts is more than the safety limit of ${limits.maxAdds} (MAILCHIMP_MAX_ADDS). Check the list, then raise the limit on Render.`);
   if (limits.maxUntag != null && r.would_untag_gave > limits.maxUntag) r.blocking.push(`${r.would_untag_gave} people would lose the Gave 26-27 tag, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). A drop like that usually means the giving column went missing from the RE query: check the sync first.`);
+  if (limits.maxUntag != null && r.would_untag_seg_other > limits.maxUntag) r.blocking.push(`${r.would_untag_seg_other} people who have not given would lose a LYBUNT/SYBUNT tag, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). That usually means the giving columns went missing from the RE query or the sync: check the sync first.`);
   if (limits.maxUntag != null && r.would_untag_appeal > limits.maxUntag) r.blocking.push(`${r.would_untag_appeal} Appeal tags would be removed from people still on the list, more than the safety limit of ${limits.maxUntag} (MAILCHIMP_MAX_UNTAG). Check that the Appeal Code column is still in the RE query.`);
   if (limits.maxStale != null && r.would_untag_stale > limits.maxStale) r.blocking.push(`${r.would_untag_stale} people who left the list would lose their Appeal tag, more than the safety limit of ${limits.maxStale} (MAILCHIMP_MAX_STALE). That many at once usually means the RE query came back short: check the sync first.`);
   if (limits.maxNames != null && r.would_set_fname > limits.maxNames) r.blocking.push(`${r.would_set_fname} first names would change in Mailchimp, more than the safety limit of ${limits.maxNames} (MAILCHIMP_MAX_NAME_UPDATES). Check the "Names that differ" list, then raise the limit on Render.`);
@@ -286,8 +336,13 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   const scheduleOn = () => String(process.env.GD_MAILCHIMP_SCHEDULE || '').toLowerCase() === 'on';
 
   async function loadLocal() {
+    const baseCols = 'id, token, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd, class_year';
+    const loadDonors = async () => {
+      try { return await fetchAll(() => supabase.from('gd_donors').select(baseCols + ', giving_fy_last, giving_fy_prior, last_gift_date').eq('active', true).order('id')); }
+      catch (e) { if (e && e.code === '42703') return fetchAll(() => supabase.from('gd_donors').select(baseCols).eq('active', true).order('id')); throw e; }   // sql/gd-20 not run yet: no LYBUNT/SYBUNT tags, everything else as before
+    };
     const [donors, gifts] = await Promise.all([
-      fetchAll(() => supabase.from('gd_donors').select('id, token, re_id, household_re_id, first_name, last_name, email, appeal_code, giving_ytd').eq('active', true).order('id')),
+      loadDonors(),
       fetchAll(() => supabase.from('gd_gifts').select('donor_id, email, is_test, excluded').order('id')),
     ]);
     const byId = new Map(donors.map(d => [d.id, d]));
@@ -300,7 +355,23 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       const d = byId.get(g.donor_id) || (g.email && byEmailD.get(lc(g.email)));
       if (d) gave.add(d.household_re_id || d.re_id);
     }
-    return { donors, gave };
+    // LYBUNT / SYBUNT per household, only for households that have not given this year (RE or on the platform).
+    const agg = new Map();
+    for (const d of donors) {
+      const h = d.household_re_id || d.re_id, a = agg.get(h) || { ly: 0, prior: 0, last: null, appeal: '', young: false };
+      if (!a.appeal && d.appeal_code) a.appeal = d.appeal_code;
+      if (d.class_year >= YOUNG_FROM && d.class_year <= YOUNG_TO) a.young = true;
+      a.ly = Math.max(a.ly, Number(d.giving_fy_last) || 0); a.prior = Math.max(a.prior, Number(d.giving_fy_prior) || 0);
+      if (d.last_gift_date && (!a.last || String(d.last_gift_date) > a.last)) a.last = String(d.last_gift_date).slice(0, 10);
+      agg.set(h, a);
+    }
+    const segments = new Map();
+    for (const [h, a] of agg) {
+      if (gave.has(h)) continue;
+      const s = segmentOf(a), send = sendTagOf(a);
+      if (s || send) segments.set(h, { ...(s || { tag: null }), send });
+    }
+    return { donors, gave, segments };
   }
   async function load(cfg) {
     const [members, local] = await Promise.all([fetchMembers(cfg), loadLocal()]);
@@ -325,8 +396,8 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
           return;
         }
       }
-      const { members, donors, gave } = await load(cfg);
-      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl, maxNames: cfg.maxNames });
+      const { members, donors, gave, segments } = await load(cfg);
+      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl, maxNames: cfg.maxNames }, segments);
       lastBlocking = report.blocking; lastNames = names;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
@@ -405,6 +476,9 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
           if (st !== 'subscribed') { out.not_subscribed.push(`${e} (${st})`); return; }
           await withRetry(() => axios.post(`${base(cfg)}/members/${hashOf(e)}/tags`, { tags: [{ name: GAVE_TAG, status: 'active' }] }, { auth: authOf(cfg), timeout: 60000 }), 'add Gave tag');
           out.tagged.push(`${wantGave.get(e)} <${e}>`);
+          // They just gave, so they are no longer a LYBUNT / SYBUNT. A failure here only means the nightly run removes it instead.
+          try { await withRetry(() => axios.post(`${base(cfg)}/members/${hashOf(e)}/tags`, { tags: ALL_SEG_TAGS.map(name => ({ name, status: 'inactive' })) }, { auth: authOf(cfg), timeout: 60000 }), 'remove LYBUNT/SYBUNT tags'); }
+          catch (er2) { console.warn(`[GD mailchimp] quick: could not clear LYBUNT/SYBUNT for ${e}: ${scrub(er2.message)}`); }
         } catch (er) { out.errors.push(`${e}: ${scrub(er.message)}`); }
       });
       console.log(`[GD mailchimp] quick refresh by ${by}: ${out.tagged.length} tagged, ${out.not_in_mailchimp.length} not in Mailchimp`);
@@ -458,4 +532,4 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   }
 };
 
-module.exports._test = { plan, nameKind };
+module.exports._test = { plan, nameKind, segmentOf, sendTagOf, SEG_TAGS, SEND_TAGS };
