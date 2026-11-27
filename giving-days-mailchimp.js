@@ -3,7 +3,7 @@
 // PREVIEW reads Mailchimp and the donor table and changes nothing in either.
 // APPLY (only after a preview has been run on this server, and only when the preview has no blocking problems):
 //   - adds people who are not in Mailchimp yet (first and last name are set ONLY for these new contacts)
-//   - adds ONE "Nov 29: <segment>" tag per household that has not given (Senior, RGI, New Families, LYBUNT July-Dec / Jan-Jun, SYBUNT, Young Alumni: first match wins),
+//   - adds ONE "Nov 29: <segment>" tag per household that has not given (Senior, RGI, New Families, Young Alumni, LYBUNT July-Dec / Jan-Jun, SYBUNT: first match wins),
 //   - adds the tags "Gave 26-27" (household has given this year), "Appeal: <code>" (RE appeal code) and, for households that have not
 //     given this year, "26-27 July-Dec LYBUNT", "26-27 Jan-Jun LYBUNT" or "26-27 SYBUNT", and removes them again when they stop being true. No other tag on a contact is ever touched.
 //   - saves each person's RE ID in the RE_ID merge field, so a changed email can be recognised later
@@ -32,7 +32,7 @@ const GAVE_TAG = 'Gave 26-27';
 const TAG_LY_FIRST = '26-27 July-Dec LYBUNT', TAG_LY_SECOND = '26-27 Jan-Jun LYBUNT', TAG_SYBUNT = '26-27 SYBUNT';
 const SEG_TAGS = [TAG_LY_FIRST, TAG_LY_SECOND, TAG_SYBUNT];
 // The Sunday Nov 29 send: ONE tag per household that has not given, so nobody lands in two segments. In this order the first match wins:
-// Senior, RGI, New Families (appeal codes; exclusive), then LYBUNT (by half), SYBUNT, then Young Alumni (an alum of the classes 2012-2026 who is none of the above).
+// Senior, RGI, New Families (appeal codes; exclusive), then Young Alumni (an alum of the classes 2012-2026), then LYBUNT (by half), then SYBUNT.
 const SEND_TAGS = { senior: 'Nov 29: Senior', rgi: 'Nov 29: RGI', newfam: 'Nov 29: New Families', ly_first: 'Nov 29: LYBUNT July-Dec', ly_second: 'Nov 29: LYBUNT Jan-Jun', sybunt: 'Nov 29: SYBUNT', young: 'Nov 29: Young Alumni' };
 const SEND_LIST = Object.values(SEND_TAGS);
 const ALL_SEG_TAGS = [...SEG_TAGS, ...SEND_LIST];
@@ -44,9 +44,10 @@ function sendTagOf(h, fy = FY_START()) {
   if (/senior class/i.test(ap)) return SEND_TAGS.senior;
   if (/reunion giving/i.test(ap)) return SEND_TAGS.rgi;
   if (/^new family/i.test(ap)) return SEND_TAGS.newfam;
+  if (h.young) return SEND_TAGS.young;
   const s = segmentOf(h, fy);
   if (s && s.tag) return s.tag === TAG_LY_FIRST ? SEND_TAGS.ly_first : s.tag === TAG_LY_SECOND ? SEND_TAGS.ly_second : SEND_TAGS.sybunt;
-  return h.young ? SEND_TAGS.young : null;
+  return null;
 }
 const FY_START = () => parseInt(process.env.GD_FY_START_YEAR || '2026', 10);   // 2026 = fiscal year 26-27 (same setting the RE sync uses)
 // h = { ly, prior, last }: last year's total, the three earlier years' total, latest gift date 'YYYY-MM-DD'. Returns { tag } or { tag: null, noDate: true } or null.
