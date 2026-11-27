@@ -61,6 +61,8 @@ function segmentOf(h, fy = FY_START()) {
   if (h.prior > 0) return { tag: TAG_SYBUNT };
   return null;
 }
+// Last year's Trinity Fund gift as text for the email ("$1,500", or "$1,500.50" when there are cents).
+const moneyText = n => { const v = Number(n); if (!(v > 0)) return ''; return '$' + (Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); };
 const APPEAL_PREFIX = 'Appeal: ';
 const appealTag = code => APPEAL_PREFIX + code;
 const lc = v => String(v || '').trim().toLowerCase();
@@ -178,6 +180,7 @@ function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()
       appeal: (a.find(x => x.appeal_code) || {}).appeal_code || null,
       gave: a.some(x => gaveHouseholds.has(hh(x))),
       seg: a.some(x => gaveHouseholds.has(hh(x))) ? null : (a.map(x => segments.get(hh(x))).find(Boolean) || null),
+      lyAmount: a.some(x => gaveHouseholds.has(hh(x))) ? '' : moneyText(Math.max(0, ...a.map(x => (segments.get(hh(x)) || {}).ly || 0))),   // last year's gift, only for households that have not given yet
       reid: String(a[0].re_id),
       purl: purlOf(a[0]),   // a couple sharing one email shares one link: the first person's, the same one whose RE ID is saved
     });
@@ -186,9 +189,9 @@ function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()
   const donorByReId = new Map(donors.map(d => [String(d.re_id), d]));
   const r = { donors_with_email: want.size, donors_without_email: noEmail, mailchimp_members: members.length,
     already_in_mailchimp: 0, would_add: 0, skipped_not_subscribed: 0, name_differs: 0,
-    gave_total: 0, send_counts: {}, would_tag_send: 0, seg_counts: { ly_first: 0, ly_second: 0, sybunt: 0, ly_no_date: 0 }, would_tag_seg: 0, would_untag_seg_gave: 0, would_untag_seg_other: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, would_repair_lname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
+    gave_total: 0, amount_field: limits.lyField ? `${limits.lyField.name} (tag ${limits.lyField.tag})` : null, amount_field_note: limits.lyFieldNote || null, would_set_amount: 0, send_counts: {}, would_tag_send: 0, seg_counts: { ly_first: 0, ly_second: 0, sybunt: 0, ly_no_date: 0 }, would_tag_seg: 0, would_untag_seg_gave: 0, would_untag_seg_other: 0, would_tag_gave: 0, would_untag_gave: 0, would_tag_appeal: 0, would_untag_appeal: 0, would_set_reid: 0, would_set_purl: 0, would_set_fname: 0, would_repair_lname: 0, fname_left: 0, purl_other_left: 0, would_archive: 0, would_untag_stale: 0, mailchimp_only: 0,
     status_counts: {}, name_kinds: {}, blocking: [],
-    examples: { seg_no_date: [], name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
+    examples: { amount: [], seg_no_date: [], name_by_kind: {}, purl_other: [], would_add: [], name_differs: [], mailchimp_only: [], skipped_not_subscribed: [], would_archive: [], stale_tags: [] } };
   const actions = { adds: [], updates: [], removals: [], archives: [] };
   const names = [];   // every name that differs, for the download
   const push = (k, v) => { if (r.examples[k].length < 15) r.examples[k].push(v); };
@@ -209,7 +212,8 @@ function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()
     const m = have.get(w.email);
     if (!m) {
       r.would_add++; push('would_add', `${w.first} ${w.last} <${w.email}>`.trim());
-      actions.adds.push({ email: w.email, first: w.first, last: w.last, reid: w.reid, purl: w.purl, tags: tagsWanted });
+      actions.adds.push({ email: w.email, first: w.first, last: w.last, reid: w.reid, purl: w.purl, tags: tagsWanted, amount: limits.lyField && w.lyAmount ? w.lyAmount : null });
+      if (limits.lyField && w.lyAmount) r.would_set_amount++;
       if (w.gave) r.would_tag_gave++;
       if (w.appeal) r.would_tag_appeal++;
       if (segTag) r.would_tag_seg++;
@@ -260,7 +264,10 @@ function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()
     if (w.purl && foreignPurl && !limits.overwritePurl) { r.purl_other_left++; push('purl_other', `${w.email}: ${curPurl.slice(0, 90)}`); }
     const setPurl = !!w.purl && curPurl !== w.purl && (!foreignPurl || !!limits.overwritePurl);
     if (setPurl) r.would_set_purl++;
-    if (addTags.length || setReid || setPurl || fixFirst || fixLast) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, fname: fixFirst, lname: fixLast, tags: addTags });
+    // Last year's gift goes in the text field for people who gave last year and not yet this year. Everyone else's value is left alone.
+    const setAmount = !!(limits.lyField && w.lyAmount) && String(mf[limits.lyField.tag] || '').trim() !== w.lyAmount;
+    if (setAmount) { r.would_set_amount++; push('amount', `${w.first} ${w.last}: ${w.lyAmount}${String(mf[limits.lyField.tag] || '').trim() ? ' (was ' + String(mf[limits.lyField.tag]).trim() + ')' : ''}`.trim()); }
+    if (addTags.length || setReid || setPurl || setAmount || fixFirst || fixLast) actions.updates.push({ email: w.email, reid: setReid ? w.reid : null, purl: setPurl ? w.purl : null, amount: setAmount ? w.lyAmount : null, fname: fixFirst, lname: fixLast, tags: addTags });
     if (remove.length) actions.removals.push({ email: w.email, remove });
   }
 
@@ -296,6 +303,19 @@ function plan(donors, gaveHouseholds, members, limits = {}, segments = new Map()
 }
 
 // ---- Apply helpers (talk to Mailchimp) ----
+// The existing text field that holds last year's gift for the email (named like "LYBUNT Amount"). Found by name or tag, never created here.
+// MAILCHIMP_LYBUNT_FIELD=<tag> picks one explicitly. Returns { field: { tag, name } | null, note }.
+async function findAmountField(c) {
+  try {
+    const r = await withRetry(() => axios.get(`${base(c)}/merge-fields`, { auth: authOf(c), params: { count: 100, fields: 'merge_fields.tag,merge_fields.name,merge_fields.type' }, timeout: 60000 }), 'read merge fields');
+    const fields = r.data.merge_fields || [], want = String(process.env.MAILCHIMP_LYBUNT_FIELD || '').trim().toUpperCase();
+    const cands = want ? fields.filter(f => f.tag === want) : fields.filter(f => /lybunt/i.test(f.name) || /^(LYBUNT|MERGE24)$/i.test(f.tag));
+    if (cands.length !== 1) return { field: null, note: cands.length ? `More than one field could be the LYBUNT amount (${cands.map(f => f.name + ' / ' + f.tag).join('; ')}): set MAILCHIMP_LYBUNT_FIELD to the tag you want.` : 'No merge field named like "LYBUNT Amount" was found, so no amounts are written.' };
+    if (cands[0].type !== 'text') return { field: null, note: `The field "${cands[0].name}" is type ${cands[0].type}, not text: no amounts are written.` };
+    return { field: { tag: cands[0].tag, name: cands[0].name }, note: null };
+  } catch (e) { return { field: null, note: 'Could not read the Mailchimp merge fields: no amounts written this run.' }; }
+}
+
 // Creates the RE_ID and PURL merge fields if they are not there yet. Returns the tags it created.
 async function ensureMergeFields(c) {
   const r = await withRetry(() => axios.get(`${base(c)}/merge-fields`, { auth: authOf(c), params: { count: 100, fields: 'merge_fields.tag' }, timeout: 60000 }), 'read merge fields');
@@ -370,7 +390,7 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
     for (const [h, a] of agg) {
       if (gave.has(h)) continue;
       const s = segmentOf(a), send = sendTagOf(a);
-      if (s || send) segments.set(h, { ...(s || { tag: null }), send });
+      if (s || send) segments.set(h, { ...(s || { tag: null }), send, ly: a.ly });
     }
     return { donors, gave, segments };
   }
@@ -398,7 +418,8 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
         }
       }
       const { members, donors, gave, segments } = await load(cfg);
-      const { report, actions, names } = plan(donors, gave, members, { maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl, maxNames: cfg.maxNames }, segments);
+      const { field: lyField, note: lyFieldNote } = await findAmountField(cfg);
+      const { report, actions, names } = plan(donors, gave, members, { lyField, lyFieldNote, maxAdds: cfg.maxAdds, maxArchives: cfg.maxArchives, maxStale: cfg.maxStale, maxUntag: cfg.maxUntag, overwritePurl: cfg.overwritePurl, maxNames: cfg.maxNames }, segments);
       lastBlocking = report.blocking; lastNames = names;
       if (by === 'nightly' && report.blocking.length) { lastNightly = { at: new Date().toISOString(), outcome: 'blocked', note: report.blocking.join(' ') }; await alertStaff('Mailchimp nightly sync NOT applied', report.blocking); }
       if (!apply) {
@@ -413,8 +434,8 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
       const summary = { created: 0, updated: 0, errors: 0, error_examples: [], tags_removed: 0, archived: 0, merge_fields_created: [] };
       summary.merge_fields_created = await ensureMergeFields(cfg);
       const upserts = [
-        ...actions.adds.map(a => ({ email_address: a.email, status: cfg.newStatus, merge_fields: { FNAME: a.first, LNAME: a.last, RE_ID: a.reid, PURL: a.purl }, tags: a.tags })),
-        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; const mf = {}; if (u.reid) mf.RE_ID = u.reid; if (u.purl) mf.PURL = u.purl; if (u.fname) mf.FNAME = u.fname; if (u.lname) mf.LNAME = u.lname; if (Object.keys(mf).length) o.merge_fields = mf; if (u.tags.length) o.tags = u.tags; return o; }),
+        ...actions.adds.map(a => ({ email_address: a.email, status: cfg.newStatus, merge_fields: { FNAME: a.first, LNAME: a.last, RE_ID: a.reid, PURL: a.purl, ...(a.amount && lyField ? { [lyField.tag]: a.amount } : {}) }, tags: a.tags })),
+        ...actions.updates.map(u => { const o = { email_address: u.email, status: 'subscribed' }; const mf = {}; if (u.reid) mf.RE_ID = u.reid; if (u.purl) mf.PURL = u.purl; if (u.amount && lyField) mf[lyField.tag] = u.amount; if (u.fname) mf.FNAME = u.fname; if (u.lname) mf.LNAME = u.lname; if (Object.keys(mf).length) o.merge_fields = mf; if (u.tags.length) o.tags = u.tags; return o; }),
       ];
       await batchUpsert(cfg, upserts, summary);
       await pool(actions.removals, 8, async x => {
@@ -533,4 +554,4 @@ module.exports = function mountGivingDaysMailchimp(app, { supabase, requireAdmin
   }
 };
 
-module.exports._test = { plan, nameKind, segmentOf, sendTagOf, SEG_TAGS, SEND_TAGS };
+module.exports._test = { plan, nameKind, segmentOf, sendTagOf, moneyText, SEG_TAGS, SEND_TAGS };
