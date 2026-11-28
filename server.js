@@ -2592,6 +2592,20 @@ async function requireAdmin(req, res, next) {
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
   const { data: { user }, error } = await parentsSupabase.auth.getUser(auth.slice(7));
   if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+
+  // Allowlist: a valid Supabase login is NOT enough (anyone could sign up with the public anon key).
+  // ADMIN_EMAILS = comma-separated staff emails. Unset or empty = nobody gets in (fail closed).
+  const allowed = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const email = String(user.email || '').toLowerCase();
+  const confirmed = !!(user.email_confirmed_at || user.confirmed_at);   // blocks claiming a staff address by sign-up
+  if (!allowed.length) {
+    console.error('[admin auth] ADMIN_EMAILS is not set; all admin requests are refused.');
+    return res.status(503).json({ error: 'Admin access is not configured.' });
+  }
+  if (!email || !confirmed || !allowed.includes(email)) {
+    console.warn(`[admin auth] refused ${email || 'no-email'} (${user.id}) on ${req.method} ${req.path}`);
+    return res.status(403).json({ error: 'Not authorized.' });
+  }
   req.user = user;
   next();
 }
