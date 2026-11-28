@@ -1511,7 +1511,7 @@ async function loadReStatus() {
   try {
     const s = await api('GET', '/api/admin/gd/re-export/status');
     $('g-re-status').innerHTML = s.waiting
-      ? `<b>${s.waiting} online gift${s.waiting === 1 ? '' : 's'} (${usd(s.waiting_total)}) not in Raiser's Edge yet.</b>${s.no_re_id ? ` <span style="color:#8a5a00">${s.no_re_id} of them ${s.no_re_id === 1 ? 'has' : 'have'} no RE ID (the donor is not on the list), so ${s.no_re_id === 1 ? 'its' : 'their'} ImportID will be blank and RE will need a manual match.</span>` : ''} ${s.imported} already marked imported.`
+      ? `<b>${s.waiting} online gift${s.waiting === 1 ? '' : 's'} (${usd(s.waiting_total)}) not in Raiser's Edge yet.</b>${s.no_re_id ? ` <span style="color:#8a5a00">${s.no_re_id} of them ${s.no_re_id === 1 ? 'has' : 'have'} no Import ID yet (the donor is not on the list, or the next RE sync has not filled it in), so ${s.no_re_id === 1 ? 'its' : 'their'} ImportID will be blank and RE will need a manual match.</span>` : ''} ${s.imported} already marked imported.`
       : `No online gifts waiting for RE. ${s.imported} marked imported.`;
     $('g-re-sum').textContent = s.waiting ? `· ${s.waiting} online gift${s.waiting === 1 ? '' : 's'} not in RE yet` : '· nothing waiting';
   } catch (e) { $('g-re-status').textContent = e.message; }

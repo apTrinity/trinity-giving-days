@@ -22,6 +22,24 @@ const cardType = raw => (String(raw || '').toLowerCase().replace(/\s+/g, '') ===
 // Formula-looking text in a spreadsheet is a risk: a name starting with = + - @ is shown as plain text.
 const safe = v => { const s = String(v == null ? '' : v); return /^[=+\-@]/.test(s) ? "'" + s : s; };
 
+// ImportID for each donor id: the Import ID of the household's main record holder (household_re_id), falling back to the donor's own.
+async function householdImportIds(supabase, donorIds) {
+  const out = new Map(), own = [];
+  for (let i = 0; i < donorIds.length; i += 200) {
+    const { data, error } = await supabase.from('gd_donors').select('id, re_id, import_id, household_re_id').in('id', donorIds.slice(i, i + 200));
+    if (error) throw error;
+    own.push(...(data || []));
+  }
+  const heads = [...new Set(own.map(d => d.household_re_id && String(d.household_re_id)).filter(Boolean))], headImp = new Map();
+  for (let i = 0; i < heads.length; i += 200) {
+    const { data, error } = await supabase.from('gd_donors').select('re_id, import_id').in('re_id', heads.slice(i, i + 200));
+    if (error) throw error;
+    (data || []).forEach(d => { if (d.import_id) headImp.set(String(d.re_id), d.import_id); });
+  }
+  own.forEach(d => out.set(d.id, headImp.get(String(d.household_re_id)) || d.import_id || ''));
+  return out;
+}
+
 module.exports = function mountGivingDaysReExport(app, { supabase, requireAdmin, skyRequest }) {
   const fail = (res, err) => {
     console.error('giving-days-reexport:', err.message || err);
@@ -71,12 +89,7 @@ module.exports = function mountGivingDaysReExport(app, { supabase, requireAdmin,
       const waiting = gifts.filter(g => !g.re_synced_at);
       const ids = [...new Set(waiting.map(g => g.donor_id).filter(Boolean))];
       let noRe = waiting.filter(g => !g.donor_id).length;
-      const re = new Map();
-      for (let i = 0; i < ids.length; i += 200) {
-        const { data, error } = await supabase.from('gd_donors').select('id, re_id').in('id', ids.slice(i, i + 200));
-        if (error) throw error;
-        (data || []).forEach(d => re.set(d.id, d.re_id));
-      }
+      const re = await householdImportIds(supabase, ids);
       noRe += waiting.filter(g => g.donor_id && !re.get(g.donor_id)).length;
       res.json({ waiting: waiting.length, waiting_total: waiting.reduce((t, g) => t + Number(g.amount), 0), no_re_id: noRe, imported: gifts.length - waiting.length });
     } catch (err) { fail(res, err); }
@@ -91,12 +104,8 @@ module.exports = function mountGivingDaysReExport(app, { supabase, requireAdmin,
       const gifts = all.filter(g => want ? want.has(g.id) : !g.re_synced_at);
       if (!gifts.length) return res.json({ empty: true, message: want ? 'None of the checked gifts can be exported (test gifts and gifts that came from RE are left out).' : 'No gifts waiting for RE.' });
 
-      const donorIds = [...new Set(gifts.map(g => g.donor_id).filter(Boolean))], re = new Map();
-      for (let i = 0; i < donorIds.length; i += 200) {
-        const { data, error } = await supabase.from('gd_donors').select('id, re_id').in('id', donorIds.slice(i, i + 200));
-        if (error) throw error;
-        (data || []).forEach(d => re.set(d.id, d.re_id));
-      }
+      const donorIds = [...new Set(gifts.map(g => g.donor_id).filter(Boolean))];
+      const re = await householdImportIds(supabase, donorIds);
 
       const rows = [toCSV(COLUMNS)];
       for (const g of gifts) {

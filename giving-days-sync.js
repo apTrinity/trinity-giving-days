@@ -31,6 +31,8 @@ const tfCash = back => [fyKey(FY_START() - back) + 'tfcashtotal'];              
 // Built for single-row query -648898 (see the column list in the admin's "Test an RE query" card).
 const ALIASES = {
   re_id:         ['systemrecordid', 'constituentid', 'recordid', 'queryrecordid'],
+  import_id:     ['constituentimportid', 'importid'],   // RE Import ID: what the gift import file needs in its first column (the system record ID will not match)
+  spouse_import_id: ['spouseimportid'],
   first:         ['firstname', 'first'],
   nick:          ['preferredname', 'nickname', 'preferredfirstname'],
   last:          ['lastname', 'last'],
@@ -66,7 +68,7 @@ const ALIASES = {
   no_solicit:    ['donotsolicit', 'nosolicit'],
 };
 const ROLE_LABEL = {
-  re_id: 'RE ID (person)', first: 'First name', nick: 'Preferred name', last: 'Last name', gender: 'Gender', email: 'Email', email2: 'Email 2 (spouse, parents only)',
+  re_id: 'RE ID (person)', import_id: 'Import ID (person)', spouse_import_id: 'Spouse Import ID', first: 'First name', nick: 'Preferred name', last: 'Last name', gender: 'Gender', email: 'Email', email2: 'Email 2 (spouse, parents only)',
   class_year: 'Class year (alumni)', spouse_re_id: 'Spouse RE ID', spouse_first: 'Spouse first name', spouse_nick: 'Spouse preferred name', spouse_last: 'Spouse last name',
   ly_gift: 'Last year\'s gift', ask_a: 'Ask A', ask_b: 'Ask B', current_parent: 'Current Parent flag', alumni_flag: 'Alumni flag', faculty: 'Faculty/Staff flag',
   grandparent: 'Grandparent flag', parent_of_alumni: 'Parent of Alumni / Withdrawn Parent code', appeal_code: 'Appeal Code (NEW FAMILY = new family)', addressee: 'Addressee (household)', salutation: 'Salutation (household)', alumni_addressee: 'Alumni addressee', alumni_salutation: 'Alumni salutation', primary_code: 'Primary Constituent Code', giving_ytd: 'This year\'s giving (26-27)', giving_ly: 'Last year\'s Trinity Fund cash total (25-26)', giving_p1: 'Trinity Fund cash total, 2 years back (24-25)', giving_p2: 'Trinity Fund cash total, 3 years back (23-24)', giving_p3: 'Trinity Fund cash total, 4 years back (22-23)', last_gift_date: 'Last gift date', deceased: 'Deceased', no_solicit: 'Do not solicit', student_classes: 'Student class years (for grades)',
@@ -166,7 +168,7 @@ function toPeople(rows, roles) {
     if (roles.last_gift_date) hh.last_gift_date = dateOnly(g(r, 'last_gift_date'));
     const email = (text(g(r, 'email')) || '').toLowerCase() || null;
     const names = { addressee: text(g(r, 'addressee')), salutation: text(g(r, 'salutation')), household_re_id: id, appeal_code: text(g(r, 'appeal_code')) };
-    const person = { re_id: id, first_name: first, last_name: last, email, class_year: cy, grades, import_tags: [...own].sort(), ...hh, ...names,
+    const person = { re_id: id, import_id: roles.import_id ? (text(g(r, 'import_id')) || null) : undefined, first_name: first, last_name: last, email, class_year: cy, grades, import_tags: [...own].sort(), ...hh, ...names,
       alumni_addressee: alumniVal ? text(g(r, 'alumni_addressee')) : null, alumni_salutation: alumniVal ? text(g(r, 'alumni_salutation')) : null };
     if (add(person, `row with ${first || ''} ${last || ''}`.trim()) && !email) { issues.no_email++; push(examples.no_email, `${first || ''} ${last || ''} (${id})`.trim()); }
     // Spouse: Email 2 is the spouse's address only for current parents and parents of alumni; for everyone else it is ignored.
@@ -180,7 +182,7 @@ function toPeople(rows, roles) {
       const e2 = (text(g(r, 'email2')) || '').toLowerCase() || null;
       if (e2) { if (parentHousehold) issues.email2_used++; else issues.email2_ignored++; }
       if (!sid) { issues.spouse_id_missing++; continue; }
-      pending.push({ re_id: sid, first_name: sFirst, last_name: sLast || last, email: parentHousehold ? e2 : null, class_year: null, grades, import_tags: [...household].sort(), ...hh, ...names, alumni_addressee: null, alumni_salutation: null });
+      pending.push({ re_id: sid, import_id: roles.spouse_import_id ? (text(g(r, 'spouse_import_id')) || null) : undefined, first_name: sFirst, last_name: sLast || last, email: parentHousehold ? e2 : null, class_year: null, grades, import_tags: [...household].sort(), ...hh, ...names, alumni_addressee: null, alumni_salutation: null });
     }
   }
   for (const sp of pending) {
@@ -202,10 +204,11 @@ function toPeople(rows, roles) {
   return { people: [...people.values()], issues, examples, unknownTags: [], codes: [...codes.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 20).map(([code, c]) => ({ code: code || '(blank)', ...c })) };
 }
 
-const FIELDS = ['first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code', 'giving_fy_last', 'giving_fy_prior', 'last_gift_date'];
+const FIELDS = ['import_id', 'first_name', 'last_name', 'email', 'class_year', 'ly_gift', 'ask_a', 'ask_b', 'giving_ytd', 'grades', 'import_tags', 'addressee', 'salutation', 'alumni_addressee', 'alumni_salutation', 'household_re_id', 'appeal_code', 'giving_fy_last', 'giving_fy_prior', 'last_gift_date'];
 // A field is only touched when the query still has the column(s) it comes from. Without this, deleting a column from the RE query
 // would blank that field for everyone on the next sync.
 const FIELD_ROLES = {
+  import_id: ['import_id'],
   first_name: ['first', 'nick'], last_name: ['last'], email: ['email'], class_year: ['class_year'], ly_gift: ['ly_gift'], ask_a: ['ask_a'], ask_b: ['ask_b'],
   giving_ytd: ['giving_ytd'], grades: ['student_classes'], import_tags: ['current_parent', 'alumni_flag'], addressee: ['addressee'], salutation: ['salutation'],
   alumni_addressee: ['alumni_addressee'], alumni_salutation: ['alumni_salutation'], appeal_code: ['appeal_code'],
@@ -216,6 +219,7 @@ const fieldInQuery = (f, roles) => !FIELD_ROLES[f] || FIELD_ROLES[f].some(r => r
 const maxNewlyInactive = activeCount => Math.max(25, Math.ceil(activeCount * (parseFloat(process.env.GD_SYNC_MAX_INACTIVE_PCT || '5') / 100)));
 const BASE_COLS = 'id, re_id, first_name, last_name, email, class_year, ly_gift, ask_a, ask_b, grades, import_tags';
 const NEW_COLS = ', giving_ytd, addressee, salutation, alumni_addressee, alumni_salutation, household_re_id, appeal_code';
+const IMPORT_COLS = ', import_id';   // sql/gd-22-import-id.sql
 const GIVING_COLS = ', giving_fy_last, giving_fy_prior, last_gift_date';   // sql/gd-20-giving-history.sql
 const same = (a, b) => (Array.isArray(a) || Array.isArray(b)) ? JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort())
   : (a == null && b == null) || (a != null && b != null && String(a) === String(b)) || (typeof a === 'number' && Number(b) === a);
@@ -252,12 +256,15 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       // Columns added by sql/gd-13-sync.sql may not exist yet (a preview works either way): fall back to the older set.
       // The giving-history columns (sql/gd-20) may not exist yet either: then the sync carries on exactly as before, without them.
       let have, givingTable = true;
-      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS + GIVING_COLS).order('id')); }
+      // The import_id column (sql/gd-22) may not exist yet either: then the sync carries on without it.
+      const importTable = !(await supabase.from('gd_donors').select('import_id').limit(1)).error;
+      const IMP = importTable ? IMPORT_COLS : '';
+      try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS + GIVING_COLS + IMP).order('id')); }
       catch (e) {
         if (!(e && e.code === '42703')) throw e;
         givingTable = false;
-        try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS).order('id')); }
-        catch (e2) { if (e2 && e2.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS).order('id')); else throw e2; }
+        try { have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + NEW_COLS + IMP).order('id')); }
+        catch (e2) { if (e2 && e2.code === '42703') have = await fetchAll(() => supabase.from('gd_donors').select(BASE_COLS + IMP).order('id')); else throw e2; }
       }
       const byId = new Map(have.map(d => [String(d.re_id), d]));
       const seen = new Set(people.map(p => p.re_id));
@@ -309,6 +316,7 @@ module.exports = function mountGivingDaysSync(app, { supabase, requireAdmin, sky
       for (let i = 0; i < adds.length; i += 200) {
         const chunk = adds.slice(i, i + 200).map(p => {
           const r = { token: fresh(), re_id: p.re_id, first_name: p.first_name, last_name: p.last_name, email: p.email, class_year: p.class_year, ly_gift: p.ly_gift, ask_a: p.ask_a, ask_b: p.ask_b, giving_ytd: p.giving_ytd, addressee: p.addressee, salutation: p.salutation, alumni_addressee: p.alumni_addressee, alumni_salutation: p.alumni_salutation, household_re_id: p.household_re_id, appeal_code: p.appeal_code, active: true, synced_at: now };
+          if (importTable && p.import_id) r.import_id = p.import_id;
           if (givingTable) for (const f of ['giving_fy_last', 'giving_fy_prior', 'last_gift_date']) if (p[f] !== undefined) r[f] = p[f];
           if (p.grades !== undefined) r.grades = p.grades;
           if (p.import_tags !== undefined) r.import_tags = p.import_tags;
