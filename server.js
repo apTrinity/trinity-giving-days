@@ -532,8 +532,36 @@ app.use((req, res, next) => {
     // Report-only by default. Setting GD_CSP=enforce on Render turns the same policy into a blocking one (no deploy needed).
     [String(process.env.GD_CSP).toLowerCase() === 'enforce' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only']: CSP,
   });
-  // The admin pages must not be shown inside another site's frame (clickjacking). The public page stays embeddable.
-  if (req.path === '/admin' || req.path.startsWith('/admin/')) res.set('X-Frame-Options', 'SAMEORIGIN');
+  // Frame blocking (clickjacking / look-alike overlays). This is its own ENFORCED header, separate from the report-only policy above,
+  // so it works whatever GD_CSP is set to. Admin pages: only this site may frame them (the admin preview is a same-site iframe).
+  // Public pages: this site and trinityschoolnyc.org (in case the school website embeds them). Any other site cannot frame them.
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) {
+    res.set('X-Frame-Options', 'SAMEORIGIN');
+    res.append('Content-Security-Policy', "frame-ancestors 'self'");
+  } else {
+    res.append('Content-Security-Policy', "frame-ancestors 'self' https://trinityschoolnyc.org https://*.trinityschoolnyc.org");
+  }
+  next();
+});
+
+// Look-alike site tripwire: a copied page that still loads our logo, fonts or config from this server sends a Referer naming the
+// copy's address. Log that (host + path only, no query), at most 5 times per host and 50 hosts, so a clone shows up in the Render logs.
+const OWN_HOST_RE = /^(giving\.trinityschoolnyc\.org|trinity-giving-days\.onrender\.com|localhost|127\.0\.0\.1|([a-z0-9-]+\.)*trinityschoolnyc\.org)$/i;
+const foreignRefs = new Map();
+app.use((req, res, next) => {
+  const ref = req.headers.referer;
+  if (ref && /\.(png|jpe?g|svg|woff2?|css|js|ico)$|^\/api\/gd\/config$/i.test(req.path) && req.path !== '/giving-days-email-logo.png') {
+    try {
+      const host = new URL(ref).hostname;
+      if (!OWN_HOST_RE.test(host)) {
+        const n = foreignRefs.get(host) || 0;
+        if (n < 5 && (n > 0 || foreignRefs.size < 50)) {
+          foreignRefs.set(host, n + 1);
+          console.warn(`[referer] our file ${req.path} was loaded from another site: ${host}`);
+        }
+      }
+    } catch (e) { /* malformed Referer: ignore */ }
+  }
   next();
 });
 let cspLogged = 0;
