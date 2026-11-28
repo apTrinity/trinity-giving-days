@@ -544,6 +544,8 @@ app.use((req, res, next) => {
   next();
 });
 
+const securityWatch = require('./giving-days-watch');   // emails the developer when something suspicious happens (never throws)
+
 // Look-alike site tripwire: a copied page that still loads our logo, fonts or config from this server sends a Referer naming the
 // copy's address. Log that (host + path only, no query), at most 5 times per host and 50 hosts, so a clone shows up in the Render logs.
 const OWN_HOST_RE = /^(giving\.trinityschoolnyc\.org|trinity-giving-days\.onrender\.com|localhost|127\.0\.0\.1|([a-z0-9-]+\.)*trinityschoolnyc\.org)$/i;
@@ -558,6 +560,7 @@ app.use((req, res, next) => {
         if (n < 5 && (n > 0 || foreignRefs.size < 50)) {
           foreignRefs.set(host, n + 1);
           console.warn(`[referer] our file ${req.path} was loaded from another site: ${host}`);
+          if (n === 0) securityWatch.foreignReferer(host, req.path);   // email once per new site
         }
       }
     } catch (e) { /* malformed Referer: ignore */ }
@@ -2616,10 +2619,10 @@ app.get('/api/admin/config', (req, res) => {
 // Middleware — verifies Supabase JWT from Authorization: Bearer <token>
 async function requireAdmin(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  if (!auth?.startsWith('Bearer ')) { securityWatch.adminUnauthorized(req); return res.status(401).json({ error: 'Unauthorized' }); }
   if (!parentsSupabase) return res.status(503).json({ error: 'Parents database not configured.' });
   const { data: { user }, error } = await parentsSupabase.auth.getUser(auth.slice(7));
-  if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+  if (error || !user) { securityWatch.adminUnauthorized(req); return res.status(401).json({ error: 'Invalid or expired session.' }); }
 
   // Allowlist: a valid Supabase login is NOT enough (anyone could sign up with the public anon key).
   // ADMIN_EMAILS = comma-separated staff emails. Unset or empty = nobody gets in (fail closed).
@@ -2628,13 +2631,16 @@ async function requireAdmin(req, res, next) {
   const confirmed = !!(user.email_confirmed_at || user.confirmed_at);   // blocks claiming a staff address by sign-up
   if (!allowed.length) {
     console.error('[admin auth] ADMIN_EMAILS is not set; all admin requests are refused.');
+    securityWatch.notConfigured();
     return res.status(503).json({ error: 'Admin access is not configured.' });
   }
   if (!email || !confirmed || !allowed.includes(email)) {
     console.warn(`[admin auth] refused ${email || 'no-email'} (${user.id}) on ${req.method} ${req.path}`);
+    securityWatch.adminRefused(req, user);
     return res.status(403).json({ error: 'Not authorized.' });
   }
   req.user = user;
+  securityWatch.adminData(req);   // emails if the big data lists are pulled over and over (scraping)
   next();
 }
 
